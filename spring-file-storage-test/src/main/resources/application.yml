@@ -1,0 +1,46 @@
+server:
+  port: 8030
+
+spring:
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/spring-file-storage-test?characterEncoding=UTF-8&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  file-storage: #文件存储配置
+    default-platform: local-1 #默认使用的存储平台
+    thumbnail-suffix: ".min.jpg" #缩略图后缀，例如【.min.jpg】【.png】
+    local: # 本地存储
+      - platform: local-1 # 存储平台标识
+        enable-storage: true  #启用存储
+        enable-access: true #启用访问（线上请使用 Nginx 配置，效率更高）
+        domain: "" # 访问域名
+        base-path: D:/Temp/test/ # 存储地址
+        path-patterns: /test/file/** # 访问路径
+    huawei-obs: # 华为云 OBS
+      - platform: huawei-obs-1 # 存储平台标识
+        enable-storage: false  # 启用存储
+        access-key: ??
+        secret-key: ??
+        end-point: ??
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：http://abc.obs.com/
+        base-path: hy/ # 基础路径
+    aliyun-oss: # 阿里云 OSS
+      - platform: aliyun-oss-1 # 存储平台标识
+        enable-storage: false  # 启用存储
+        access-key: ??
+        secret-key: ??
+        end-point: ??
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.oss-cn-shanghai.aliyuncs.com/
+        base-path: hy/ # 基础路径
+    qiniu-kodo: # 七牛云 kodo
+      - platform: qiniu-kodo-1 # 存储平台标识
+        enable-storage: false  # 启用存储
+        access-key: ??
+        secret-key: ??
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：http://abc.hn-bkt.clouddn.com/
+        base-path: base/ # 基础路径
