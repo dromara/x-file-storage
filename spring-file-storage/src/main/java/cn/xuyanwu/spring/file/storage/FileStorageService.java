@@ -100,7 +100,7 @@ public class FileStorageService {
      */
     public boolean delete(String url) {
         //判断是否为缩略图路径的先写死
-        url = StrUtil.removeSuffix(url,".min.jpg");
+//        url = StrUtil.removeSuffix(url,".min.jpg");
         FileInfo fileInfo = fileRecorder.getByUrl(url);
         return delete(fileInfo);
     }

@@ -5,7 +5,7 @@
     <parent>
         <artifactId>spring-file-storage-parent</artifactId>
         <groupId>cn.xuyanwu</groupId>
-        <version>0.1.0-beta</version>
+        <version>0.1.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -63,12 +63,14 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
             <scope>provided</scope>
+            <version>2.4.0</version>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
+            <version>2.4.0</version>
         </dependency>
     </dependencies>
 
