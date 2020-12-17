@@ -1,8 +1,8 @@
 <h1 align="center">spring-file-storage</h1>
 
 <p align="center">
-	<a target="_blank" href="https://search.maven.org/artifact/cn.xuyaowu/spring-file-storage">
-		<img src="https://img.shields.io/maven-central/v/cn.xuyaowu/spring-file-storage.svg?label=Maven%20Central" />
+	<a target="_blank" href="https://search.maven.org/artifact/cn.xuyanwu/spring-file-storage">
+		<img src="https://img.shields.io/maven-central/v/cn.xuyanwu/spring-file-storage.svg?label=Maven%20Central" />
 	</a>
 	<a target="_blank" href="https://www.apache.org/licenses/LICENSE-2.0">
 		<img src="https://img.shields.io/badge/license-Apache%202-green.svg" />
@@ -36,7 +36,7 @@
     <dependency>
         <groupId>cn.xuyanwu</groupId>
         <artifactId>spring-file-storage</artifactId>
-        <version>0.1.0</version>
+        <version>0.1.1</version>
     </dependency>
 
     <!-- 华为云 OBS 不使用的情况下可以不引入-->
