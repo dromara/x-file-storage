@@ -326,7 +326,7 @@ public class LocalFileStorageAutoConfiguration {
      */
     @Bean
     public List<LocalFileStorage> localFileStorageList() {
-        ArrayList<Object> list = new ArrayList<>();
+        ArrayList<LocalFileStorage> list = new ArrayList<>();
         LocalFileStorage localFileStorage = new LocalFileStorage();
         localFileStorage.setPlatform("my-local-1");//平台名称
         localFileStorage.setBasePath("");
