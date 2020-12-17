@@ -21,7 +21,7 @@ public class FileDetailController {
     public String upload(MultipartFile file) {
         FileInfo fileInfo = fileStorageService.of(file)
                 .setPath("upload/") //保存到相对路径下，为了方便管理，不需要可以不写
-                .setObjectId("0")   //关联对象id，方便管理，为了不需要可以不写
+                .setObjectId("0")   //关联对象id，为了方便管理，不需要可以不写
                 .setObjectType("0") //关联对象类型，为了方便管理，不需要可以不写
                 .upload();  //将文件上传到对应地方
         return fileInfo == null ? "上传失败！" : fileInfo.getUrl();
