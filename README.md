@@ -122,6 +122,22 @@ local:
     path-patterns: /test2/file/**
 ```
 
+#### 编码
+
+在启动类上加上`@EnableFileStorage`注解
+
+```java
+@EnableFileStorage
+@SpringBootApplication
+public class SpringFileStorageTestApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(SpringFileStorageTestApplication.class, args);
+	}
+	
+}
+```
+
 #### 开始使用
 
 ```java
