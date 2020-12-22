@@ -4,6 +4,9 @@ import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.xuyanwu.spring.file.storage.aspect.DeleteAspectChain;
+import cn.xuyanwu.spring.file.storage.aspect.FileStorageAspect;
+import cn.xuyanwu.spring.file.storage.aspect.UploadAspectChain;
 import cn.xuyanwu.spring.file.storage.platform.FileStorage;
 import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
 import lombok.Getter;
@@ -15,8 +18,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.function.Predicate;
 
 
 /**
@@ -35,7 +40,9 @@ public class FileStorageService {
     @Autowired
     private List<List<? extends FileStorage>> fileStorageList;
     @Autowired
-    FileStorageProperties properties;
+    private FileStorageProperties properties;
+    @Autowired(required = false)
+    private List<FileStorageAspect> aspectList = new ArrayList<>();
 
 
     /**
@@ -87,33 +94,59 @@ public class FileStorageService {
         FileStorage fileStorage = getFileStorage(pre.getPlatform());
         Assert.notNull(fileStorage,"没有找到对应的存储平台！");
 
-        if (fileStorage.save(fileInfo,pre)) {
-            if (fileRecorder.record(fileInfo)) {
-                return fileInfo;
+        //处理切面
+        return new UploadAspectChain(aspectList,(_fileInfo,_pre,_fileStorage,_fileRecorder) -> {
+            //真正开始保存
+            if (_fileStorage.save(_fileInfo,_pre)) {
+                if (_fileRecorder.record(_fileInfo)) {
+                    return _fileInfo;
+                }
             }
-        }
-        return null;
+            return null;
+        }).next(fileInfo,pre,fileStorage,fileRecorder);
     }
 
     /**
      * 根据 url 删除文件
      */
     public boolean delete(String url) {
-        //判断是否为缩略图路径的先写死
-//        url = StrUtil.removeSuffix(url,".min.jpg");
         FileInfo fileInfo = fileRecorder.getByUrl(url);
         return delete(fileInfo);
     }
 
+    /**
+     * 根据 url 删除文件
+     */
+    public boolean delete(String url,Predicate<FileInfo> predicate) {
+        FileInfo fileInfo = fileRecorder.getByUrl(url);
+        return delete(fileInfo,predicate);
+    }
+
+    /**
+     * 根据条件
+     */
     public boolean delete(FileInfo fileInfo) {
+        return delete(fileInfo,null);
+    }
+
+    /**
+     * 根据条件删除文件
+     */
+    public boolean delete(FileInfo fileInfo,Predicate<FileInfo> predicate) {
         if (fileInfo == null) return true;
+        if (predicate != null && !predicate.test(fileInfo)) return false;
         FileStorage fileStorage = getFileStorage(fileInfo.getPlatform());
         if (fileStorage == null) {
             log.warn("没有找到对应的存储平台！");
-        } else if (fileStorage.delete(fileInfo)) {   //删除文件
-            return fileRecorder.delete(fileInfo.getUrl());  //删除文件记录
+            return false;
         }
-        return false;
+
+        return new DeleteAspectChain(aspectList,(_fileInfo,_fileStorage,_fileRecorder) -> {
+            if (_fileStorage.delete(_fileInfo)) {   //删除文件
+                return _fileRecorder.delete(_fileInfo.getUrl());  //删除文件记录
+            }
+            return false;
+        }).next(fileInfo,fileStorage,fileRecorder);
     }
 
 

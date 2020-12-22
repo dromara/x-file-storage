@@ -36,7 +36,7 @@
     <dependency>
         <groupId>cn.xuyanwu</groupId>
         <artifactId>spring-file-storage</artifactId>
-        <version>0.1.1</version>
+        <version>0.1.2</version>
     </dependency>
 
     <!-- 华为云 OBS 不使用的情况下可以不引入-->
@@ -354,4 +354,44 @@ public class LocalFileStorageAutoConfiguration {
 ```
 </details>
 
+#### 自定义上传和删除等切面
 
+<details>
+<summary>点击查看详情</summary>
+
+只需要实现`FileStorageAspect`接口即可对文件上传和删除等进行干预。
+
+不需要的方法可以不用实现，此接口里的方法全部都有默认实现
+
+```java
+/**
+ * 使用切面打印文件上传和删除的日志
+ */
+@Slf4j
+@Component
+public class LogFileStorageAspect implements FileStorageAspect {
+
+    /**
+     * 上传，成功返回文件信息，失败返回 null
+     */
+    @Override
+    public FileInfo uploadAround(UploadAspectChain chain,FileInfo fileInfo,UploadPretreatment pre,FileStorage fileStorage,FileRecorder fileRecorder) {
+        log.info("上传文件 before -> {}",fileInfo);
+        fileInfo = chain.next(fileInfo,pre,fileStorage,fileRecorder);
+        log.info("上传文件 after -> {}",fileInfo);
+        return fileInfo;
+    }
+
+    /**
+     * 删除文件，成功返回 true
+     */
+    @Override
+    public boolean deleteAround(DeleteAspectChain chain,FileInfo fileInfo,FileStorage fileStorage,FileRecorder fileRecorder) {
+        log.info("删除文件 before -> {}",fileInfo);
+        boolean res = chain.next(fileInfo,fileStorage,fileRecorder);
+        log.info("删除文件 after -> {}",res);
+        return res;
+    }
+}
+```
+</details>
