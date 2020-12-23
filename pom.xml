@@ -7,7 +7,7 @@
     <groupId>cn.xuyanwu</groupId>
     <artifactId>spring-file-storage-parent</artifactId>
     <packaging>pom</packaging>
-    <version>0.1.2</version>
+    <version>0.1.3</version>
 
     <name>spring-file-storage-parent</name>
     <description>A File Storage Service</description>
@@ -53,6 +53,7 @@
     <properties>
         <java.version>1.8</java.version>
         <hutool.version>5.5.2</hutool.version>
+        <lombok.version>1.18.16</lombok.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -70,7 +71,7 @@
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
-                <version>1.18.16</version>
+                <version>${lombok.version}</version>
             </dependency>
 
         </dependencies>
@@ -139,6 +140,7 @@
                             <serverId>oss</serverId>
                             <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                             <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                            <stagingProgressTimeoutMinutes>10</stagingProgressTimeoutMinutes>
                         </configuration>
                     </plugin>
 
