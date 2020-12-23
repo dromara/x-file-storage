@@ -2,11 +2,11 @@ package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
+import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -14,7 +14,6 @@ import java.io.IOException;
 /**
  * 阿里云 OSS 存储
  */
-@Slf4j
 @Getter
 @Setter
 public class AliyunOssFileStorage implements FileStorage {
@@ -58,12 +57,10 @@ public class AliyunOssFileStorage implements FileStorage {
             return true;
         } catch (IOException e) {
             oss.deleteObject(bucketName,newFileKey);
-            log.error("文件上传失败！platform：{},filename：{}",platform,fileInfo.getOriginalFilename(),e);
+            throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
         } finally {
             shutdown(oss);
         }
-
-        return false;
     }
 
     @Override

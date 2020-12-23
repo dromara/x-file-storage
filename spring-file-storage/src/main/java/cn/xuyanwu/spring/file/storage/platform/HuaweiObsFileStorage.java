@@ -2,10 +2,10 @@ package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
+import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.obs.services.ObsClient;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -13,7 +13,6 @@ import java.io.IOException;
 /**
  * 华为云 OBS 存储
  */
-@Slf4j
 @Getter
 @Setter
 public class HuaweiObsFileStorage implements FileStorage {
@@ -50,10 +49,8 @@ public class HuaweiObsFileStorage implements FileStorage {
             return true;
         } catch (IOException e) {
             obs.deleteObject(bucketName,newFileKey);
-            log.error("文件上传失败！platform：{},filename：{}",platform,fileInfo.getOriginalFilename(),e);
+            throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
         }
-
-        return false;
     }
 
     @Override

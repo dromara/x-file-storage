@@ -2,6 +2,7 @@ package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
+import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.qiniu.common.QiniuException;
 import com.qiniu.storage.BucketManager;
 import com.qiniu.storage.Configuration;
@@ -10,7 +11,6 @@ import com.qiniu.storage.UploadManager;
 import com.qiniu.util.Auth;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -18,7 +18,6 @@ import java.io.IOException;
 /**
  * 七牛云 Kodo 存储
  */
-@Slf4j
 @Getter
 @Setter
 public class QiniuKodoFileStorage implements FileStorage {
@@ -71,10 +70,8 @@ public class QiniuKodoFileStorage implements FileStorage {
                 getBucketManager().delete(bucketName,newFileKey);
             } catch (QiniuException ignored) {
             }
-            log.error("文件上传失败！platform：{},filename：{}",platform,fileInfo.getOriginalFilename(),e);
+            throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
         }
-
-        return false;
     }
 
     @Override
@@ -85,9 +82,8 @@ public class QiniuKodoFileStorage implements FileStorage {
                 manager.delete(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
             }
             manager.delete(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        } catch (QiniuException ex) {
-            log.error("删除文件失败：{}，{}",ex.code(),ex.response.toString());
-            return false;
+        } catch (QiniuException e) {
+            throw new FileStorageRuntimeException("删除文件失败！" + e.code() + "，" + e.response.toString(),e);
         }
         return true;
     }
@@ -99,8 +95,8 @@ public class QiniuKodoFileStorage implements FileStorage {
         try {
             com.qiniu.storage.model.FileInfo stat = manager.stat(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
             if (stat != null && stat.md5 != null) return true;
-        } catch (QiniuException ex) {
-            log.error("查询文件是否存在失败：{}，{}",ex.code(),ex.response.toString());
+        } catch (QiniuException e) {
+            throw new FileStorageRuntimeException("查询文件是否存在失败！" + e.code() + "，" + e.response.toString(),e);
         }
         return false;
     }

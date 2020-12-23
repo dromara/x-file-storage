@@ -4,19 +4,21 @@ import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.core.util.URLUtil;
 import cn.xuyanwu.spring.file.storage.aspect.DeleteAspectChain;
 import cn.xuyanwu.spring.file.storage.aspect.FileStorageAspect;
 import cn.xuyanwu.spring.file.storage.aspect.UploadAspectChain;
+import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import cn.xuyanwu.spring.file.storage.platform.FileStorage;
 import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
@@ -29,7 +31,6 @@ import java.util.function.Predicate;
  */
 @Getter
 @Setter
-@Slf4j
 public class FileStorageService {
 
     @Lazy
@@ -71,8 +72,8 @@ public class FileStorageService {
      */
     public FileInfo upload(UploadPretreatment pre) {
         MultipartFile file = pre.getFileWrapper();
-        Assert.notNull(file,"文件不允许为 null");
-        Assert.notNull(pre.getPlatform(),"platform 不允许为 null");
+        if (file == null) throw new FileStorageRuntimeException("文件不允许为 null ！");
+        if (pre.getPlatform() == null) throw new FileStorageRuntimeException("platform 不允许为 null ！");
 
         FileInfo fileInfo = new FileInfo();
         fileInfo.setCreateTime(new Date());
@@ -92,7 +93,7 @@ public class FileStorageService {
         }
 
         FileStorage fileStorage = getFileStorage(pre.getPlatform());
-        Assert.notNull(fileStorage,"没有找到对应的存储平台！");
+        if (fileStorage == null) throw new FileStorageRuntimeException("没有找到对应的存储平台！");
 
         //处理切面
         return new UploadAspectChain(aspectList,(_fileInfo,_pre,_fileStorage,_fileRecorder) -> {
@@ -136,10 +137,7 @@ public class FileStorageService {
         if (fileInfo == null) return true;
         if (predicate != null && !predicate.test(fileInfo)) return false;
         FileStorage fileStorage = getFileStorage(fileInfo.getPlatform());
-        if (fileStorage == null) {
-            log.warn("没有找到对应的存储平台！");
-            return false;
-        }
+        if (fileStorage == null) throw new FileStorageRuntimeException("没有找到对应的存储平台！");
 
         return new DeleteAspectChain(aspectList,(_fileInfo,_fileStorage,_fileRecorder) -> {
             if (_fileStorage.delete(_fileInfo)) {   //删除文件
@@ -180,7 +178,7 @@ public class FileStorageService {
     }
 
     /**
-     * 根据 InputStream 创建上传预处理器，name 为空字符串
+     * 根据 InputStream 创建上传预处理器，originalFilename 为空字符串
      */
     public UploadPretreatment of(InputStream in) {
         try {
@@ -188,13 +186,12 @@ public class FileStorageService {
             pre.setFileWrapper(new MultipartFileWrapper(new MockMultipartFile("",in)));
             return pre;
         } catch (Exception e) {
-            log.error("根据 InputStream 创建上传预处理器失败！",e);
-            return null;
+            throw new FileStorageRuntimeException("根据 InputStream 创建上传预处理器失败！",e);
         }
     }
 
     /**
-     * 根据 File 创建上传预处理器，name 为 file 的 name
+     * 根据 File 创建上传预处理器，originalFilename 为 file 的 name
      */
     public UploadPretreatment of(File file) {
         try {
@@ -202,13 +199,12 @@ public class FileStorageService {
             pre.setFileWrapper(new MultipartFileWrapper(new MockMultipartFile(file.getName(),file.getName(),null,new FileInputStream(file))));
             return pre;
         } catch (Exception e) {
-            log.error("根据 File 创建上传预处理器失败！",e);
-            return null;
+            throw new FileStorageRuntimeException("根据 File 创建上传预处理器失败！",e);
         }
     }
 
     /**
-     * 根据 URL 创建上传预处理器，name 为空字符串
+     * 根据 URL 创建上传预处理器，originalFilename 为空字符串
      */
     public UploadPretreatment of(URL url) {
         try {
@@ -216,8 +212,29 @@ public class FileStorageService {
             pre.setFileWrapper(new MultipartFileWrapper(new MockMultipartFile("",url.openStream())));
             return pre;
         } catch (Exception e) {
-            log.error("根据 URL 创建上传预处理器失败！",e);
-            return null;
+            throw new FileStorageRuntimeException("根据 URL 创建上传预处理器失败！",e);
+        }
+    }
+
+    /**
+     * 根据 URI 创建上传预处理器，originalFilename 为空字符串
+     */
+    public UploadPretreatment of(URI uri) {
+        try {
+            return of(uri.toURL());
+        } catch (Exception e) {
+            throw new FileStorageRuntimeException("根据 URI 创建上传预处理器失败！",e);
+        }
+    }
+
+    /**
+     * 根据 url 字符串创建上传预处理器，兼容Spring的ClassPath路径、文件路径、HTTP路径等，originalFilename 为空字符串
+     */
+    public UploadPretreatment of(String url) {
+        try {
+            return of(URLUtil.url(url));
+        } catch (Exception e) {
+            throw new FileStorageRuntimeException("根据 url：" + url + " 创建上传预处理器失败！",e);
         }
     }
 

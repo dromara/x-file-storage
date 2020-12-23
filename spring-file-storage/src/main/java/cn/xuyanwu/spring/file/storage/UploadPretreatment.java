@@ -1,12 +1,11 @@
 package cn.xuyanwu.spring.file.storage;
 
+import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.io.file.FileNameUtil;
-import cn.hutool.core.lang.Assert;
-import lombok.AccessLevel;
+import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,7 +15,6 @@ import java.util.function.Consumer;
 /**
  * 文件上传预处理对象
  */
-@Slf4j
 @Getter
 @Setter
 @Accessors(chain = true)
@@ -54,6 +52,15 @@ public class UploadPretreatment {
      */
     private String path = "";
 
+    /**
+     * 设置文件所属对象id
+     *
+     * @param objectId 如果不是 String 类型会自动调用 toString() 方法
+     */
+    public UploadPretreatment setObjectId(Object objectId) {
+        this.objectId = objectId == null ? null : objectId.toString();
+        return this;
+    }
 
     /**
      * 获取文件名
@@ -97,10 +104,10 @@ public class UploadPretreatment {
             builder.toOutputStream(out);
             MultipartFile mf = fileWrapper.getMultipartFile();
             fileWrapper.setMultipartFile(new MockMultipartFile(mf.getName(),mf.getOriginalFilename(),null,out.toByteArray()));
+            return this;
         } catch (IOException e) {
-            log.error(e.getMessage(),e);
+            throw new FileStorageRuntimeException("图片处理失败！",e);
         }
-        return this;
     }
 
     /**
@@ -118,20 +125,57 @@ public class UploadPretreatment {
     }
 
     /**
-     * 生成缩略图并进行图片处理，可以进行裁剪、旋转、缩放、水印等操作，默认输出图片格式通过 thumbnailSuffix 获取
+     * 清空缩略图
+     */
+    public UploadPretreatment clearThumbnail() {
+        thumbnailBytes = null;
+        return this;
+    }
+
+
+    /**
+     * 生成缩略图并进行图片处理，如果缩略图已存在则使用已有的缩略图进行处理，
+     * 可以进行裁剪、旋转、缩放、水印等操作，默认输出图片格式通过 thumbnailSuffix 获取
      */
     public UploadPretreatment thumbnail(Consumer<Thumbnails.Builder<? extends InputStream>> consumer) {
-        try (InputStream in = fileWrapper.getInputStream()) {
+        try {
+            return thumbnail(consumer,thumbnailBytes != null ? new ByteArrayInputStream(thumbnailBytes) : fileWrapper.getInputStream());
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("生成缩略图失败！",e);
+        }
+    }
+
+    /**
+     * 通过指定 MultipartFile 生成缩略图并进行图片处理，
+     * 可以进行裁剪、旋转、缩放、水印等操作，默认输出图片格式通过 thumbnailSuffix 获取，
+     */
+    public UploadPretreatment thumbnail(Consumer<Thumbnails.Builder<? extends InputStream>> consumer,MultipartFile file) {
+        try {
+            return thumbnail(consumer,file.getInputStream());
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("生成缩略图失败！",e);
+        }
+    }
+
+    /**
+     * 通过指定 InputStream 生成缩略图并进行图片处理，
+     * 可以进行裁剪、旋转、缩放、水印等操作，默认输出图片格式通过 thumbnailSuffix 获取，
+     * 操作完成后会自动关闭 InputStream
+     */
+    public UploadPretreatment thumbnail(Consumer<Thumbnails.Builder<? extends InputStream>> consumer,InputStream in) {
+        try {
             Thumbnails.Builder<? extends InputStream> builder = Thumbnails.of(in);
             builder.outputFormat(FileNameUtil.extName(thumbnailSuffix));
             consumer.accept(builder);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             builder.toOutputStream(out);
             thumbnailBytes = out.toByteArray();
+            return this;
         } catch (IOException e) {
-            log.error(e.getMessage(),e);
+            throw new FileStorageRuntimeException("生成缩略图失败！",e);
+        } finally {
+            IoUtil.close(in);
         }
-        return this;
     }
 
     /**

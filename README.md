@@ -36,7 +36,7 @@
     <dependency>
         <groupId>cn.xuyanwu</groupId>
         <artifactId>spring-file-storage</artifactId>
-        <version>0.1.2</version>
+        <version>0.1.3</version>
     </dependency>
 
     <!-- 华为云 OBS 不使用的情况下可以不引入-->
@@ -271,7 +271,6 @@ CREATE TABLE `file_detail`
 /**
  * 实现 FileStorage 接口，这里使用了 Lombok 和 Hutool 工具类
  */
-@Slf4j
 @Getter
 @Setter
 public class LocalFileStorage implements FileStorage {
@@ -305,10 +304,8 @@ public class LocalFileStorage implements FileStorage {
             return true;
         } catch (IOException e) {
             FileUtil.del(newFile);
-            log.error("文件上传失败！platform：{},filename：{}",platform,fileInfo.getOriginalFilename(),e);
+            throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
         }
-
-        return false;
     }
 
     /**
