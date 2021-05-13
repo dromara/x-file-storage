@@ -44,3 +44,12 @@ spring:
         bucket-name: ??
         domain: ?? # 访问域名，注意“/”结尾，例如：http://abc.hn-bkt.clouddn.com/
         base-path: base/ # 基础路径
+    tencent-cos: # 腾讯云 COS
+      - platform: tencent-cos-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        secret-id: ??
+        secret-key: ??
+        region: ?? #存仓库所在地域
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.cos.ap-nanjing.myqcloud.com/
+        base-path: hy/ # 基础路径
