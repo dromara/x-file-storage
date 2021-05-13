@@ -132,6 +132,26 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     }
 
     /**
+     * 百度云 BOS 存储 Bean
+     */
+    @Bean
+    @ConditionalOnClass(name = "com.baidubce.services.bos.BosClient")
+    public List<BaiduBosFileStorage>baiduBosFileStorageList() {
+        return properties.getBaiduBos().stream().map(bos -> {
+            if (!bos.getEnableStorage()) return null;
+            BaiduBosFileStorage storage = new BaiduBosFileStorage();
+            storage.setPlatform(bos.getPlatform());
+            storage.setAccessKey(bos.getAccessKey());
+            storage.setSecretKey(bos.getSecretKey());
+            storage.setEndPoint(bos.getEndPoint());
+            storage.setBucketName(bos.getBucketName());
+            storage.setDomain(bos.getDomain());
+            storage.setBasePath(bos.getBasePath());
+            return storage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
      * 当没有找到 FileRecorder 时使用默认的 FileRecorder
      */
     @Bean
