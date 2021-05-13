@@ -19,6 +19,8 @@
 ### 简介
 在SpringBoot中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS、百度云 BOS
 
+后续即将支持 又拍云USS、亚马逊S3、谷歌云存储、Minio、FTP、SFTP、WebDAV、Samba、NFS
+
 `spring-file-storage` 模块是本体。
 
 `spring-file-storage-test` 模块是测试+使用演示，不需要的情况下可以直接删除。
