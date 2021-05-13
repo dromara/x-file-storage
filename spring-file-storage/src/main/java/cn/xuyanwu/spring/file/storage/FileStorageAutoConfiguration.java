@@ -117,16 +117,16 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     @Bean
     @ConditionalOnClass(name = "com.qcloud.cos.COSClient")
     public List<TencentCosFileStorage> tencentCosFileStorageList() {
-        return properties.getTencentCos().stream().map(oss -> {
-            if (!oss.getEnableStorage()) return null;
+        return properties.getTencentCos().stream().map(cos -> {
+            if (!cos.getEnableStorage()) return null;
             TencentCosFileStorage storage = new TencentCosFileStorage();
-            storage.setPlatform(oss.getPlatform());
-            storage.setSecretId(oss.getSecretId());
-            storage.setSecretKey(oss.getSecretKey());
-            storage.setRegion(oss.getRegion());
-            storage.setBucketName(oss.getBucketName());
-            storage.setDomain(oss.getDomain());
-            storage.setBasePath(oss.getBasePath());
+            storage.setPlatform(cos.getPlatform());
+            storage.setSecretId(cos.getSecretId());
+            storage.setSecretKey(cos.getSecretKey());
+            storage.setRegion(cos.getRegion());
+            storage.setBucketName(cos.getBucketName());
+            storage.setDomain(cos.getDomain());
+            storage.setBasePath(cos.getBasePath());
             return storage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
