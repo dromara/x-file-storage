@@ -38,6 +38,11 @@ public class FileStorageProperties {
     private List<QiniuKodo> qiniuKodo = new ArrayList<>();
 
     /**
+     * 腾讯云 COS
+     */
+    private List<TencentCos> tencentCos = new ArrayList<>();
+
+    /**
      * 本地存储
      */
     @Data
@@ -147,4 +152,32 @@ public class FileStorageProperties {
          */
         private String basePath = "";
     }
+
+    /**
+     * 腾讯云 COS
+     */
+    @Data
+    public static class TencentCos {
+        private String secretId;
+        private String secretKey;
+        private String region;
+        private String bucketName;
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+        /**
+         * 存储平台
+         */
+        private String platform = "";
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+    }
+
 }

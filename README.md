@@ -17,7 +17,7 @@
 </p>
 
 ### 简介
-在SpringBoot中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo
+在SpringBoot中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS
 
 `spring-file-storage` 模块是本体。
 
@@ -36,7 +36,7 @@
     <dependency>
         <groupId>cn.xuyanwu</groupId>
         <artifactId>spring-file-storage</artifactId>
-        <version>0.1.3</version>
+        <version>0.1.4</version>
     </dependency>
 
     <!-- 华为云 OBS 不使用的情况下可以不引入-->
@@ -58,6 +58,13 @@
         <groupId>com.qiniu</groupId>
         <artifactId>qiniu-java-sdk</artifactId>
         <version>7.4.0</version>
+    </dependency>
+
+    <!-- 腾讯云 COS 不使用的情况下可以不引入-->
+    <dependency>
+        <groupId>com.qcloud</groupId>
+        <artifactId>cos_api</artifactId>
+        <version>5.6.38</version>
     </dependency>
 </dependencies>
 ```
@@ -102,6 +109,15 @@ spring:
         bucket-name: ??
         domain: ?? # 访问域名，注意“/”结尾，例如：http://abc.hn-bkt.clouddn.com/
         base-path: base/ # 基础路径
+    tencent-cos: # 腾讯云 COS
+      - platform: tencent-cos-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        secret-id: ??
+        secret-key: ??
+        region: ?? #存仓库所在地域
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.cos.ap-nanjing.myqcloud.com/
+        base-path: hy/ # 基础路径
 ```
 
 注意配置每个平台前面都有个`-`号，通过以下方式可以配置多个

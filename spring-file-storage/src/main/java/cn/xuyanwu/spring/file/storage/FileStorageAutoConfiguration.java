@@ -1,9 +1,6 @@
 package cn.xuyanwu.spring.file.storage;
 
-import cn.xuyanwu.spring.file.storage.platform.AliyunOssFileStorage;
-import cn.xuyanwu.spring.file.storage.platform.HuaweiObsFileStorage;
-import cn.xuyanwu.spring.file.storage.platform.LocalFileStorage;
-import cn.xuyanwu.spring.file.storage.platform.QiniuKodoFileStorage;
+import cn.xuyanwu.spring.file.storage.platform.*;
 import cn.xuyanwu.spring.file.storage.recorder.DefaultFileRecorder;
 import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
 import lombok.extern.slf4j.Slf4j;
@@ -110,6 +107,26 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             storage.setBucketName(kodo.getBucketName());
             storage.setDomain(kodo.getDomain());
             storage.setBasePath(kodo.getBasePath());
+            return storage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
+     * 腾讯云 COS 存储 Bean
+     */
+    @Bean
+    @ConditionalOnClass(name = "com.qcloud.cos.COSClient")
+    public List<TencentCosFileStorage> tencentCosFileStorageList() {
+        return properties.getTencentCos().stream().map(oss -> {
+            if (!oss.getEnableStorage()) return null;
+            TencentCosFileStorage storage = new TencentCosFileStorage();
+            storage.setPlatform(oss.getPlatform());
+            storage.setSecretId(oss.getSecretId());
+            storage.setSecretKey(oss.getSecretKey());
+            storage.setRegion(oss.getRegion());
+            storage.setBucketName(oss.getBucketName());
+            storage.setDomain(oss.getDomain());
+            storage.setBasePath(oss.getBasePath());
             return storage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
