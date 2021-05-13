@@ -12,7 +12,7 @@
 
     <groupId>cn.xuyanwu</groupId>
     <artifactId>spring-file-storage-test</artifactId>
-    <version>0.1.4</version>
+    <version>0.1.5</version>
     <name>spring-file-storage-test</name>
     <description>spring-file-storage 的测试和演示模块</description>
 
@@ -21,6 +21,13 @@
     </properties>
 
     <dependencies>
+
+        <!-- 百度云 BOS -->
+        <dependency>
+            <groupId>com.baidubce</groupId>
+            <artifactId>bce-java-sdk</artifactId>
+            <version>0.10.162</version>
+        </dependency>
 
         <!-- 腾讯云 COS -->
         <dependency>
@@ -60,7 +67,7 @@
         <dependency>
             <groupId>cn.xuyanwu</groupId>
             <artifactId>spring-file-storage</artifactId>
-            <version>0.1.4</version>
+            <version>0.1.5</version>
         </dependency>
 
         <dependency>

@@ -53,3 +53,12 @@ spring:
         bucket-name: ??
         domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.cos.ap-nanjing.myqcloud.com/
         base-path: hy/ # 基础路径
+    baidu-bos: # 百度云 BOS
+      - platform: baidu-bos-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        access-key: ??
+        secret-key: ??
+        end-point: ?? # 例如 abc.fsh.bcebos.com
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.fsh.bcebos.com/abc/
+        base-path: hy/ # 基础路径

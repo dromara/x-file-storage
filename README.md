@@ -17,7 +17,7 @@
 </p>
 
 ### 简介
-在SpringBoot中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS
+在SpringBoot中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS、百度云 BOS
 
 `spring-file-storage` 模块是本体。
 
@@ -36,36 +36,44 @@
     <dependency>
         <groupId>cn.xuyanwu</groupId>
         <artifactId>spring-file-storage</artifactId>
-        <version>0.1.4</version>
+        <version>0.1.5</version>
     </dependency>
 
-    <!-- 华为云 OBS 不使用的情况下可以不引入-->
+    <!-- 华为云 OBS 不使用的情况下可以不引入 -->
     <dependency>
         <groupId>com.huaweicloud</groupId>
         <artifactId>esdk-obs-java</artifactId>
         <version>3.20.6.1</version>
     </dependency>
 
-    <!-- 阿里云 OSS 不使用的情况下可以不引入-->
+    <!-- 阿里云 OSS 不使用的情况下可以不引入 -->
     <dependency>
         <groupId>com.aliyun.oss</groupId>
         <artifactId>aliyun-sdk-oss</artifactId>
         <version>3.6.0</version>
     </dependency>
 
-    <!-- 七牛云 Kodo 不使用的情况下可以不引入-->
+    <!-- 七牛云 Kodo 不使用的情况下可以不引入 -->
     <dependency>
         <groupId>com.qiniu</groupId>
         <artifactId>qiniu-java-sdk</artifactId>
         <version>7.4.0</version>
     </dependency>
 
-    <!-- 腾讯云 COS 不使用的情况下可以不引入-->
+    <!-- 腾讯云 COS 不使用的情况下可以不引入 -->
     <dependency>
         <groupId>com.qcloud</groupId>
         <artifactId>cos_api</artifactId>
         <version>5.6.38</version>
     </dependency>
+
+    <!-- 百度云 BOS 不使用的情况下可以不引入 -->
+    <dependency>
+        <groupId>com.baidubce</groupId>
+        <artifactId>bce-java-sdk</artifactId>
+        <version>0.10.162</version>
+    </dependency>
+
 </dependencies>
 ```
 
@@ -117,6 +125,15 @@ spring:
         region: ?? #存仓库所在地域
         bucket-name: ??
         domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.cos.ap-nanjing.myqcloud.com/
+        base-path: hy/ # 基础路径
+    baidu-bos: # 百度云 BOS
+      - platform: baidu-bos-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        access-key: ??
+        secret-key: ??
+        end-point: ?? # 例如 abc.fsh.bcebos.com
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.fsh.bcebos.com/xftx/
         base-path: hy/ # 基础路径
 ```
 
