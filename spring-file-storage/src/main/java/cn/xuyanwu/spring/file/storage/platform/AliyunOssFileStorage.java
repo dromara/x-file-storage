@@ -50,8 +50,9 @@ public class AliyunOssFileStorage implements FileStorage {
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
-                fileInfo.setThUrl(fileInfo.getUrl() + pre.getThumbnailSuffix());
-                oss.putObject(bucketName,newFileKey + pre.getThumbnailSuffix(),new ByteArrayInputStream(thumbnailBytes));
+                String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
+                fileInfo.setThUrl(domain + newThFileKey);
+                oss.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes));
             }
 
             return true;

@@ -34,6 +34,7 @@ public class UploadPretreatment {
     private byte[] thumbnailBytes;
     /**
      * 缩略图后缀，不是扩展名但包含扩展名，例如【.min.jpg】【.png】。
+     * 如果 saveThFilename 属性有值则此属性无效
      * 只能在缩略图生成前进行修改后缀中的扩展名部分。
      * 例如当前是【.min.jpg】那么扩展名就是【jpg】，当缩略图未生成的情况下可以随意修改（扩展名必须是 thumbnailator 支持的图片格式），
      * 一旦缩略图生成后，扩展名之外的部分可以随意改变 ，扩展名部分不能改变，除非你在 {@link this#thumbnail} 方法中修改了输出格式。
@@ -51,6 +52,16 @@ public class UploadPretreatment {
      * 文件存储路径
      */
     private String path = "";
+
+    /**
+     * 保存文件名，如果不设置则自动生成
+     */
+    private String saveFilename;
+
+    /**
+     * 缩略图的保存文件名，注意此文件名不含后缀，后缀用 {@link this#thumbnailSuffix} 属性控制
+     */
+    private String saveThFilename;
 
     /**
      * 设置文件所属对象id

@@ -135,7 +135,7 @@ spring:
         secret-key: ??
         end-point: ?? # 例如 abc.fsh.bcebos.com
         bucket-name: ??
-        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.fsh.bcebos.com/xftx/
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.fsh.bcebos.com/abc/
         base-path: hy/ # 基础路径
 ```
 

@@ -42,8 +42,9 @@ public class HuaweiObsFileStorage implements FileStorage {
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
-                fileInfo.setThUrl(fileInfo.getUrl() + pre.getThumbnailSuffix());
-                obs.putObject(bucketName,newFileKey + pre.getThumbnailSuffix(),new ByteArrayInputStream(thumbnailBytes));
+                String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
+                fileInfo.setThUrl(domain + newThFileKey);
+                obs.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes));
             }
 
             return true;

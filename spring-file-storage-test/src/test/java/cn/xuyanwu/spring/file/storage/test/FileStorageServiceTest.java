@@ -55,7 +55,7 @@ class FileStorageServiceTest {
         String filename = "image.jpg";
         InputStream in = this.getClass().getClassLoader().getResourceAsStream(filename);
 
-        FileInfo fileInfo = fileStorageService.of(in).setOriginalFilename(filename).setPath("test/").setObjectId("0").setObjectType("0").upload();
+        FileInfo fileInfo = fileStorageService.of(in).setOriginalFilename(filename).setPath("test/").setObjectId("0").setObjectType("0").setSaveFilename("aaa.jpg").setSaveThFilename("bbb").thumbnail(200,200).upload();
         Assert.notNull(fileInfo,"文件上传失败！");
         boolean delete = fileStorageService.delete(fileInfo.getUrl());
         Assert.isTrue(delete,"文件删除失败！" + fileInfo.getUrl());

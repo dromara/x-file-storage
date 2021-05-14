@@ -32,10 +32,10 @@ public class TencentCosFileStorage implements FileStorage {
     private String basePath;
 
     public COSClient getCos() {
-        COSCredentials cred = new BasicCOSCredentials(secretId, secretKey);
+        COSCredentials cred = new BasicCOSCredentials(secretId,secretKey);
         ClientConfig clientConfig = new ClientConfig(new Region(region));
         clientConfig.setHttpProtocol(HttpProtocol.https);
-        return new COSClient(cred, clientConfig);
+        return new COSClient(cred,clientConfig);
     }
 
     /**
@@ -46,25 +46,26 @@ public class TencentCosFileStorage implements FileStorage {
     }
 
     @Override
-    public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
+    public boolean save(FileInfo fileInfo,UploadPretreatment pre) {
         String newFileKey = basePath + fileInfo.getPath() + fileInfo.getFilename();
         fileInfo.setBasePath(basePath);
         fileInfo.setUrl(domain + newFileKey);
 
         COSClient cos = getCos();
         try {
-            cos.putObject(bucketName, newFileKey, pre.getFileWrapper().getInputStream(), null);
+            cos.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream(),null);
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
-                fileInfo.setThUrl(fileInfo.getUrl() + pre.getThumbnailSuffix());
-                cos.putObject(bucketName, newFileKey + pre.getThumbnailSuffix(), new ByteArrayInputStream(thumbnailBytes), null);
+                String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
+                fileInfo.setThUrl(domain + newThFileKey);
+                cos.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),null);
             }
 
             return true;
         } catch (IOException e) {
-            cos.deleteObject(bucketName, newFileKey);
-            throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
+            cos.deleteObject(bucketName,newFileKey);
+            throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
         } finally {
             shutdown(cos);
         }
@@ -74,9 +75,9 @@ public class TencentCosFileStorage implements FileStorage {
     public boolean delete(FileInfo fileInfo) {
         COSClient cos = getCos();
         if (fileInfo.getThFilename() != null) {   //删除缩略图
-            cos.deleteObject(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+            cos.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
         }
-        cos.deleteObject(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        cos.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
         shutdown(cos);
         return true;
     }
@@ -85,7 +86,7 @@ public class TencentCosFileStorage implements FileStorage {
     @Override
     public boolean exists(FileInfo fileInfo) {
         COSClient cos = getCos();
-        boolean b = cos.doesObjectExist(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        boolean b = cos.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
         shutdown(cos);
         return b;
     }

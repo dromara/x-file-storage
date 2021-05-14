@@ -37,8 +37,9 @@ public class LocalFileStorage implements FileStorage {
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
-                fileInfo.setThUrl(fileInfo.getUrl() + pre.getThumbnailSuffix());
-                FileUtil.writeBytes(thumbnailBytes,newFile.getPath() + pre.getThumbnailSuffix());
+                String newThFile = basePath + path + fileInfo.getThFilename();
+                fileInfo.setThUrl(domain + newThFile);
+                FileUtil.writeBytes(thumbnailBytes,newThFile);
             }
             return true;
         } catch (IOException e) {

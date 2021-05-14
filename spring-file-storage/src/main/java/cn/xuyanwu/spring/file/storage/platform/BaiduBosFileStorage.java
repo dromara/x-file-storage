@@ -29,9 +29,9 @@ public class BaiduBosFileStorage implements FileStorage {
     private String domain;
     private String basePath;
 
-    public BosClient getOss() {
+    public BosClient getBos() {
         BosClientConfiguration config = new BosClientConfiguration();
-        config.setCredentials(new DefaultBceCredentials(accessKey, secretKey));
+        config.setCredentials(new DefaultBceCredentials(accessKey,secretKey));
         config.setEndpoint(endPoint);
         config.setProtocol(Protocol.HTTPS);
         return new BosClient(config);
@@ -40,42 +40,43 @@ public class BaiduBosFileStorage implements FileStorage {
     /**
      * 关闭
      */
-    public void shutdown(BosClient oss) {
-        if (oss != null) oss.shutdown();
+    public void shutdown(BosClient bos) {
+        if (bos != null) bos.shutdown();
     }
 
     @Override
-    public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
+    public boolean save(FileInfo fileInfo,UploadPretreatment pre) {
         String newFileKey = basePath + fileInfo.getPath() + fileInfo.getFilename();
         fileInfo.setBasePath(basePath);
         fileInfo.setUrl(domain + newFileKey);
 
-        BosClient oss = getOss();
+        BosClient bos = getBos();
         try {
-            oss.putObject(bucketName, newFileKey, pre.getFileWrapper().getInputStream());
+            bos.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
-                fileInfo.setThUrl(fileInfo.getUrl() + pre.getThumbnailSuffix());
-                oss.putObject(bucketName, newFileKey + pre.getThumbnailSuffix(), new ByteArrayInputStream(thumbnailBytes));
+                String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
+                fileInfo.setThUrl(domain + newThFileKey);
+                bos.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes));
             }
 
             return true;
         } catch (IOException e) {
-            oss.deleteObject(bucketName, newFileKey);
-            throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
+            bos.deleteObject(bucketName,newFileKey);
+            throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
         } finally {
-            shutdown(oss);
+            shutdown(bos);
         }
     }
 
     @Override
     public boolean delete(FileInfo fileInfo) {
-        BosClient oss = getOss();
+        BosClient oss = getBos();
         if (fileInfo.getThFilename() != null) {   //删除缩略图
-            oss.deleteObject(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+            oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
         }
-        oss.deleteObject(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
         shutdown(oss);
         return true;
     }
@@ -83,8 +84,8 @@ public class BaiduBosFileStorage implements FileStorage {
 
     @Override
     public boolean exists(FileInfo fileInfo) {
-        BosClient oss = getOss();
-        boolean b = oss.doesObjectExist(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        BosClient oss = getBos();
+        boolean b = oss.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
         shutdown(oss);
         return b;
     }

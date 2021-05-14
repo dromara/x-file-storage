@@ -84,12 +84,20 @@ public class FileStorageService {
         fileInfo.setObjectType(pre.getObjectType());
         fileInfo.setPath(pre.getPath());
         fileInfo.setPlatform(pre.getPlatform());
-        fileInfo.setFilename(IdUtil.objectId() + (StrUtil.isEmpty(fileInfo.getExt()) ? StrUtil.EMPTY : "." + fileInfo.getExt()));
+        if (StrUtil.isNotBlank(pre.getSaveFilename())) {
+            fileInfo.setFilename(pre.getSaveFilename());
+        } else {
+            fileInfo.setFilename(IdUtil.objectId() + (StrUtil.isEmpty(fileInfo.getExt()) ? StrUtil.EMPTY : "." + fileInfo.getExt()));
+        }
 
         byte[] thumbnailBytes = pre.getThumbnailBytes();
         if (thumbnailBytes != null) {
             fileInfo.setThSize((long) thumbnailBytes.length);
-            fileInfo.setThFilename(fileInfo.getFilename() + pre.getThumbnailSuffix());
+            if (StrUtil.isNotBlank(pre.getSaveThFilename())) {
+                fileInfo.setThFilename(pre.getSaveThFilename() + pre.getThumbnailSuffix());
+            } else {
+                fileInfo.setThFilename(fileInfo.getFilename() + pre.getThumbnailSuffix());
+            }
         }
 
         FileStorage fileStorage = getFileStorage(pre.getPlatform());
