@@ -78,33 +78,40 @@ public class TencentCosFileStorage implements FileStorage {
     @Override
     public boolean delete(FileInfo fileInfo) {
         COSClient cos = getCos();
-        if (fileInfo.getThFilename() != null) {   //删除缩略图
-            cos.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+        try {
+            if (fileInfo.getThFilename() != null) {   //删除缩略图
+                cos.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+            }
+            cos.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+            return true;
+        } finally {
+            shutdown(cos);
         }
-        cos.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        shutdown(cos);
-        return true;
     }
 
 
     @Override
     public boolean exists(FileInfo fileInfo) {
         COSClient cos = getCos();
-        boolean b = cos.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        shutdown(cos);
-        return b;
+        try {
+            return cos.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        } finally {
+            shutdown(cos);
+        }
     }
 
     @Override
     public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
-        COSClient oss = getCos();
-        COSObject object = oss.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        try (InputStream in = object.getObjectContent()) {
-            consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+        COSClient cos = getCos();
+        try {
+            COSObject object = cos.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+            try (InputStream in = object.getObjectContent()) {
+                consumer.accept(in);
+            } catch (IOException e) {
+                throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            }
         } finally {
-            shutdown(oss);
+            shutdown(cos);
         }
     }
 
@@ -113,14 +120,16 @@ public class TencentCosFileStorage implements FileStorage {
         if (StrUtil.isBlank(fileInfo.getThFilename())) {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
-        COSClient oss = getCos();
-        COSObject object = oss.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
-        try (InputStream in = object.getObjectContent()) {
-            consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        COSClient cos = getCos();
+        try {
+            COSObject object = cos.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+            try (InputStream in = object.getObjectContent()) {
+                consumer.accept(in);
+            } catch (IOException e) {
+                throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+            }
         } finally {
-            shutdown(oss);
+            shutdown(cos);
         }
     }
 }

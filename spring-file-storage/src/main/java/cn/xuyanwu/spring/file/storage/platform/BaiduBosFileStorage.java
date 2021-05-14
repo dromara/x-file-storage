@@ -77,31 +77,38 @@ public class BaiduBosFileStorage implements FileStorage {
     @Override
     public boolean delete(FileInfo fileInfo) {
         BosClient oss = getBos();
-        if (fileInfo.getThFilename() != null) {   //删除缩略图
-            oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+        try {
+            if (fileInfo.getThFilename() != null) {   //删除缩略图
+                oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+            }
+            oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+            return true;
+        } finally {
+            shutdown(oss);
         }
-        oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        shutdown(oss);
-        return true;
     }
 
 
     @Override
     public boolean exists(FileInfo fileInfo) {
         BosClient oss = getBos();
-        boolean b = oss.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        shutdown(oss);
-        return b;
+        try {
+            return oss.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        } finally {
+            shutdown(oss);
+        }
     }
 
     @Override
     public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
         BosClient bos = getBos();
-        BosObject object = bos.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        try (InputStream in = object.getObjectContent()) {
-            consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+        try {
+            BosObject object = bos.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+            try (InputStream in = object.getObjectContent()) {
+                consumer.accept(in);
+            } catch (IOException e) {
+                throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            }
         } finally {
             shutdown(bos);
         }
@@ -113,11 +120,13 @@ public class BaiduBosFileStorage implements FileStorage {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
         BosClient bos = getBos();
-        BosObject object = bos.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
-        try (InputStream in = object.getObjectContent()) {
-            consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        try {
+            BosObject object = bos.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+            try (InputStream in = object.getObjectContent()) {
+                consumer.accept(in);
+            } catch (IOException e) {
+                throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+            }
         } finally {
             shutdown(bos);
         }

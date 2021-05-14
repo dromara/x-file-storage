@@ -46,17 +46,5 @@ public interface FileStorage {
     /**
      * 下载缩略图文件
      */
-    default byte[] downloadTh(FileInfo fileInfo) {
-        final byte[][] bytes = new byte[1][1];
-        downloadTh(fileInfo,in -> {
-            bytes[0] = IoUtil.readBytes(in);
-        });
-        return bytes[0];
-    }
-
-    /**
-     * 下载缩略图文件
-     */
-    default void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer) {
-    }
+    void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer);
 }

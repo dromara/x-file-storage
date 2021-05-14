@@ -71,31 +71,38 @@ public class AliyunOssFileStorage implements FileStorage {
     @Override
     public boolean delete(FileInfo fileInfo) {
         OSS oss = getOss();
-        if (fileInfo.getThFilename() != null) {   //删除缩略图
-            oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+        try {
+            if (fileInfo.getThFilename() != null) {   //删除缩略图
+                oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+            }
+            oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+            return true;
+        } finally {
+            shutdown(oss);
         }
-        oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        shutdown(oss);
-        return true;
     }
 
 
     @Override
     public boolean exists(FileInfo fileInfo) {
         OSS oss = getOss();
-        boolean b = oss.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        shutdown(oss);
-        return b;
+        try {
+            return oss.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        } finally {
+            shutdown(oss);
+        }
     }
 
     @Override
     public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
         OSS oss = getOss();
-        OSSObject object = oss.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        try (InputStream in = object.getObjectContent()) {
-            consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+        try {
+            OSSObject object = oss.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+            try (InputStream in = object.getObjectContent()) {
+                consumer.accept(in);
+            } catch (IOException e) {
+                throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            }
         } finally {
             shutdown(oss);
         }
@@ -107,11 +114,13 @@ public class AliyunOssFileStorage implements FileStorage {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
         OSS oss = getOss();
-        OSSObject object = oss.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
-        try (InputStream in = object.getObjectContent()) {
-            consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        try {
+            OSSObject object = oss.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+            try (InputStream in = object.getObjectContent()) {
+                consumer.accept(in);
+            } catch (IOException e) {
+                throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+            }
         } finally {
             shutdown(oss);
         }
