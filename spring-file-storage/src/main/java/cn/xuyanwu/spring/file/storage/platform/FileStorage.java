@@ -1,10 +1,11 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
+import cn.hutool.core.io.IoUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.util.function.Consumer;
 
 /**
  * 文件存储接口，对应各个平台
@@ -37,4 +38,25 @@ public interface FileStorage {
      */
     boolean exists(FileInfo fileInfo);
 
+    /**
+     * 下载文件
+     */
+    void download(FileInfo fileInfo,Consumer<InputStream> consumer);
+
+    /**
+     * 下载缩略图文件
+     */
+    default byte[] downloadTh(FileInfo fileInfo) {
+        final byte[][] bytes = new byte[1][1];
+        downloadTh(fileInfo,in -> {
+            bytes[0] = IoUtil.readBytes(in);
+        });
+        return bytes[0];
+    }
+
+    /**
+     * 下载缩略图文件
+     */
+    default void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer) {
+    }
 }

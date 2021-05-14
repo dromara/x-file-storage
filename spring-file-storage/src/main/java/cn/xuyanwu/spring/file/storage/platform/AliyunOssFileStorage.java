@@ -1,15 +1,19 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
+import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
+import com.aliyun.oss.model.OSSObject;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.function.Consumer;
 
 /**
  * 阿里云 OSS 存储
@@ -82,5 +86,34 @@ public class AliyunOssFileStorage implements FileStorage {
         boolean b = oss.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
         shutdown(oss);
         return b;
+    }
+
+    @Override
+    public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        OSS oss = getOss();
+        OSSObject object = oss.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        try (InputStream in = object.getObjectContent()) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+        } finally {
+            shutdown(oss);
+        }
+    }
+
+    @Override
+    public void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        if (StrUtil.isBlank(fileInfo.getThFilename())) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
+        }
+        OSS oss = getOss();
+        OSSObject object = oss.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+        try (InputStream in = object.getObjectContent()) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        } finally {
+            shutdown(oss);
+        }
     }
 }

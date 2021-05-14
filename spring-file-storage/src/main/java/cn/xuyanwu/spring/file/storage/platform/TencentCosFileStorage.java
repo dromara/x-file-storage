@@ -1,5 +1,6 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
+import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
@@ -8,12 +9,15 @@ import com.qcloud.cos.ClientConfig;
 import com.qcloud.cos.auth.BasicCOSCredentials;
 import com.qcloud.cos.auth.COSCredentials;
 import com.qcloud.cos.http.HttpProtocol;
+import com.qcloud.cos.model.COSObject;
 import com.qcloud.cos.region.Region;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.function.Consumer;
 
 /**
  * 腾讯云 COS 存储
@@ -89,5 +93,34 @@ public class TencentCosFileStorage implements FileStorage {
         boolean b = cos.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
         shutdown(cos);
         return b;
+    }
+
+    @Override
+    public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        COSClient oss = getCos();
+        COSObject object = oss.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        try (InputStream in = object.getObjectContent()) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+        } finally {
+            shutdown(oss);
+        }
+    }
+
+    @Override
+    public void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        if (StrUtil.isBlank(fileInfo.getThFilename())) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
+        }
+        COSClient oss = getCos();
+        COSObject object = oss.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+        try (InputStream in = object.getObjectContent()) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        } finally {
+            shutdown(oss);
+        }
     }
 }

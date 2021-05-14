@@ -136,7 +136,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = "com.baidubce.services.bos.BosClient")
-    public List<BaiduBosFileStorage>baiduBosFileStorageList() {
+    public List<BaiduBosFileStorage> baiduBosFileStorageList() {
         return properties.getBaiduBos().stream().map(bos -> {
             if (!bos.getEnableStorage()) return null;
             BaiduBosFileStorage storage = new BaiduBosFileStorage();
@@ -157,7 +157,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     @Bean
     @ConditionalOnMissingBean(FileRecorder.class)
     public FileRecorder fileRecorder() {
-        log.warn("没有找到 FileRecorder 的实现类，文件上传之外的功能无法正常使用，必须实现该接口才能使用完整功能！");
+        log.warn("没有找到 FileRecorder 的实现类，文件上传之外的部分功能无法正常使用，必须实现该接口才能使用完整功能！");
         return new DefaultFileRecorder();
     }
 

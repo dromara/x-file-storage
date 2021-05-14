@@ -1,14 +1,19 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
+import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.obs.services.ObsClient;
+import com.obs.services.model.ObsObject;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.function.Consumer;
 
 /**
  * 华为云 OBS 存储
@@ -28,6 +33,10 @@ public class HuaweiObsFileStorage implements FileStorage {
 
     public ObsClient getObs() {
         return new ObsClient(accessKey,secretKey,endPoint);
+    }
+
+    public void close(ObsClient obs) {
+        IoUtil.close(obs);
     }
 
     @Override
@@ -51,6 +60,8 @@ public class HuaweiObsFileStorage implements FileStorage {
         } catch (IOException e) {
             obs.deleteObject(bucketName,newFileKey);
             throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
+        } finally {
+            close(obs);
         }
     }
 
@@ -61,12 +72,45 @@ public class HuaweiObsFileStorage implements FileStorage {
             obs.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
         }
         obs.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        close(obs);
         return true;
     }
 
 
     @Override
     public boolean exists(FileInfo fileInfo) {
-        return getObs().doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        ObsClient obs = getObs();
+        boolean b = obs.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        close(obs);
+        return b;
+    }
+
+    @Override
+    public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        ObsClient obs = getObs();
+        ObsObject object = obs.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        try (InputStream in = object.getObjectContent()) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+        } finally {
+            close(obs);
+        }
+    }
+
+    @Override
+    public void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        if (StrUtil.isBlank(fileInfo.getThFilename())) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
+        }
+        ObsClient obs = getObs();
+        ObsObject object = obs.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+        try (InputStream in = object.getObjectContent()) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        } finally {
+            close(obs);
+        }
     }
 }

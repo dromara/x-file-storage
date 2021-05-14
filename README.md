@@ -361,6 +361,33 @@ public class LocalFileStorage implements FileStorage {
     public boolean exists(FileInfo fileInfo) {
         return new File(fileInfo.getBasePath() + fileInfo.getPath(),fileInfo.getFilename()).exists();
     }
+
+    /**
+     * 下载文件
+     */
+    @Override
+    public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        try (InputStream in = FileUtil.getInputStream(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename())) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+        }
+    }
+
+    /**
+     * 下载缩略图文件
+     */
+    @Override
+    public void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        if (StrUtil.isBlank(fileInfo.getThFilename())) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
+        }
+        try (InputStream in = FileUtil.getInputStream(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename())) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        }
+    }
 }
 
 /**
@@ -423,6 +450,26 @@ public class LogFileStorageAspect implements FileStorageAspect {
         boolean res = chain.next(fileInfo,fileStorage,fileRecorder);
         log.info("删除文件 after -> {}",res);
         return res;
+    }
+
+    /**
+     * 下载文件
+     */
+    @Override
+    public void downloadAround(DownloadAspectChain chain,FileInfo fileInfo,FileStorage fileStorage,Consumer<InputStream> consumer) {
+        log.info("下载文件 before -> {}",fileInfo);
+        chain.next(fileInfo,fileStorage,consumer);
+        log.info("下载文件 after -> {}",fileInfo);
+    }
+
+    /**
+     * 下载缩略图文件
+     */
+    @Override
+    public void downloadThAround(DownloadThAspectChain chain,FileInfo fileInfo,FileStorage fileStorage,Consumer<InputStream> consumer) {
+        log.info("下载缩略图文件 before -> {}",fileInfo);
+        chain.next(fileInfo,fileStorage,consumer);
+        log.info("下载缩略图文件 after -> {}",fileInfo);
     }
 }
 ```

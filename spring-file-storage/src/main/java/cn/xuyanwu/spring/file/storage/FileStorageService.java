@@ -1,7 +1,6 @@
 package cn.xuyanwu.spring.file.storage;
 
 import cn.hutool.core.io.file.FileNameUtil;
-import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
@@ -68,6 +67,15 @@ public class FileStorageService {
     }
 
     /**
+     * 获取对应的存储平台，如果存储平台不存在则抛出异常
+     */
+    public FileStorage getFileStorageVerify(FileInfo fileInfo) {
+        FileStorage fileStorage = getFileStorage(fileInfo.getPlatform());
+        if (fileStorage == null) throw new FileStorageRuntimeException("没有找到对应的存储平台！");
+        return fileStorage;
+    }
+
+    /**
      * 上传文件，成功返回文件信息，失败返回 null
      */
     public FileInfo upload(UploadPretreatment pre) {
@@ -116,10 +124,17 @@ public class FileStorageService {
     }
 
     /**
+     * 根据 url 获取 FileInfo
+     */
+    public FileInfo getFileInfoByUrl(String url) {
+        return fileRecorder.getByUrl(url);
+    }
+
+    /**
      * 根据 url 删除文件
      */
     public boolean delete(String url) {
-        FileInfo fileInfo = fileRecorder.getByUrl(url);
+        FileInfo fileInfo = getFileInfoByUrl(url);
         return delete(fileInfo);
     }
 
@@ -127,7 +142,7 @@ public class FileStorageService {
      * 根据 url 删除文件
      */
     public boolean delete(String url,Predicate<FileInfo> predicate) {
-        FileInfo fileInfo = fileRecorder.getByUrl(url);
+        FileInfo fileInfo = getFileInfoByUrl(url);
         return delete(fileInfo,predicate);
     }
 
@@ -153,6 +168,35 @@ public class FileStorageService {
             }
             return false;
         }).next(fileInfo,fileStorage,fileRecorder);
+    }
+
+
+    /**
+     * 获取文件下载器
+     */
+    public Downloader download(FileInfo fileInfo) {
+        return new Downloader(fileInfo,aspectList,getFileStorageVerify(fileInfo),Downloader.TARGET_FILE);
+    }
+
+    /**
+     * 获取文件下载器
+     */
+    public Downloader download(String url) {
+        return download(getFileInfoByUrl(url));
+    }
+
+    /**
+     * 获取缩略图文件下载器
+     */
+    public Downloader downloadTh(FileInfo fileInfo) {
+        return new Downloader(fileInfo,aspectList,getFileStorageVerify(fileInfo),Downloader.TARGET_TH_FILE);
+    }
+
+    /**
+     * 获取缩略图文件下载器
+     */
+    public Downloader downloadTh(String url) {
+        return downloadTh(getFileInfoByUrl(url));
     }
 
 

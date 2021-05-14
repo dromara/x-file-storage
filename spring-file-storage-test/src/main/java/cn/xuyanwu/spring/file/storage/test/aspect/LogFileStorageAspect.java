@@ -2,13 +2,14 @@ package cn.xuyanwu.spring.file.storage.test.aspect;
 
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
-import cn.xuyanwu.spring.file.storage.aspect.DeleteAspectChain;
-import cn.xuyanwu.spring.file.storage.aspect.FileStorageAspect;
-import cn.xuyanwu.spring.file.storage.aspect.UploadAspectChain;
+import cn.xuyanwu.spring.file.storage.aspect.*;
 import cn.xuyanwu.spring.file.storage.platform.FileStorage;
 import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.io.InputStream;
+import java.util.function.Consumer;
 
 /**
  * 使用切面打印文件上传和删除的日志
@@ -37,5 +38,25 @@ public class LogFileStorageAspect implements FileStorageAspect {
         boolean res = chain.next(fileInfo,fileStorage,fileRecorder);
         log.info("删除文件 after -> {}",res);
         return res;
+    }
+
+    /**
+     * 下载文件
+     */
+    @Override
+    public void downloadAround(DownloadAspectChain chain,FileInfo fileInfo,FileStorage fileStorage,Consumer<InputStream> consumer) {
+        log.info("下载文件 before -> {}",fileInfo);
+        chain.next(fileInfo,fileStorage,consumer);
+        log.info("下载文件 after -> {}",fileInfo);
+    }
+
+    /**
+     * 下载缩略图文件
+     */
+    @Override
+    public void downloadThAround(DownloadThAspectChain chain,FileInfo fileInfo,FileStorage fileStorage,Consumer<InputStream> consumer) {
+        log.info("下载缩略图文件 before -> {}",fileInfo);
+        chain.next(fileInfo,fileStorage,consumer);
+        log.info("下载缩略图文件 after -> {}",fileInfo);
     }
 }
