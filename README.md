@@ -38,7 +38,7 @@
     <dependency>
         <groupId>cn.xuyanwu</groupId>
         <artifactId>spring-file-storage</artifactId>
-        <version>0.1.5</version>
+        <version>0.1.6</version>
     </dependency>
 
     <!-- 华为云 OBS 不使用的情况下可以不引入 -->
