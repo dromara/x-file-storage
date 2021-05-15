@@ -13,6 +13,15 @@
 
     <dependencies>
 
+        <!-- 又拍云 USS -->
+        <dependency>
+            <groupId>com.upyun</groupId>
+            <artifactId>java-sdk</artifactId>
+            <version>4.2.2</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!-- 百度云 BOS -->
         <dependency>
             <groupId>com.baidubce</groupId>

@@ -17,9 +17,9 @@
 </p>
 
 ### 简介
-在SpringBoot中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS、百度云 BOS
+在SpringBoot中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS、百度云 BOS、又拍云USS
 
-后续即将支持 又拍云USS、亚马逊S3、谷歌云存储、Minio、FTP、SFTP、WebDAV、Samba、NFS
+后续即将支持 亚马逊S3、谷歌云存储、Minio、FTP、SFTP、WebDAV、Samba、NFS
 
 `spring-file-storage` 模块是本体。
 
@@ -74,6 +74,13 @@
         <groupId>com.baidubce</groupId>
         <artifactId>bce-java-sdk</artifactId>
         <version>0.10.162</version>
+    </dependency>
+
+    <!-- 又拍云 USS 不使用的情况下可以不引入 -->
+    <dependency>
+        <groupId>com.upyun</groupId>
+        <artifactId>java-sdk</artifactId>
+        <version>4.2.2</version>
     </dependency>
 
 </dependencies>
@@ -136,6 +143,14 @@ spring:
         end-point: ?? # 例如 abc.fsh.bcebos.com
         bucket-name: ??
         domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.fsh.bcebos.com/abc/
+        base-path: hy/ # 基础路径
+    upyun-uss: # 又拍云 USS
+      - platform: upyun-uss-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        username: ??
+        password: ??
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：http://abc.test.upcdn.net/
         base-path: hy/ # 基础路径
 ```
 

@@ -152,6 +152,25 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     }
 
     /**
+     * 又拍云 USS 存储 Bean
+     */
+    @Bean
+    @ConditionalOnClass(name = "com.upyun.RestManager")
+    public List<UpyunUssFileStorage> upyunUssFileStorageList() {
+        return properties.getUpyunUSS().stream().map(bos -> {
+            if (!bos.getEnableStorage()) return null;
+            UpyunUssFileStorage storage = new UpyunUssFileStorage();
+            storage.setPlatform(bos.getPlatform());
+            storage.setUsername(bos.getUsername());
+            storage.setPassword(bos.getPassword());
+            storage.setBucketName(bos.getBucketName());
+            storage.setDomain(bos.getDomain());
+            storage.setBasePath(bos.getBasePath());
+            return storage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
      * 当没有找到 FileRecorder 时使用默认的 FileRecorder
      */
     @Bean

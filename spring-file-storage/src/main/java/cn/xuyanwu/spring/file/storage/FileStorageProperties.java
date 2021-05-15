@@ -45,6 +45,11 @@ public class FileStorageProperties {
      */
     private List<BaiduBos> baiduBos = new ArrayList<>();
     /**
+     * 又拍云 USS
+     */
+    private List<UpyunUSS> upyunUSS = new ArrayList<>();
+
+    /**
      * 本地存储
      */
     @Data
@@ -190,6 +195,32 @@ public class FileStorageProperties {
         private String accessKey;
         private String secretKey;
         private String endPoint;
+        private String bucketName;
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+        /**
+         * 存储平台
+         */
+        private String platform = "";
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+    }
+
+    /**
+     * 又拍云 USS
+     */
+    @Data
+    public static class UpyunUSS {
+        private String username;
+        private String password;
         private String bucketName;
         /**
          * 访问域名
