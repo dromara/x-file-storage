@@ -1,5 +1,6 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
+import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
@@ -14,6 +15,9 @@ import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.function.Consumer;
 
 /**
  * 七牛云 Kodo 存储
@@ -60,8 +64,9 @@ public class QiniuKodoFileStorage implements FileStorage {
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
-                fileInfo.setThUrl(fileInfo.getUrl() + pre.getThumbnailSuffix());
-                uploadManager.put(new ByteArrayInputStream(thumbnailBytes),newFileKey + pre.getThumbnailSuffix(),token,null,null);
+                String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
+                fileInfo.setThUrl(domain + newThFileKey);
+                uploadManager.put(new ByteArrayInputStream(thumbnailBytes),newThFileKey,token,null,null);
             }
 
             return true;
@@ -99,5 +104,28 @@ public class QiniuKodoFileStorage implements FileStorage {
             throw new FileStorageRuntimeException("查询文件是否存在失败！" + e.code() + "，" + e.response.toString(),e);
         }
         return false;
+    }
+
+    @Override
+    public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        String url = getAuth().privateDownloadUrl(fileInfo.getUrl());
+        try (InputStream in = new URL(url).openStream()) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+        }
+    }
+
+    @Override
+    public void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        if (StrUtil.isBlank(fileInfo.getThUrl())) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
+        }
+        String url = getAuth().privateDownloadUrl(fileInfo.getThUrl());
+        try (InputStream in = new URL(url).openStream()) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        }
     }
 }

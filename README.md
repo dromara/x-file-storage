@@ -17,9 +17,9 @@
 </p>
 
 ### 简介
-在SpringBoot中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS、百度云 BOS
+在SpringBoot中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS、百度云 BOS、又拍云USS
 
-后续即将支持 又拍云USS、亚马逊S3、谷歌云存储、Minio、FTP、SFTP、WebDAV、Samba、NFS
+后续即将支持 亚马逊S3、谷歌云存储、Minio、FTP、SFTP、WebDAV、Samba、NFS
 
 `spring-file-storage` 模块是本体。
 
@@ -38,7 +38,7 @@
     <dependency>
         <groupId>cn.xuyanwu</groupId>
         <artifactId>spring-file-storage</artifactId>
-        <version>0.1.5</version>
+        <version>0.1.6</version>
     </dependency>
 
     <!-- 华为云 OBS 不使用的情况下可以不引入 -->
@@ -74,6 +74,13 @@
         <groupId>com.baidubce</groupId>
         <artifactId>bce-java-sdk</artifactId>
         <version>0.10.162</version>
+    </dependency>
+
+    <!-- 又拍云 USS 不使用的情况下可以不引入 -->
+    <dependency>
+        <groupId>com.upyun</groupId>
+        <artifactId>java-sdk</artifactId>
+        <version>4.2.2</version>
     </dependency>
 
 </dependencies>
@@ -135,7 +142,15 @@ spring:
         secret-key: ??
         end-point: ?? # 例如 abc.fsh.bcebos.com
         bucket-name: ??
-        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.fsh.bcebos.com/xftx/
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.fsh.bcebos.com/abc/
+        base-path: hy/ # 基础路径
+    upyun-uss: # 又拍云 USS
+      - platform: upyun-uss-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        username: ??
+        password: ??
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：http://abc.test.upcdn.net/
         base-path: hy/ # 基础路径
 ```
 
@@ -361,6 +376,33 @@ public class LocalFileStorage implements FileStorage {
     public boolean exists(FileInfo fileInfo) {
         return new File(fileInfo.getBasePath() + fileInfo.getPath(),fileInfo.getFilename()).exists();
     }
+
+    /**
+     * 下载文件
+     */
+    @Override
+    public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        try (InputStream in = FileUtil.getInputStream(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename())) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+        }
+    }
+
+    /**
+     * 下载缩略图文件
+     */
+    @Override
+    public void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        if (StrUtil.isBlank(fileInfo.getThFilename())) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
+        }
+        try (InputStream in = FileUtil.getInputStream(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename())) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        }
+    }
 }
 
 /**
@@ -423,6 +465,37 @@ public class LogFileStorageAspect implements FileStorageAspect {
         boolean res = chain.next(fileInfo,fileStorage,fileRecorder);
         log.info("删除文件 after -> {}",res);
         return res;
+    }
+
+    /**
+     * 文件是否存在
+     */
+    @Override
+    public boolean existsAround(ExistsAspectChain chain,FileInfo fileInfo,FileStorage fileStorage) {
+        log.info("文件是否存在 before -> {}",fileInfo);
+        boolean res = chain.next(fileInfo,fileStorage);
+        log.info("文件是否存在 after -> {}",res);
+        return res;
+    }
+
+    /**
+     * 下载文件
+     */
+    @Override
+    public void downloadAround(DownloadAspectChain chain,FileInfo fileInfo,FileStorage fileStorage,Consumer<InputStream> consumer) {
+        log.info("下载文件 before -> {}",fileInfo);
+        chain.next(fileInfo,fileStorage,consumer);
+        log.info("下载文件 after -> {}",fileInfo);
+    }
+
+    /**
+     * 下载缩略图文件
+     */
+    @Override
+    public void downloadThAround(DownloadThAspectChain chain,FileInfo fileInfo,FileStorage fileStorage,Consumer<InputStream> consumer) {
+        log.info("下载缩略图文件 before -> {}",fileInfo);
+        chain.next(fileInfo,fileStorage,consumer);
+        log.info("下载缩略图文件 after -> {}",fileInfo);
     }
 }
 ```

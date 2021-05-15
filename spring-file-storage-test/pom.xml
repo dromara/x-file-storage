@@ -12,7 +12,7 @@
 
     <groupId>cn.xuyanwu</groupId>
     <artifactId>spring-file-storage-test</artifactId>
-    <version>0.1.5</version>
+    <version>0.1.6</version>
     <name>spring-file-storage-test</name>
     <description>spring-file-storage 的测试和演示模块</description>
 
@@ -21,6 +21,13 @@
     </properties>
 
     <dependencies>
+
+        <!-- 又拍云 USS -->
+        <dependency>
+            <groupId>com.upyun</groupId>
+            <artifactId>java-sdk</artifactId>
+            <version>4.2.2</version>
+        </dependency>
 
         <!-- 百度云 BOS -->
         <dependency>
@@ -67,7 +74,7 @@
         <dependency>
             <groupId>cn.xuyanwu</groupId>
             <artifactId>spring-file-storage</artifactId>
-            <version>0.1.5</version>
+            <version>0.1.6</version>
         </dependency>
 
         <dependency>

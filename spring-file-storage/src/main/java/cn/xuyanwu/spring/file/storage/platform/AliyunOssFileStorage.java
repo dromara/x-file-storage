@@ -1,15 +1,19 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
+import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
+import com.aliyun.oss.model.OSSObject;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.function.Consumer;
 
 /**
  * 阿里云 OSS 存储
@@ -50,8 +54,9 @@ public class AliyunOssFileStorage implements FileStorage {
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
-                fileInfo.setThUrl(fileInfo.getUrl() + pre.getThumbnailSuffix());
-                oss.putObject(bucketName,newFileKey + pre.getThumbnailSuffix(),new ByteArrayInputStream(thumbnailBytes));
+                String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
+                fileInfo.setThUrl(domain + newThFileKey);
+                oss.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes));
             }
 
             return true;
@@ -66,20 +71,58 @@ public class AliyunOssFileStorage implements FileStorage {
     @Override
     public boolean delete(FileInfo fileInfo) {
         OSS oss = getOss();
-        if (fileInfo.getThFilename() != null) {   //删除缩略图
-            oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+        try {
+            if (fileInfo.getThFilename() != null) {   //删除缩略图
+                oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+            }
+            oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+            return true;
+        } finally {
+            shutdown(oss);
         }
-        oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        shutdown(oss);
-        return true;
     }
 
 
     @Override
     public boolean exists(FileInfo fileInfo) {
         OSS oss = getOss();
-        boolean b = oss.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        shutdown(oss);
-        return b;
+        try {
+            return oss.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        } finally {
+            shutdown(oss);
+        }
+    }
+
+    @Override
+    public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        OSS oss = getOss();
+        try {
+            OSSObject object = oss.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+            try (InputStream in = object.getObjectContent()) {
+                consumer.accept(in);
+            } catch (IOException e) {
+                throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            }
+        } finally {
+            shutdown(oss);
+        }
+    }
+
+    @Override
+    public void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer) {
+        if (StrUtil.isBlank(fileInfo.getThFilename())) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
+        }
+        OSS oss = getOss();
+        try {
+            OSSObject object = oss.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+            try (InputStream in = object.getObjectContent()) {
+                consumer.accept(in);
+            } catch (IOException e) {
+                throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+            }
+        } finally {
+            shutdown(oss);
+        }
     }
 }

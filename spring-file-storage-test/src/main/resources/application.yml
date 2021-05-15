@@ -62,3 +62,11 @@ spring:
         bucket-name: ??
         domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.fsh.bcebos.com/abc/
         base-path: hy/ # 基础路径
+    upyun-uss: # 又拍云 USS
+      - platform: upyun-uss-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        username: ??
+        password: ??
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：http://abc.test.upcdn.net/
+        base-path: hy/ # 基础路径
