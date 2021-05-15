@@ -49,13 +49,13 @@ public class Downloader {
      */
     public void inputStream(Consumer<InputStream> consumer) {
         if (target == TARGET_FILE) {    //下载文件
-            new DownloadAspectChain(aspectList,(_fileInfo,_fileStorage,_consumer) -> {
-                _fileStorage.download(_fileInfo,_consumer);
-            }).next(fileInfo,fileStorage,consumer);
+            new DownloadAspectChain(aspectList,(_fileInfo,_fileStorage,_consumer) ->
+                    _fileStorage.download(_fileInfo,_consumer)
+            ).next(fileInfo,fileStorage,consumer);
         } else if (target == TARGET_TH_FILE) {  //下载缩略图文件
-            new DownloadThAspectChain(aspectList,(_fileInfo,_fileStorage,_consumer) -> {
-                _fileStorage.downloadTh(_fileInfo,_consumer);
-            }).next(fileInfo,fileStorage,consumer);
+            new DownloadThAspectChain(aspectList,(_fileInfo,_fileStorage,_consumer) ->
+                    _fileStorage.downloadTh(_fileInfo,_consumer)
+            ).next(fileInfo,fileStorage,consumer);
         } else {
             throw new FileStorageRuntimeException("没找到对应的下载目标，请设置 target 参数！");
         }

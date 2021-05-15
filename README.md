@@ -453,6 +453,17 @@ public class LogFileStorageAspect implements FileStorageAspect {
     }
 
     /**
+     * 文件是否存在
+     */
+    @Override
+    public boolean existsAround(ExistsAspectChain chain,FileInfo fileInfo,FileStorage fileStorage) {
+        log.info("文件是否存在 before -> {}",fileInfo);
+        boolean res = chain.next(fileInfo,fileStorage);
+        log.info("文件是否存在 after -> {}",res);
+        return res;
+    }
+
+    /**
      * 下载文件
      */
     @Override

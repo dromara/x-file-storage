@@ -5,6 +5,7 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
 import cn.xuyanwu.spring.file.storage.aspect.DeleteAspectChain;
+import cn.xuyanwu.spring.file.storage.aspect.ExistsAspectChain;
 import cn.xuyanwu.spring.file.storage.aspect.FileStorageAspect;
 import cn.xuyanwu.spring.file.storage.aspect.UploadAspectChain;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
@@ -168,6 +169,16 @@ public class FileStorageService {
             }
             return false;
         }).next(fileInfo,fileStorage,fileRecorder);
+    }
+
+    /**
+     * 文件是否存在
+     */
+    public boolean exists(FileInfo fileInfo) {
+        if (fileInfo == null) return false;
+        return new ExistsAspectChain(aspectList,(_fileInfo,_fileStorage) ->
+                _fileStorage.exists(_fileInfo)
+        ).next(fileInfo,getFileStorageVerify(fileInfo));
     }
 
 

@@ -30,6 +30,13 @@ public interface FileStorageAspect {
     }
 
     /**
+     * 文件是否存在，成功返回文件内容
+     */
+    default boolean existsAround(ExistsAspectChain chain,FileInfo fileInfo,FileStorage fileStorage) {
+        return chain.next(fileInfo,fileStorage);
+    }
+
+    /**
      * 下载文件，成功返回文件内容
      */
     default void downloadAround(DownloadAspectChain chain,FileInfo fileInfo,FileStorage fileStorage,Consumer<InputStream> consumer) {

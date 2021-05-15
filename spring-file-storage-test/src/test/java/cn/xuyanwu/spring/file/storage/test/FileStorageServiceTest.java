@@ -62,6 +62,19 @@ class FileStorageServiceTest {
         log.info("文件删除成功：{}",fileInfo.toString());
     }
 
+    /**
+     * 测试上传并验证文件是否存在
+     */
+    @Test
+    public void exists() {
+        String filename = "image.jpg";
+        InputStream in = this.getClass().getClassLoader().getResourceAsStream(filename);
+        FileInfo fileInfo = fileStorageService.of(in).setOriginalFilename(filename).setPath("test/").setObjectId("0").setObjectType("0").upload();
+        Assert.notNull(fileInfo,"文件上传失败！");
+        boolean exists = fileStorageService.exists(fileInfo);
+        log.info("文件是否存在：{}，文件：{}",exists,fileInfo.toString());
+    }
+
 
     /**
      * 测试上传并下载文件
