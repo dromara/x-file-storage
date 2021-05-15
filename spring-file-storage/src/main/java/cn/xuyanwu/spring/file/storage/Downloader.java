@@ -87,7 +87,7 @@ public class Downloader {
     /**
      * 下载到指定输出流
      */
-    public void file(OutputStream out) {
+    public void outputStream(OutputStream out) {
         inputStream(in -> IoUtil.copy(in,out));
     }
 
