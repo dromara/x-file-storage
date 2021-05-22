@@ -13,7 +13,9 @@
 	<a target="_blank" href='https://github.com/1171736840/spring-file-storage'>
 		<img src="https://img.shields.io/github/stars/1171736840/spring-file-storage.svg?style=social" alt="github star"/>
 	</a>
-
+    <a href='https://gitee.com/XYW1171736840/spring-file-storage'>
+        <img src='https://gitee.com/XYW1171736840/spring-file-storage/badge/star.svg?theme=dark' alt='star' />
+    </a>
 </p>
 
 ### 简介
@@ -24,6 +26,10 @@
 `spring-file-storage` 模块是本体。
 
 `spring-file-storage-test` 模块是测试+使用演示，不需要的情况下可以直接删除。
+
+GitHub：https://github.com/1171736840/spring-file-storage 
+<br />
+Gitee：https://gitee.com/XYW1171736840/spring-file-storage
 
 ### 使用说明
 
