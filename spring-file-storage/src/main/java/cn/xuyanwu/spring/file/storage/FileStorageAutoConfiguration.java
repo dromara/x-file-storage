@@ -157,15 +157,15 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     @Bean
     @ConditionalOnClass(name = "com.upyun.RestManager")
     public List<UpyunUssFileStorage> upyunUssFileStorageList() {
-        return properties.getUpyunUSS().stream().map(bos -> {
-            if (!bos.getEnableStorage()) return null;
+        return properties.getUpyunUSS().stream().map(uss -> {
+            if (!uss.getEnableStorage()) return null;
             UpyunUssFileStorage storage = new UpyunUssFileStorage();
-            storage.setPlatform(bos.getPlatform());
-            storage.setUsername(bos.getUsername());
-            storage.setPassword(bos.getPassword());
-            storage.setBucketName(bos.getBucketName());
-            storage.setDomain(bos.getDomain());
-            storage.setBasePath(bos.getBasePath());
+            storage.setPlatform(uss.getPlatform());
+            storage.setUsername(uss.getUsername());
+            storage.setPassword(uss.getPassword());
+            storage.setBucketName(uss.getBucketName());
+            storage.setDomain(uss.getDomain());
+            storage.setBasePath(uss.getBasePath());
             return storage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
