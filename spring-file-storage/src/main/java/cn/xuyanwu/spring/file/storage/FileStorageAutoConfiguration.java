@@ -171,6 +171,26 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     }
 
     /**
+     * MinIO 存储 Bean
+     */
+    @Bean
+    @ConditionalOnClass(name = "io.minio.MinioClient")
+    public List<MinIOFileStorage> minioFileStorageList() {
+        return properties.getMinio().stream().map(minio -> {
+            if (!minio.getEnableStorage()) return null;
+            MinIOFileStorage storage = new MinIOFileStorage();
+            storage.setPlatform(minio.getPlatform());
+            storage.setAccessKey(minio.getAccessKey());
+            storage.setSecretKey(minio.getSecretKey());
+            storage.setEndPoint(minio.getEndPoint());
+            storage.setBucketName(minio.getBucketName());
+            storage.setDomain(minio.getDomain());
+            storage.setBasePath(minio.getBasePath());
+            return storage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
      * 当没有找到 FileRecorder 时使用默认的 FileRecorder
      */
     @Bean

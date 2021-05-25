@@ -13,6 +13,15 @@
 
     <dependencies>
 
+        <!-- MinIO -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>7.0.2</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!-- 又拍云 USS -->
         <dependency>
             <groupId>com.upyun</groupId>

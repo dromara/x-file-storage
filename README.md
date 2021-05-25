@@ -19,9 +19,9 @@
 </p>
 
 ### 简介
-在SpringBoot中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS、百度云 BOS、又拍云USS
+在SpringBoot中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS、百度云 BOS、又拍云USS、Minio
 
-后续即将支持 亚马逊S3、谷歌云存储、Minio、FTP、SFTP、WebDAV、Samba、NFS
+后续即将支持 亚马逊S3、谷歌云存储、FTP、SFTP、WebDAV、Samba、NFS
 
 `spring-file-storage` 模块是本体。
 
@@ -87,6 +87,15 @@ Gitee：https://gitee.com/XYW1171736840/spring-file-storage
         <groupId>com.upyun</groupId>
         <artifactId>java-sdk</artifactId>
         <version>4.2.2</version>
+    </dependency>
+
+    <!-- MinIO 不使用的情况下可以不引入 -->
+    <dependency>
+        <groupId>io.minio</groupId>
+        <artifactId>minio</artifactId>
+        <version>7.0.2</version>
+        <scope>provided</scope>
+        <optional>true</optional>
     </dependency>
 
 </dependencies>
@@ -157,6 +166,15 @@ spring:
         password: ??
         bucket-name: ??
         domain: ?? # 访问域名，注意“/”结尾，例如：http://abc.test.upcdn.net/
+        base-path: hy/ # 基础路径
+    minio: # MinIO
+      - platform: minio-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        access-key: ??
+        secret-key: ??
+        end-point: ??
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：http://minio.abc.com/abc/
         base-path: hy/ # 基础路径
 ```
 

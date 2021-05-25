@@ -1,5 +1,6 @@
 package cn.xuyanwu.spring.file.storage.test;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.Assert;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.FileStorageService;
@@ -72,7 +73,15 @@ class FileStorageServiceTest {
         FileInfo fileInfo = fileStorageService.of(in).setOriginalFilename(filename).setPath("test/").setObjectId("0").setObjectType("0").upload();
         Assert.notNull(fileInfo,"文件上传失败！");
         boolean exists = fileStorageService.exists(fileInfo);
-        log.info("文件是否存在：{}，文件：{}",exists,fileInfo.toString());
+        log.info("文件是否存在，应该存在，实际为：{}，文件：{}",exists,fileInfo);
+        Assert.isTrue(exists,"文件是否存在，应该存在，实际为：{}，文件：{}",exists,fileInfo);
+
+        fileInfo = BeanUtil.copyProperties(fileInfo,FileInfo.class);
+        fileInfo.setFilename(fileInfo.getFilename() + "111.cc");
+        fileInfo.setUrl(fileInfo.getUrl() + "111.cc");
+        exists = fileStorageService.exists(fileInfo);
+        log.info("文件是否存在，不该存在，实际为：{}，文件：{}",exists,fileInfo);
+        Assert.isFalse(exists,"文件是否存在，不该存在，实际为：{}，文件：{}",exists,fileInfo);
     }
 
 
