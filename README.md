@@ -50,7 +50,7 @@ Gitee：https://gitee.com/XYW1171736840/spring-file-storage
     <dependency>
         <groupId>cn.xuyanwu</groupId>
         <artifactId>spring-file-storage</artifactId>
-        <version>0.2.0</version>
+        <version>0.2.1</version>
     </dependency>
 
     <!-- 华为云 OBS 不使用的情况下可以不引入 -->
