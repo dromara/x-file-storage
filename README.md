@@ -100,8 +100,6 @@ Gitee：https://gitee.com/XYW1171736840/spring-file-storage
         <groupId>io.minio</groupId>
         <artifactId>minio</artifactId>
         <version>7.0.2</version>
-        <scope>provided</scope>
-        <optional>true</optional>
     </dependency>
 
 </dependencies>
