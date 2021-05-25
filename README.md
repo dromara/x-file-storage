@@ -31,6 +31,12 @@ GitHub：https://github.com/1171736840/spring-file-storage
 <br />
 Gitee：https://gitee.com/XYW1171736840/spring-file-storage
 
+如果你觉得这个项目不错，可以在右上角点个 Star 或捐赠请作者吃包辣条~，在此表示感谢^_^。
+
+点击以下链接，将页面拉到最下方点击“捐赠”即可。
+
+[Gitee上捐赠](https://gitee.com/XYW1171736840/spring-file-storage)
+
 ### 使用说明
 
 #### 配置
@@ -44,7 +50,7 @@ Gitee：https://gitee.com/XYW1171736840/spring-file-storage
     <dependency>
         <groupId>cn.xuyanwu</groupId>
         <artifactId>spring-file-storage</artifactId>
-        <version>0.1.6</version>
+        <version>0.2.0</version>
     </dependency>
 
     <!-- 华为云 OBS 不使用的情况下可以不引入 -->
