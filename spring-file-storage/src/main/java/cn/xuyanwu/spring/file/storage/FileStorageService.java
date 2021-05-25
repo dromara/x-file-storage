@@ -13,8 +13,6 @@ import cn.xuyanwu.spring.file.storage.platform.FileStorage;
 import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
@@ -33,16 +31,10 @@ import java.util.function.Predicate;
 @Setter
 public class FileStorageService {
 
-    @Lazy
-    @Autowired
     private FileStorageService self;
-    @Autowired
     private FileRecorder fileRecorder;
-    @Autowired
     private List<List<? extends FileStorage>> fileStorageList;
-    @Autowired
     private FileStorageProperties properties;
-    @Autowired(required = false)
     private List<FileStorageAspect> aspectList = new ArrayList<>();
 
 
