@@ -19,7 +19,7 @@
 </p>
 
 ### 简介
-在SpringBoot中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS、百度云 BOS、又拍云USS、Minio
+在SpringBoot中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS、百度云 BOS、又拍云USS、MinIO
 
 后续即将支持 亚马逊S3、谷歌云存储、FTP、SFTP、WebDAV、Samba、NFS
 
