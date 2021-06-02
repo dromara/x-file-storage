@@ -6,7 +6,7 @@ import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
+import java.util.Iterator;
 
 /**
  * 删除的切面调用链
@@ -16,12 +16,10 @@ import java.util.List;
 public class DeleteAspectChain {
 
     private DeleteAspectChainCallback callback;
-    private List<FileStorageAspect> aspectList;
-    private int index = -1;
+    private Iterator<FileStorageAspect> aspectIterator;
 
-
-    public DeleteAspectChain(List<FileStorageAspect> aspectList,DeleteAspectChainCallback callback) {
-        this.aspectList = aspectList;
+    public DeleteAspectChain(Iterable<FileStorageAspect> aspects,DeleteAspectChainCallback callback) {
+        this.aspectIterator = aspects.iterator();
         this.callback = callback;
     }
 
@@ -29,9 +27,8 @@ public class DeleteAspectChain {
      * 调用下一个切面
      */
     public boolean next(FileInfo fileInfo,FileStorage fileStorage,FileRecorder fileRecorder) {
-        index++;
-        if (aspectList.size() > index) {//还有下一个
-            return aspectList.get(index).deleteAround(this,fileInfo,fileStorage,fileRecorder);
+        if (aspectIterator.hasNext()) {//还有下一个
+            return aspectIterator.next().deleteAround(this,fileInfo,fileStorage,fileRecorder);
         } else {
             return callback.run(fileInfo,fileStorage,fileRecorder);
         }

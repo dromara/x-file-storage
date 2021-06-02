@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.InputStream;
-import java.util.List;
+import java.util.Iterator;
 import java.util.function.Consumer;
 
 /**
@@ -17,12 +17,10 @@ import java.util.function.Consumer;
 public class DownloadAspectChain {
 
     private DownloadAspectChainCallback callback;
-    private List<FileStorageAspect> aspectList;
-    private int index = -1;
+    private Iterator<FileStorageAspect> aspectIterator;
 
-
-    public DownloadAspectChain(List<FileStorageAspect> aspectList,DownloadAspectChainCallback callback) {
-        this.aspectList = aspectList;
+    public DownloadAspectChain(Iterable<FileStorageAspect> aspects,DownloadAspectChainCallback callback) {
+        this.aspectIterator = aspects.iterator();
         this.callback = callback;
     }
 
@@ -30,9 +28,8 @@ public class DownloadAspectChain {
      * 调用下一个切面
      */
     public void next(FileInfo fileInfo,FileStorage fileStorage,Consumer<InputStream> consumer) {
-        index++;
-        if (aspectList.size() > index) {//还有下一个
-            aspectList.get(index).downloadAround(this,fileInfo,fileStorage,consumer);
+        if (aspectIterator.hasNext()) {//还有下一个
+            aspectIterator.next().downloadAround(this,fileInfo,fileStorage,consumer);
         } else {
             callback.run(fileInfo,fileStorage,consumer);
         }

@@ -5,7 +5,7 @@ import cn.xuyanwu.spring.file.storage.platform.FileStorage;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
+import java.util.Iterator;
 
 /**
  * 文件是否存在的切面调用链
@@ -15,12 +15,10 @@ import java.util.List;
 public class ExistsAspectChain {
 
     private ExistsAspectChainCallback callback;
-    private List<FileStorageAspect> aspectList;
-    private int index = -1;
+    private Iterator<FileStorageAspect> aspectIterator;
 
-
-    public ExistsAspectChain(List<FileStorageAspect> aspectList,ExistsAspectChainCallback callback) {
-        this.aspectList = aspectList;
+    public ExistsAspectChain(Iterable<FileStorageAspect> aspects,ExistsAspectChainCallback callback) {
+        this.aspectIterator = aspects.iterator();
         this.callback = callback;
     }
 
@@ -28,9 +26,8 @@ public class ExistsAspectChain {
      * 调用下一个切面
      */
     public boolean next(FileInfo fileInfo,FileStorage fileStorage) {
-        index++;
-        if (aspectList.size() > index) {//还有下一个
-            return aspectList.get(index).existsAround(this,fileInfo,fileStorage);
+        if (aspectIterator.hasNext()) {//还有下一个
+            return aspectIterator.next().existsAround(this,fileInfo,fileStorage);
         } else {
             return callback.run(fileInfo,fileStorage);
         }
