@@ -52,7 +52,7 @@ public class ProgressInputStream extends FilterInputStream {
     protected void progress(long size) {
         if (size > 0) {
             this.listener.progress(progressSize += size,allSize);
-        } else {
+        } else if (size < 0) {
             this.listener.finish();
         }
     }
