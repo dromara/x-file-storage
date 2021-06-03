@@ -124,16 +124,14 @@ public class FileStorageService {
      * 根据 url 删除文件
      */
     public boolean delete(String url) {
-        FileInfo fileInfo = getFileInfoByUrl(url);
-        return delete(fileInfo);
+        return delete(getFileInfoByUrl(url));
     }
 
     /**
      * 根据 url 删除文件
      */
     public boolean delete(String url,Predicate<FileInfo> predicate) {
-        FileInfo fileInfo = getFileInfoByUrl(url);
-        return delete(fileInfo,predicate);
+        return delete(getFileInfoByUrl(url),predicate);
     }
 
     /**
@@ -158,6 +156,13 @@ public class FileStorageService {
             }
             return false;
         }).next(fileInfo,fileStorage,fileRecorder);
+    }
+
+    /**
+     * 文件是否存在
+     */
+    public boolean exists(String url) {
+        return exists(getFileInfoByUrl(url));
     }
 
     /**
@@ -207,6 +212,7 @@ public class FileStorageService {
         UploadPretreatment pre = new UploadPretreatment();
         pre.setFileStorageService(self);
         pre.setPlatform(properties.getDefaultPlatform());
+        pre.setThumbnailSuffixScheme(properties.getThumbnailSuffixScheme());
         pre.setThumbnailSuffix(properties.getThumbnailSuffix());
         return pre;
     }
