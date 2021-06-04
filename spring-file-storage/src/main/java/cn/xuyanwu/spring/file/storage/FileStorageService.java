@@ -212,7 +212,6 @@ public class FileStorageService {
         UploadPretreatment pre = new UploadPretreatment();
         pre.setFileStorageService(self);
         pre.setPlatform(properties.getDefaultPlatform());
-        pre.setThumbnailSuffixScheme(properties.getThumbnailSuffixScheme());
         pre.setThumbnailSuffix(properties.getThumbnailSuffix());
         return pre;
     }
