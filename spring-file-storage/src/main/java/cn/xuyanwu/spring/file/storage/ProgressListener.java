@@ -14,7 +14,7 @@ public interface ProgressListener {
      * 进行中
      *
      * @param progressSize 已经进行的大小
-     * @param allSize      总大小，来自 {@link FileInfo#getSize()}
+     * @param allSize      总大小，来自 fileInfo.getSize()
      */
     void progress(long progressSize,long allSize);
 
