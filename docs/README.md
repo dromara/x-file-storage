@@ -18,24 +18,19 @@
     </a>
 </p>
 
-### 简介
+# 简介
 在 SpringBoot 中通过简单的方式将文件存储到本地、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS、百度云 BOS、又拍云USS、MinIO
 
 后续即将支持 亚马逊S3、谷歌云存储、FTP、SFTP、WebDAV、Samba、NFS
 
-`spring-file-storage` 模块是本体。
-
-`spring-file-storage-test` 模块是测试+使用演示，不需要的情况下可以直接删除。
-
-GitHub：https://github.com/1171736840/spring-file-storage 
+GitHub：https://github.com/1171736840/spring-file-storage
 <br />
 Gitee：https://gitee.com/XYW1171736840/spring-file-storage
 
-如果你觉得这个项目不错，可以在右上角点个 Star 或捐赠请作者吃包辣条~，在此表示感谢^_^。
+如果你觉得这个项目不错，可以点个 Star 或捐赠请作者吃包辣条~，在此表示感谢^_^。
 
 点击以下链接，将页面拉到最下方点击“捐赠”即可。
 
 [Gitee上捐赠](https://gitee.com/XYW1171736840/spring-file-storage)
 
-
-阅读 [文档](https://spring-file-storage.xuyanwu.cn) 开始使用！
+阅读 [快速入门](快速入门) 开始使用吧！
