@@ -18,9 +18,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.*;
 import java.net.URI;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 
 
@@ -33,9 +32,9 @@ public class FileStorageService {
 
     private FileStorageService self;
     private FileRecorder fileRecorder;
-    private List<List<? extends FileStorage>> fileStorageList;
+    private CopyOnWriteArrayList<FileStorage> fileStorageList;
     private FileStorageProperties properties;
-    private List<FileStorageAspect> aspectList = new ArrayList<>();
+    private CopyOnWriteArrayList<FileStorageAspect> aspectList;
 
 
     /**
@@ -49,11 +48,9 @@ public class FileStorageService {
      * 获取对应的存储平台
      */
     public FileStorage getFileStorage(String platform) {
-        for (List<? extends FileStorage> subFileStorageList : fileStorageList) {
-            for (FileStorage fileStorage : subFileStorageList) {
-                if (fileStorage.getPlatform().equals(platform)) {
-                    return fileStorage;
-                }
+        for (FileStorage fileStorage : fileStorageList) {
+            if (fileStorage.getPlatform().equals(platform)) {
+                return fileStorage;
             }
         }
         return null;
@@ -127,16 +124,14 @@ public class FileStorageService {
      * 根据 url 删除文件
      */
     public boolean delete(String url) {
-        FileInfo fileInfo = getFileInfoByUrl(url);
-        return delete(fileInfo);
+        return delete(getFileInfoByUrl(url));
     }
 
     /**
      * 根据 url 删除文件
      */
     public boolean delete(String url,Predicate<FileInfo> predicate) {
-        FileInfo fileInfo = getFileInfoByUrl(url);
-        return delete(fileInfo,predicate);
+        return delete(getFileInfoByUrl(url),predicate);
     }
 
     /**
@@ -161,6 +156,13 @@ public class FileStorageService {
             }
             return false;
         }).next(fileInfo,fileStorage,fileRecorder);
+    }
+
+    /**
+     * 文件是否存在
+     */
+    public boolean exists(String url) {
+        return exists(getFileInfoByUrl(url));
     }
 
     /**

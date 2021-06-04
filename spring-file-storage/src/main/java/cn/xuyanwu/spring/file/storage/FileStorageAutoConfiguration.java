@@ -19,6 +19,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -220,15 +221,15 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     public FileStorageService fileStorageService(FileRecorder fileRecorder,
-                                                 List<List<? extends FileStorage>> fileStorageList,
+                                                 List<List<? extends FileStorage>> fileStorageLists,
                                                  List<FileStorageAspect> aspectList) {
         this.initDetect();
         FileStorageService service = new FileStorageService();
-
+        service.setFileStorageList(new CopyOnWriteArrayList<>());
+        fileStorageLists.forEach(service.getFileStorageList()::addAll);
         service.setFileRecorder(fileRecorder);
-        service.setFileStorageList(fileStorageList);
         service.setProperties(properties);
-        service.setAspectList(aspectList);
+        service.setAspectList(new CopyOnWriteArrayList<>(aspectList));
         return service;
     }
 
