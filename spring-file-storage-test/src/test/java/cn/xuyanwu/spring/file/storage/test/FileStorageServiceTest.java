@@ -56,11 +56,11 @@ class FileStorageServiceTest {
         String filename = "image.jpg";
         InputStream in = this.getClass().getClassLoader().getResourceAsStream(filename);
 
-        FileInfo fileInfo = fileStorageService.of(in).setOriginalFilename(filename).setPath("test/").setObjectId("0").setObjectType("0").setSaveFilename("aaa.jpg").setSaveThFilename("bbb").thumbnail(200,200).upload();
+        FileInfo fileInfo = fileStorageService.of(in).setOriginalFilename(filename).setPath("test/").setObjectId("0").setObjectType("0").thumbnail(200,200).upload();
         Assert.notNull(fileInfo,"文件上传失败！");
         boolean delete = fileStorageService.delete(fileInfo.getUrl());
         Assert.isTrue(delete,"文件删除失败！" + fileInfo.getUrl());
-        log.info("文件删除成功：{}",fileInfo.toString());
+        log.info("文件删除成功：{}",fileInfo);
     }
 
     /**
@@ -96,11 +96,15 @@ class FileStorageServiceTest {
         FileInfo fileInfo = fileStorageService.of(in).setOriginalFilename(filename).setPath("test/").setObjectId("0").setObjectType("0").setSaveFilename("aaa.jpg").setSaveThFilename("bbb").thumbnail(200,200).upload();
         Assert.notNull(fileInfo,"文件上传失败！");
 
-        byte[] bytes = fileStorageService.download(fileInfo).bytes();
+        byte[] bytes = fileStorageService.download(fileInfo).setProgressMonitor((progressSize,allSize) ->
+                log.info("文件下载进度：{} {}%",progressSize,progressSize * 100 / allSize)
+        ).bytes();
         Assert.notNull(bytes,"文件下载失败！");
         log.info("文件下载成功，文件大小：{}",bytes.length);
 
-        byte[] thBytes = fileStorageService.downloadTh(fileInfo).bytes();
+        byte[] thBytes = fileStorageService.downloadTh(fileInfo).setProgressMonitor((progressSize,allSize) ->
+                log.info("缩略图文件下载进度：{} {}%",progressSize,progressSize * 100 / allSize)
+        ).bytes();
         Assert.notNull(thBytes,"缩略图文件下载失败！");
         log.info("缩略图文件下载成功，文件大小：{}",thBytes.length);
 

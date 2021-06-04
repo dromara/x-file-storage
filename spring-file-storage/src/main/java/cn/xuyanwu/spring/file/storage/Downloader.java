@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -31,6 +32,7 @@ public class Downloader {
     private final List<FileStorageAspect> aspectList;
     private final FileInfo fileInfo;
     private final Integer target;
+    private ProgressListener progressListener;
 
     /**
      * 构造下载器
@@ -45,17 +47,58 @@ public class Downloader {
     }
 
     /**
+     * 设置下载进度监听器
+     * @param progressListener 提供一个参数，表示已传输字节数
+     */
+    public Downloader setProgressMonitor(Consumer<Long> progressListener) {
+        return setProgressMonitor((progressSize,allSize) -> progressListener.accept(progressSize));
+    }
+
+    /**
+     * 设置下载进度监听器
+     * @param progressListener 提供两个参数，第一个是 progressSize已传输字节数，第二个是 allSize总字节数
+     */
+    public Downloader setProgressMonitor(BiConsumer<Long,Long> progressListener) {
+        return setProgressMonitor(new ProgressListener() {
+            @Override
+            public void start() {
+            }
+
+            @Override
+            public void progress(long progressSize,long allSize) {
+                progressListener.accept(progressSize,allSize);
+            }
+
+            @Override
+            public void finish() {
+            }
+        });
+    }
+
+    /**
+     * 设置下载进度监听器
+     */
+    public Downloader setProgressMonitor(ProgressListener progressListener) {
+        this.progressListener = progressListener;
+        return this;
+    }
+
+    /**
      * 获取 InputStream ，在此方法结束后会自动关闭 InputStream
      */
     public void inputStream(Consumer<InputStream> consumer) {
         if (target == TARGET_FILE) {    //下载文件
             new DownloadAspectChain(aspectList,(_fileInfo,_fileStorage,_consumer) ->
                     _fileStorage.download(_fileInfo,_consumer)
-            ).next(fileInfo,fileStorage,consumer);
+            ).next(fileInfo,fileStorage,in ->
+                    consumer.accept(progressListener == null ? in : new ProgressInputStream(in,progressListener,fileInfo.getSize()))
+            );
         } else if (target == TARGET_TH_FILE) {  //下载缩略图文件
             new DownloadThAspectChain(aspectList,(_fileInfo,_fileStorage,_consumer) ->
                     _fileStorage.downloadTh(_fileInfo,_consumer)
-            ).next(fileInfo,fileStorage,consumer);
+            ).next(fileInfo,fileStorage,in ->
+                    consumer.accept(progressListener == null ? in : new ProgressInputStream(in,progressListener,fileInfo.getThSize()))
+            );
         } else {
             throw new FileStorageRuntimeException("没找到对应的下载目标，请设置 target 参数！");
         }
