@@ -1,6 +1,5 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
-import cn.hutool.core.io.IoUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 

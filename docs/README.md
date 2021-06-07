@@ -16,6 +16,10 @@
     <a href='https://gitee.com/XYW1171736840/spring-file-storage'>
         <img src='https://gitee.com/XYW1171736840/spring-file-storage/badge/star.svg?theme=dark' alt='star' />
     </a>
+    <br />
+    <a href='https://jq.qq.com/?_wv=1027&k=eGfeNqka'>
+        <img src='https://img.shields.io/badge/QQ%E7%BE%A4-515706495-orange' alt='' />
+    </a>
 </p>
 
 # 简介
