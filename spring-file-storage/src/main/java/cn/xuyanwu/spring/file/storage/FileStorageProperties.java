@@ -51,9 +51,14 @@ public class FileStorageProperties {
      */
     private List<UpyunUSS> upyunUSS = new ArrayList<>();
     /**
-     * 又拍云 USS
+     * MinIO USS
      */
     private List<MinIO> minio = new ArrayList<>();
+
+    /**
+     * AWS S3
+     */
+    private List<AwsS3> awsS3 = new ArrayList<>();
 
     /**
      * 本地存储
@@ -254,6 +259,34 @@ public class FileStorageProperties {
         private String accessKey;
         private String secretKey;
         private String endPoint;
+        private String bucketName;
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+        /**
+         * 存储平台
+         */
+        private String platform = "";
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+    }
+
+    /**
+     * AWS S3
+     */
+    @Data
+    public static class AwsS3 {
+        private String accessKey;
+        private String secretKey;
+        private String region;
+        private String endpoint;
         private String bucketName;
         /**
          * 访问域名
