@@ -207,6 +207,28 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     }
 
     /**
+     * AWS 存储 Bean
+     */
+    @Bean
+    @ConditionalOnClass(name = "com.amazonaws.services.s3.AmazonS3")
+    public List<AwsS3FileStorage> amazonS3FileStorageList() {
+        return properties.getAwsS3().stream().map(s3 -> {
+            if (!s3.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",s3.getPlatform());
+            AwsS3FileStorage storage = new AwsS3FileStorage();
+            storage.setPlatform(s3.getPlatform());
+            storage.setAccessKey(s3.getAccessKey());
+            storage.setSecretKey(s3.getSecretKey());
+            storage.setRegion(s3.getRegion());
+            storage.setEndpoint(s3.getEndpoint());
+            storage.setBucketName(s3.getBucketName());
+            storage.setDomain(s3.getDomain());
+            storage.setBasePath(s3.getBasePath());
+            return storage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
      * 当没有找到 FileRecorder 时使用默认的 FileRecorder
      */
     @Bean
@@ -264,6 +286,9 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         }
         if (CollUtil.isNotEmpty(properties.getMinio()) && doesNotExistClass("io.minio.MinioClient")) {
             log.warn(template," MinIO ");
+        }
+        if (CollUtil.isNotEmpty(properties.getAwsS3()) && doesNotExistClass("com.amazonaws.services.s3.AmazonS3")) {
+            log.warn(template," AmazonS3 ");
         }
     }
 

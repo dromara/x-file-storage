@@ -5,13 +5,23 @@
     <parent>
         <artifactId>spring-file-storage-parent</artifactId>
         <groupId>cn.xuyanwu</groupId>
-        <version>0.3.0</version>
+        <version>0.4.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>spring-file-storage</artifactId>
 
     <dependencies>
+
+        <!-- AWS S3 -->
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>1.11.1034</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
 
         <!-- MinIO -->
         <dependency>
