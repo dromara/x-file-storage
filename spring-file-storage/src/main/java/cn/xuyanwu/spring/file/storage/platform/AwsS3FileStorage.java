@@ -9,6 +9,7 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import lombok.Getter;
 import lombok.Setter;
@@ -61,7 +62,9 @@ public class AwsS3FileStorage implements FileStorage {
 
         AmazonS3 s3 = getAmazonS3();
         try {
-            s3.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream(),null);
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(fileInfo.getSize());
+            s3.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream(),metadata);
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
