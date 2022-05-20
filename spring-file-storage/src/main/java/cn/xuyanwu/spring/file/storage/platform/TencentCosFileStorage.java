@@ -10,6 +10,7 @@ import com.qcloud.cos.auth.BasicCOSCredentials;
 import com.qcloud.cos.auth.COSCredentials;
 import com.qcloud.cos.http.HttpProtocol;
 import com.qcloud.cos.model.COSObject;
+import com.qcloud.cos.model.ObjectMetadata;
 import com.qcloud.cos.region.Region;
 import lombok.Getter;
 import lombok.Setter;
@@ -56,14 +57,16 @@ public class TencentCosFileStorage implements FileStorage {
         fileInfo.setUrl(domain + newFileKey);
 
         COSClient cos = getCos();
+        ObjectMetadata objectMetadata = new ObjectMetadata();
         try {
-            cos.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream(),null);
-
+            objectMetadata.setContentLength(fileInfo.getSize());
+            cos.putObject(bucketName, newFileKey, pre.getFileWrapper().getInputStream(), objectMetadata);
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
                 fileInfo.setThUrl(domain + newThFileKey);
-                cos.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),null);
+                objectMetadata.setContentLength(fileInfo.getThSize());
+                cos.putObject(bucketName, newThFileKey, new ByteArrayInputStream(thumbnailBytes), objectMetadata);
             }
 
             return true;
