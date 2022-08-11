@@ -9,6 +9,7 @@ import com.baidubce.auth.DefaultBceCredentials;
 import com.baidubce.services.bos.BosClient;
 import com.baidubce.services.bos.BosClientConfiguration;
 import com.baidubce.services.bos.model.BosObject;
+import com.baidubce.services.bos.model.ObjectMetadata;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -56,13 +57,19 @@ public class BaiduBosFileStorage implements FileStorage {
 
         BosClient bos = getBos();
         try {
-            bos.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream());
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(fileInfo.getSize());
+            metadata.setContentType(fileInfo.getContentType());
+            bos.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream(),metadata);
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
                 fileInfo.setThUrl(domain + newThFileKey);
-                bos.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes));
+                ObjectMetadata thMetadata = new ObjectMetadata();
+                thMetadata.setContentLength(thumbnailBytes.length);
+                thMetadata.setContentType(fileInfo.getThContentType());
+                bos.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),thMetadata);
             }
 
             return true;

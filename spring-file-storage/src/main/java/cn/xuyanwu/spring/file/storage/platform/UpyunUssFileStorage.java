@@ -16,6 +16,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.function.Consumer;
 
 /**
@@ -47,7 +48,9 @@ public class UpyunUssFileStorage implements FileStorage {
 
         RestManager manager = getManager();
         try {
-            try (Response result = manager.writeFile(newFileKey,pre.getFileWrapper().getInputStream(),null)) {
+            HashMap<String,String> params = new HashMap<>();
+            params.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getContentType());
+            try (Response result = manager.writeFile(newFileKey,pre.getFileWrapper().getInputStream(),params)) {
                 if (!result.isSuccessful()) {
                     throw new UpException(result.toString());
                 }
@@ -57,8 +60,9 @@ public class UpyunUssFileStorage implements FileStorage {
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
                 fileInfo.setThUrl(domain + newThFileKey);
-
-                Response thResult = manager.writeFile(newThFileKey,new ByteArrayInputStream(thumbnailBytes),null);
+                HashMap<String,String> thParams = new HashMap<>();
+                thParams.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getThContentType());
+                Response thResult = manager.writeFile(newThFileKey,new ByteArrayInputStream(thumbnailBytes),thParams);
                 if (!thResult.isSuccessful()) {
                     throw new UpException(thResult.toString());
                 }

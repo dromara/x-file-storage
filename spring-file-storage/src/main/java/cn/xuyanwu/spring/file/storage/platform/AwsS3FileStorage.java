@@ -31,7 +31,7 @@ public class AwsS3FileStorage implements FileStorage {
     private String accessKey;
     private String secretKey;
     private String region;
-    private String endpoint;
+    private String endPoint;
     private String bucketName;
     private String domain;
     private String basePath;
@@ -39,8 +39,8 @@ public class AwsS3FileStorage implements FileStorage {
     public AmazonS3 getAmazonS3() {
         AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
                 .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey,secretKey)));
-        if (StrUtil.isNotBlank(endpoint)) {
-            builder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint,region));
+        if (StrUtil.isNotBlank(endPoint)) {
+            builder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endPoint,region));
         } else if (StrUtil.isNotBlank(region)) {
             builder.withRegion(region);
         }
@@ -64,13 +64,17 @@ public class AwsS3FileStorage implements FileStorage {
         try {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(fileInfo.getSize());
+            metadata.setContentType(fileInfo.getContentType());
             s3.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream(),metadata);
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
                 fileInfo.setThUrl(domain + newThFileKey);
-                s3.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),null);
+                ObjectMetadata thMetadata = new ObjectMetadata();
+                thMetadata.setContentLength(thumbnailBytes.length);
+                thMetadata.setContentType(fileInfo.getThContentType());
+                s3.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),thMetadata);
             }
 
             return true;

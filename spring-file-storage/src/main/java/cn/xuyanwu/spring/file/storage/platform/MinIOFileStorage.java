@@ -51,13 +51,17 @@ public class MinIOFileStorage implements FileStorage {
 
         MinioClient client = getClient();
         try {
-            client.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream(),new PutObjectOptions(pre.getFileWrapper().getSize(),-1));
+            PutObjectOptions options = new PutObjectOptions(pre.getFileWrapper().getSize(),-1);
+            options.setContentType(fileInfo.getContentType());
+            client.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream(),options);
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
                 fileInfo.setThUrl(domain + newThFileKey);
-                client.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),new PutObjectOptions(thumbnailBytes.length,-1));
+                PutObjectOptions thOptions = new PutObjectOptions(thumbnailBytes.length,-1);
+                thOptions.setContentType(fileInfo.getThContentType());
+                client.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),thOptions);
             }
 
             return true;

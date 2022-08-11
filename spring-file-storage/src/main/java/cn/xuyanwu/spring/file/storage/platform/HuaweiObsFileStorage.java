@@ -6,6 +6,7 @@ import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.obs.services.ObsClient;
+import com.obs.services.model.ObjectMetadata;
 import com.obs.services.model.ObsObject;
 import lombok.Getter;
 import lombok.Setter;
@@ -47,13 +48,19 @@ public class HuaweiObsFileStorage implements FileStorage {
 
         ObsClient obs = getObs();
         try {
-            obs.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream());
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(fileInfo.getSize());
+            metadata.setContentType(fileInfo.getContentType());
+            obs.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream(),metadata);
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
                 fileInfo.setThUrl(domain + newThFileKey);
-                obs.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes));
+                ObjectMetadata thMetadata = new ObjectMetadata();
+                thMetadata.setContentLength((long) thumbnailBytes.length);
+                thMetadata.setContentType(fileInfo.getThContentType());
+                obs.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),thMetadata);
             }
 
             return true;

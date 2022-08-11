@@ -220,7 +220,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             storage.setAccessKey(s3.getAccessKey());
             storage.setSecretKey(s3.getSecretKey());
             storage.setRegion(s3.getRegion());
-            storage.setEndpoint(s3.getEndpoint());
+            storage.setEndPoint(s3.getEndPoint());
             storage.setBucketName(s3.getBucketName());
             storage.setDomain(s3.getDomain());
             storage.setBasePath(s3.getBasePath());

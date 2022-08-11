@@ -60,13 +60,13 @@ public class QiniuKodoFileStorage implements FileStorage {
         try {
             UploadManager uploadManager = getUploadManager();
             String token = getToken();
-            uploadManager.put(pre.getFileWrapper().getInputStream(),newFileKey,token,null,null);
+            uploadManager.put(pre.getFileWrapper().getInputStream(),newFileKey,token,null,fileInfo.getContentType());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
                 fileInfo.setThUrl(domain + newThFileKey);
-                uploadManager.put(new ByteArrayInputStream(thumbnailBytes),newThFileKey,token,null,null);
+                uploadManager.put(new ByteArrayInputStream(thumbnailBytes),newThFileKey,token,null,fileInfo.getThContentType());
             }
 
             return true;
