@@ -35,23 +35,34 @@ public class AwsS3FileStorage implements FileStorage {
     private String bucketName;
     private String domain;
     private String basePath;
+    private AmazonS3 client;
 
-    public AmazonS3 getAmazonS3() {
-        AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
-                .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey,secretKey)));
-        if (StrUtil.isNotBlank(endPoint)) {
-            builder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endPoint,region));
-        } else if (StrUtil.isNotBlank(region)) {
-            builder.withRegion(region);
+    /**
+     * 单例模式运行，不需要每次使用完再销毁了
+     */
+    public AmazonS3 getClient() {
+        if (client == null) {
+            AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
+                    .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey,secretKey)));
+            if (StrUtil.isNotBlank(endPoint)) {
+                builder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endPoint,region));
+            } else if (StrUtil.isNotBlank(region)) {
+                builder.withRegion(region);
+            }
+            client = builder.build();
         }
-        return builder.build();
+        return client;
     }
 
     /**
-     * 关闭
+     * 仅在移除这个存储平台时调用
      */
-    public void shutdown(AmazonS3 s3) {
-        if (s3 != null) s3.shutdown();
+    @Override
+    public void close() {
+        if (client != null) {
+            client.shutdown();
+            client = null;
+        }
     }
 
     @Override
@@ -60,12 +71,12 @@ public class AwsS3FileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         fileInfo.setUrl(domain + newFileKey);
 
-        AmazonS3 s3 = getAmazonS3();
+        AmazonS3 client = getClient();
         try {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(fileInfo.getSize());
             metadata.setContentType(fileInfo.getContentType());
-            s3.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream(),metadata);
+            client.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream(),metadata);
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
@@ -74,55 +85,39 @@ public class AwsS3FileStorage implements FileStorage {
                 ObjectMetadata thMetadata = new ObjectMetadata();
                 thMetadata.setContentLength(thumbnailBytes.length);
                 thMetadata.setContentType(fileInfo.getThContentType());
-                s3.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),thMetadata);
+                client.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),thMetadata);
             }
 
             return true;
         } catch (IOException e) {
-            s3.deleteObject(bucketName,newFileKey);
+            client.deleteObject(bucketName,newFileKey);
             throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
-        } finally {
-            shutdown(s3);
         }
     }
 
     @Override
     public boolean delete(FileInfo fileInfo) {
-        AmazonS3 oss = getAmazonS3();
-        try {
-            if (fileInfo.getThFilename() != null) {   //删除缩略图
-                oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
-            }
-            oss.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-            return true;
-        } finally {
-            shutdown(oss);
+        AmazonS3 client = getClient();
+        if (fileInfo.getThFilename() != null) {   //删除缩略图
+            client.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
         }
+        client.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        return true;
     }
 
 
     @Override
     public boolean exists(FileInfo fileInfo) {
-        AmazonS3 s3 = getAmazonS3();
-        try {
-            return s3.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        } finally {
-            shutdown(s3);
-        }
+        return getClient().doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
     }
 
     @Override
     public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
-        AmazonS3 s3 = getAmazonS3();
-        try {
-            S3Object object = s3.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-            try (InputStream in = object.getObjectContent()) {
-                consumer.accept(in);
-            } catch (IOException e) {
-                throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
-            }
-        } finally {
-            shutdown(s3);
+        S3Object object = getClient().getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        try (InputStream in = object.getObjectContent()) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
         }
     }
 
@@ -131,16 +126,11 @@ public class AwsS3FileStorage implements FileStorage {
         if (StrUtil.isBlank(fileInfo.getThFilename())) {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
-        AmazonS3 s3 = getAmazonS3();
-        try {
-            S3Object object = s3.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
-            try (InputStream in = object.getObjectContent()) {
-                consumer.accept(in);
-            } catch (IOException e) {
-                throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
-            }
-        } finally {
-            shutdown(s3);
+        S3Object object = getClient().getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+        try (InputStream in = object.getObjectContent()) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
         }
     }
 }

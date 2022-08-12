@@ -14,14 +14,17 @@ import cn.xuyanwu.spring.file.storage.platform.FileStorage;
 import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.*;
+import java.io.File;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Date;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
@@ -30,9 +33,10 @@ import java.util.function.Predicate;
 /**
  * 用来处理文件存储，对接多个平台
  */
+@Slf4j
 @Getter
 @Setter
-public class FileStorageService {
+public class FileStorageService implements DisposableBean {
 
     private FileStorageService self;
     private FileRecorder fileRecorder;
@@ -266,7 +270,7 @@ public class FileStorageService {
     public UploadPretreatment of(File file) {
         try {
             UploadPretreatment pre = of();
-            pre.setFileWrapper(new MultipartFileWrapper(new MockMultipartFile(file.getName(),file.getName(),URLConnection.guessContentTypeFromName(file.getName()),new FileInputStream(file))));
+            pre.setFileWrapper(new MultipartFileWrapper(new MockMultipartFile(file.getName(),file.getName(),URLConnection.guessContentTypeFromName(file.getName()),Files.newInputStream(file.toPath()))));
             return pre;
         } catch (Exception e) {
             throw new FileStorageRuntimeException("根据 File 创建上传预处理器失败！",e);
@@ -328,4 +332,15 @@ public class FileStorageService {
         }
     }
 
+    @Override
+    public void destroy() {
+        for (FileStorage fileStorage : fileStorageList) {
+            try {
+                fileStorage.close();
+                log.error("销毁存储平台 {} 成功",fileStorage.getPlatform());
+            } catch (Exception e) {
+                log.error("销毁存储平台 {} 失败，{}",fileStorage.getPlatform(),e.getMessage(),e);
+            }
+        }
+    }
 }

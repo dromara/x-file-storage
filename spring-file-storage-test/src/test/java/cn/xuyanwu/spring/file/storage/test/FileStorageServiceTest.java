@@ -10,8 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 
 
 @Slf4j
@@ -45,7 +43,7 @@ class FileStorageServiceTest {
      * 测试根据 url 上传文件
      */
     @Test
-    public void uploadByURL() throws MalformedURLException {
+    public void uploadByURL() {
 
         String url = "https://www.xuyanwu.cn/file/upload/1566046282790-1.png";
 
