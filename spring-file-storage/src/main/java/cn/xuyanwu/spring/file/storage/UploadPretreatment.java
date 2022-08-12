@@ -2,6 +2,7 @@ package cn.xuyanwu.spring.file.storage;
 
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.io.file.FileNameUtil;
+import cn.hutool.core.lang.Dict;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import lombok.Getter;
 import lombok.Setter;
@@ -63,6 +64,21 @@ public class UploadPretreatment {
     private String saveThFilename;
 
     /**
+     * MIME 类型，如果不设置则在上传文件根据 {@link MultipartFileWrapper#getContentType()} 和文件名自动识别
+     */
+    private String contentType;
+
+    /**
+     * 缩略图 MIME 类型，如果不设置则在上传文件根据缩略图文件名自动识别
+     */
+    private String thContentType;
+
+    /**
+     * 附加属性字典
+     */
+    private Dict attr;
+
+    /**
      * 设置文件所属对象id
      *
      * @param objectId 如果不是 String 类型会自动调用 toString() 方法
@@ -99,6 +115,22 @@ public class UploadPretreatment {
      */
     public UploadPretreatment setOriginalFilename(String originalFilename) {
         fileWrapper.setOriginalFilename(originalFilename);
+        return this;
+    }
+
+    /**
+     * 获取附加属性字典
+     */
+    public Dict getAttr() {
+        if (attr == null) attr = new Dict();
+        return attr;
+    }
+
+    /**
+     * 设置附加属性
+     */
+    public UploadPretreatment putAttr(String key,Object value) {
+        getAttr().put(key,value);
         return this;
     }
 

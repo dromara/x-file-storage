@@ -1,6 +1,7 @@
 package cn.xuyanwu.spring.file.storage;
 
 
+import cn.hutool.core.lang.Dict;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -12,7 +13,7 @@ public class FileInfo implements Serializable {
     /**
      * 文件id
      */
-    private Integer id;
+    private String id;
 
     /**
      * 文件访问地址
@@ -50,6 +51,11 @@ public class FileInfo implements Serializable {
     private String ext;
 
     /**
+     * MIME 类型
+     */
+    private String contentType;
+
+    /**
      * 存储平台
      */
     private String platform;
@@ -70,6 +76,11 @@ public class FileInfo implements Serializable {
     private Long thSize;
 
     /**
+     * 缩略图 MIME 类型
+     */
+    private String thContentType;
+
+    /**
      * 文件所属对象id
      */
     private String objectId;
@@ -78,6 +89,11 @@ public class FileInfo implements Serializable {
      * 文件所属对象类型，例如用户头像，评价图片
      */
     private String objectType;
+
+    /**
+     * 附加属性字典
+     */
+    private Dict attr;
 
     /**
      * 创建时间

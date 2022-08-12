@@ -28,6 +28,10 @@ public class LocalFileStorage implements FileStorage {
     private String domain;
 
     @Override
+    public void close() {
+    }
+
+    @Override
     public boolean save(FileInfo fileInfo,UploadPretreatment pre) {
         String path = fileInfo.getPath();
 

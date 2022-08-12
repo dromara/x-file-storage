@@ -16,6 +16,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.function.Consumer;
 
 /**
@@ -32,9 +33,21 @@ public class UpyunUssFileStorage implements FileStorage {
     private String bucketName;
     private String domain;
     private String basePath;
+    private RestManager client;
 
-    public RestManager getManager() {
-        return new RestManager(bucketName,username,password);
+    public RestManager getClient() {
+        if (client == null) {
+            client = new RestManager(bucketName,username,password);
+        }
+        return client;
+    }
+
+    /**
+     * 仅在移除这个存储平台时调用
+     */
+    @Override
+    public void close() {
+        client = null;
     }
 
     @Override
@@ -45,9 +58,11 @@ public class UpyunUssFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         fileInfo.setUrl(domain + newFileKey);
 
-        RestManager manager = getManager();
+        RestManager manager = getClient();
         try {
-            try (Response result = manager.writeFile(newFileKey,pre.getFileWrapper().getInputStream(),null)) {
+            HashMap<String,String> params = new HashMap<>();
+            params.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getContentType());
+            try (Response result = manager.writeFile(newFileKey,pre.getFileWrapper().getInputStream(),params)) {
                 if (!result.isSuccessful()) {
                     throw new UpException(result.toString());
                 }
@@ -57,8 +72,9 @@ public class UpyunUssFileStorage implements FileStorage {
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
                 fileInfo.setThUrl(domain + newThFileKey);
-
-                Response thResult = manager.writeFile(newThFileKey,new ByteArrayInputStream(thumbnailBytes),null);
+                HashMap<String,String> thParams = new HashMap<>();
+                thParams.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getThContentType());
+                Response thResult = manager.writeFile(newThFileKey,new ByteArrayInputStream(thumbnailBytes),thParams);
                 if (!thResult.isSuccessful()) {
                     throw new UpException(thResult.toString());
                 }
@@ -76,7 +92,7 @@ public class UpyunUssFileStorage implements FileStorage {
 
     @Override
     public boolean delete(FileInfo fileInfo) {
-        RestManager manager = getManager();
+        RestManager manager = getClient();
         String file = fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
         String thFile = fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
 
@@ -90,7 +106,7 @@ public class UpyunUssFileStorage implements FileStorage {
 
     @Override
     public boolean exists(FileInfo fileInfo) {
-        try (Response response = getManager().getFileInfo(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename())) {
+        try (Response response = getClient().getFileInfo(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename())) {
             return StrUtil.isNotBlank(response.header("x-upyun-file-size"));
         } catch (IOException | UpException e) {
             throw new FileStorageRuntimeException("判断文件是否存在失败！fileInfo：" + fileInfo,e);
@@ -99,7 +115,7 @@ public class UpyunUssFileStorage implements FileStorage {
 
     @Override
     public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
-        try (Response response = getManager().readFile(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        try (Response response = getClient().readFile(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
              ResponseBody body = response.body();
              InputStream in = body == null ? null : body.byteStream()) {
             if (body == null) {
@@ -119,7 +135,7 @@ public class UpyunUssFileStorage implements FileStorage {
         if (StrUtil.isBlank(fileInfo.getThFilename())) {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
-        try (Response response = getManager().readFile(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+        try (Response response = getClient().readFile(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
              ResponseBody body = response.body();
              InputStream in = body == null ? null : body.byteStream()) {
             if (body == null) {

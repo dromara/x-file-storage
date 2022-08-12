@@ -10,8 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 
 
 @Slf4j
@@ -30,7 +28,13 @@ class FileStorageServiceTest {
         String filename = "image.jpg";
         InputStream in = this.getClass().getClassLoader().getResourceAsStream(filename);
 
-        FileInfo fileInfo = fileStorageService.of(in).setName("file").setOriginalFilename(filename).setPath("test/").thumbnail().upload();
+        FileInfo fileInfo = fileStorageService.of(in)
+                .setName("file")
+                .setOriginalFilename(filename)
+                .setPath("test/")
+                .thumbnail()
+                .putAttr("role","admin")
+                .upload();
         Assert.notNull(fileInfo,"文件上传失败！");
         log.info("文件上传成功：{}",fileInfo.toString());
     }
@@ -39,11 +43,11 @@ class FileStorageServiceTest {
      * 测试根据 url 上传文件
      */
     @Test
-    public void uploadByURL() throws MalformedURLException {
+    public void uploadByURL() {
 
-        URL url = new URL("https://www.xuyanwu.cn/file/upload/1566046282790-1.png");
+        String url = "https://www.xuyanwu.cn/file/upload/1566046282790-1.png";
 
-        FileInfo fileInfo = fileStorageService.of(url).thumbnail().setOriginalFilename("1566046282790-1.png").setPath("test/").setObjectId("0").setObjectType("0").upload();
+        FileInfo fileInfo = fileStorageService.of(url).thumbnail().setPath("test/").setObjectId("0").setObjectType("0").upload();
         Assert.notNull(fileInfo,"文件上传失败！");
         log.info("文件上传成功：{}",fileInfo.toString());
     }
@@ -56,7 +60,7 @@ class FileStorageServiceTest {
         String filename = "image.jpg";
         InputStream in = this.getClass().getClassLoader().getResourceAsStream(filename);
 
-        FileInfo fileInfo = fileStorageService.of(in).setOriginalFilename(filename).setPath("test/").setObjectId("0").setObjectType("0").thumbnail(200,200).upload();
+        FileInfo fileInfo = fileStorageService.of(in).setOriginalFilename(filename).setPath("test/").setObjectId("0").setObjectType("0").putAttr("role","admin").thumbnail(200,200).upload();
         Assert.notNull(fileInfo,"文件上传失败！");
         boolean delete = fileStorageService.delete(fileInfo.getUrl());
         Assert.isTrue(delete,"文件删除失败！" + fileInfo.getUrl());
