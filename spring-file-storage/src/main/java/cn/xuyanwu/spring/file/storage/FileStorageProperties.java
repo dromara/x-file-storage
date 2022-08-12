@@ -286,7 +286,7 @@ public class FileStorageProperties {
         private String accessKey;
         private String secretKey;
         private String region;
-        private String endpoint;
+        private String endPoint;
         private String bucketName;
         /**
          * 访问域名

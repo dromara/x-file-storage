@@ -34,21 +34,24 @@ public class QiniuKodoFileStorage implements FileStorage {
     private String domain;
     private String basePath;
     private Region region;
+    private QiniuKodoClient client;
 
-    public String getToken() {
-        return getAuth().uploadToken(bucketName);
+    /**
+     * 单例模式运行，不需要每次使用完再销毁了
+     */
+    public QiniuKodoClient getClient() {
+        if (client == null) {
+            client = new QiniuKodoClient(accessKey,secretKey);
+        }
+        return client;
     }
 
-    public Auth getAuth() {
-        return Auth.create(accessKey,secretKey);
-    }
-
-    public BucketManager getBucketManager() {
-        return new BucketManager(getAuth(),new Configuration(Region.autoRegion()));
-    }
-
-    public UploadManager getUploadManager() {
-        return new UploadManager(new Configuration(Region.autoRegion()));
+    /**
+     * 仅在移除这个存储平台时调用
+     */
+    @Override
+    public void close() {
+        client = null;
     }
 
     @Override
@@ -58,21 +61,22 @@ public class QiniuKodoFileStorage implements FileStorage {
         fileInfo.setUrl(domain + newFileKey);
 
         try {
-            UploadManager uploadManager = getUploadManager();
-            String token = getToken();
-            uploadManager.put(pre.getFileWrapper().getInputStream(),newFileKey,token,null,null);
+            QiniuKodoClient client = getClient();
+            UploadManager uploadManager = client.getUploadManager();
+            String token = client.getAuth().uploadToken(bucketName);
+            uploadManager.put(pre.getFileWrapper().getInputStream(),newFileKey,token,null,fileInfo.getContentType());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
                 fileInfo.setThUrl(domain + newThFileKey);
-                uploadManager.put(new ByteArrayInputStream(thumbnailBytes),newThFileKey,token,null,null);
+                uploadManager.put(new ByteArrayInputStream(thumbnailBytes),newThFileKey,token,null,fileInfo.getThContentType());
             }
 
             return true;
         } catch (IOException e) {
             try {
-                getBucketManager().delete(bucketName,newFileKey);
+                client.getBucketManager().delete(bucketName,newFileKey);
             } catch (QiniuException ignored) {
             }
             throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
@@ -81,7 +85,7 @@ public class QiniuKodoFileStorage implements FileStorage {
 
     @Override
     public boolean delete(FileInfo fileInfo) {
-        BucketManager manager = getBucketManager();
+        BucketManager manager = getClient().getBucketManager();
         try {
             if (fileInfo.getThFilename() != null) {   //删除缩略图
                 manager.delete(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
@@ -96,7 +100,7 @@ public class QiniuKodoFileStorage implements FileStorage {
 
     @Override
     public boolean exists(FileInfo fileInfo) {
-        BucketManager manager = getBucketManager();
+        BucketManager manager = getClient().getBucketManager();
         try {
             com.qiniu.storage.model.FileInfo stat = manager.stat(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
             if (stat != null && stat.md5 != null) return true;
@@ -108,7 +112,7 @@ public class QiniuKodoFileStorage implements FileStorage {
 
     @Override
     public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
-        String url = getAuth().privateDownloadUrl(fileInfo.getUrl());
+        String url = getClient().getAuth().privateDownloadUrl(fileInfo.getUrl());
         try (InputStream in = new URL(url).openStream()) {
             consumer.accept(in);
         } catch (IOException e) {
@@ -121,11 +125,48 @@ public class QiniuKodoFileStorage implements FileStorage {
         if (StrUtil.isBlank(fileInfo.getThUrl())) {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
-        String url = getAuth().privateDownloadUrl(fileInfo.getThUrl());
+        String url = getClient().getAuth().privateDownloadUrl(fileInfo.getThUrl());
         try (InputStream in = new URL(url).openStream()) {
             consumer.accept(in);
         } catch (IOException e) {
             throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        }
+    }
+
+
+    @Getter
+    @Setter
+    public static class QiniuKodoClient {
+        private String accessKey;
+        private String secretKey;
+        private Auth auth;
+        private BucketManager bucketManager;
+        private UploadManager uploadManager;
+
+        public QiniuKodoClient(String accessKey,String secretKey) {
+            this.accessKey = accessKey;
+            this.secretKey = secretKey;
+        }
+
+        public Auth getAuth() {
+            if (auth == null) {
+                auth = Auth.create(accessKey,secretKey);
+            }
+            return auth;
+        }
+
+        public BucketManager getBucketManager() {
+            if (bucketManager == null) {
+                bucketManager = new BucketManager(getAuth(),new Configuration(Region.autoRegion()));
+            }
+            return bucketManager;
+        }
+
+        public UploadManager getUploadManager() {
+            if (uploadManager == null) {
+                uploadManager = new UploadManager(new Configuration(Region.autoRegion()));
+            }
+            return uploadManager;
         }
     }
 }

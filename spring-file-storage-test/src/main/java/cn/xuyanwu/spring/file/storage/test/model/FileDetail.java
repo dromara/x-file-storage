@@ -16,8 +16,8 @@ public class FileDetail {
     /**
      * 文件id
      */
-    @TableId(value = "id", type = IdType.AUTO)
-    private Integer id;
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    private String id;
 
     /**
      * 文件访问地址
@@ -62,6 +62,12 @@ public class FileDetail {
     private String ext;
 
     /**
+     * MIME类型
+     */
+    @TableField(value = "content_type")
+    private String contentType;
+
+    /**
      * 存储平台
      */
     @TableField(value = "platform")
@@ -86,6 +92,12 @@ public class FileDetail {
     private Long thSize;
 
     /**
+     * 缩略图MIME类型
+     */
+    @TableField(value = "th_content_type")
+    private String thContentType;
+
+    /**
      * 文件所属对象id
      */
     @TableField(value = "object_id")
@@ -96,6 +108,12 @@ public class FileDetail {
      */
     @TableField(value = "object_type")
     private String objectType;
+
+    /**
+     * 附加属性
+     */
+    @TableField(value = "attr")
+    private String attr;
 
     /**
      * 创建时间
@@ -119,6 +137,8 @@ public class FileDetail {
 
     public static final String COL_EXT = "ext";
 
+    public static final String COL_CONTENT_TYPE = "content_type";
+
     public static final String COL_PLATFORM = "platform";
 
     public static final String COL_TH_URL = "th_url";
@@ -127,9 +147,13 @@ public class FileDetail {
 
     public static final String COL_TH_SIZE = "th_size";
 
+    public static final String COL_TH_CONTENT_TYPE = "th_content_type";
+
     public static final String COL_OBJECT_ID = "object_id";
 
     public static final String COL_OBJECT_TYPE = "object_type";
+
+    public static final String COL_ATTR = "attr";
 
     public static final String COL_CREATE_TIME = "create_time";
 }

@@ -35,19 +35,30 @@ public class TencentCosFileStorage implements FileStorage {
     private String bucketName;
     private String domain;
     private String basePath;
+    private COSClient client;
 
-    public COSClient getCos() {
-        COSCredentials cred = new BasicCOSCredentials(secretId,secretKey);
-        ClientConfig clientConfig = new ClientConfig(new Region(region));
-        clientConfig.setHttpProtocol(HttpProtocol.https);
-        return new COSClient(cred,clientConfig);
+    /**
+     * 单例模式运行，不需要每次使用完再销毁了
+     */
+    public COSClient getClient() {
+        if (client == null) {
+            COSCredentials cred = new BasicCOSCredentials(secretId,secretKey);
+            ClientConfig clientConfig = new ClientConfig(new Region(region));
+            clientConfig.setHttpProtocol(HttpProtocol.https);
+            client = new COSClient(cred,clientConfig);
+        }
+        return client;
     }
 
     /**
-     * 关闭
+     * 仅在移除这个存储平台时调用
      */
-    public void shutdown(COSClient cos) {
-        if (cos != null) cos.shutdown();
+    @Override
+    public void close() {
+        if (client != null) {
+            client.shutdown();
+            client = null;
+        }
     }
 
     @Override
@@ -56,65 +67,53 @@ public class TencentCosFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         fileInfo.setUrl(domain + newFileKey);
 
-        COSClient cos = getCos();
-        ObjectMetadata objectMetadata = new ObjectMetadata();
+        COSClient client = getClient();
         try {
-            objectMetadata.setContentLength(fileInfo.getSize());
-            cos.putObject(bucketName, newFileKey, pre.getFileWrapper().getInputStream(), objectMetadata);
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(fileInfo.getSize());
+            metadata.setContentType(fileInfo.getContentType());
+            client.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream(),metadata);
+
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
                 fileInfo.setThUrl(domain + newThFileKey);
-                objectMetadata.setContentLength(fileInfo.getThSize());
-                cos.putObject(bucketName, newThFileKey, new ByteArrayInputStream(thumbnailBytes), objectMetadata);
+                ObjectMetadata thMetadata = new ObjectMetadata();
+                thMetadata.setContentLength(thumbnailBytes.length);
+                thMetadata.setContentType(fileInfo.getThContentType());
+                client.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),thMetadata);
             }
 
             return true;
         } catch (IOException e) {
-            cos.deleteObject(bucketName,newFileKey);
+            client.deleteObject(bucketName,newFileKey);
             throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
-        } finally {
-            shutdown(cos);
         }
     }
 
     @Override
     public boolean delete(FileInfo fileInfo) {
-        COSClient cos = getCos();
-        try {
-            if (fileInfo.getThFilename() != null) {   //删除缩略图
-                cos.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
-            }
-            cos.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-            return true;
-        } finally {
-            shutdown(cos);
+        COSClient client = getClient();
+        if (fileInfo.getThFilename() != null) {   //删除缩略图
+            client.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
         }
+        client.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        return true;
     }
 
 
     @Override
     public boolean exists(FileInfo fileInfo) {
-        COSClient cos = getCos();
-        try {
-            return cos.doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        } finally {
-            shutdown(cos);
-        }
+        return getClient().doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
     }
 
     @Override
     public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
-        COSClient cos = getCos();
-        try {
-            COSObject object = cos.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-            try (InputStream in = object.getObjectContent()) {
-                consumer.accept(in);
-            } catch (IOException e) {
-                throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
-            }
-        } finally {
-            shutdown(cos);
+        COSObject object = getClient().getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        try (InputStream in = object.getObjectContent()) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
         }
     }
 
@@ -123,16 +122,11 @@ public class TencentCosFileStorage implements FileStorage {
         if (StrUtil.isBlank(fileInfo.getThFilename())) {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
-        COSClient cos = getCos();
-        try {
-            COSObject object = cos.getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
-            try (InputStream in = object.getObjectContent()) {
-                consumer.accept(in);
-            } catch (IOException e) {
-                throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
-            }
-        } finally {
-            shutdown(cos);
+        COSObject object = getClient().getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+        try (InputStream in = object.getObjectContent()) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
         }
     }
 }

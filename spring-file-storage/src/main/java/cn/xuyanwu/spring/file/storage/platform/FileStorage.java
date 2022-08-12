@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 /**
  * 文件存储接口，对应各个平台
  */
-public interface FileStorage {
+public interface FileStorage extends AutoCloseable {
 
     /**
      * 获取平台
@@ -46,4 +46,10 @@ public interface FileStorage {
      * 下载缩略图文件
      */
     void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer);
+
+    /**
+     * 释放相关资源
+     */
+    void close();
+
 }
