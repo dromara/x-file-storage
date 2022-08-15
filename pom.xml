@@ -7,7 +7,7 @@
     <groupId>cn.xuyanwu</groupId>
     <artifactId>spring-file-storage-parent</artifactId>
     <packaging>pom</packaging>
-    <version>0.5.0</version>
+    <version>0.6.0</version>
 
     <name>spring-file-storage-parent</name>
     <description>A File Storage Service</description>
@@ -67,6 +67,13 @@
                 <groupId>cn.hutool</groupId>
                 <artifactId>hutool-core</artifactId>
                 <version>${hutool.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-extra</artifactId>
+                <version>${hutool.version}</version>
+                <scope>provided</scope>
+                <optional>true</optional>
             </dependency>
             <dependency>
                 <groupId>org.projectlombok</groupId>

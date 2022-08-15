@@ -229,6 +229,33 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     }
 
     /**
+     * FTP 存储 Bean
+     */
+    @Bean
+    @ConditionalOnClass(name = {"org.apache.commons.net.ftp.FTPClient","cn.hutool.extra.ftp.Ftp"})
+    public List<FtpFileStorage> ftpFileStorageList() {
+        return properties.getFtp().stream().map(ftp -> {
+            if (!ftp.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",ftp.getPlatform());
+            FtpFileStorage storage = new FtpFileStorage();
+            storage.setPlatform(ftp.getPlatform());
+            storage.setHost(ftp.getHost());
+            storage.setPort(ftp.getPort());
+            storage.setUser(ftp.getUser());
+            storage.setPassword(ftp.getPassword());
+            storage.setCharset(ftp.getCharset());
+            storage.setConnectionTimeout(ftp.getConnectionTimeout());
+            storage.setSoTimeout(ftp.getSoTimeout());
+            storage.setServerLanguageCode(ftp.getServerLanguageCode());
+            storage.setSystemKey(ftp.getSystemKey());
+            storage.setIsActive(ftp.getIsActive());
+            storage.setDomain(ftp.getDomain());
+            storage.setBasePath(ftp.getBasePath());
+            return storage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
      * 当没有找到 FileRecorder 时使用默认的 FileRecorder
      */
     @Bean
@@ -265,7 +292,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     }
 
     public void initDetect() {
-        String template = "检测到{}配置，但是没有找到对应的依赖库，所以无法加载此存储平台！配置参考地址：https://gitee.com/XYW1171736840/spring-file-storage";
+        String template = "检测到{}配置，但是没有找到对应的依赖库，所以无法加载此存储平台！配置参考地址：https://spring-file-storage.xuyanwu.cn/#/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8";
         if (CollUtil.isNotEmpty(properties.getHuaweiObs()) && doesNotExistClass("com.obs.services.ObsClient")) {
             log.warn(template,"华为云 OBS ");
         }
@@ -289,6 +316,9 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         }
         if (CollUtil.isNotEmpty(properties.getAwsS3()) && doesNotExistClass("com.amazonaws.services.s3.AmazonS3")) {
             log.warn(template," AmazonS3 ");
+        }
+        if (CollUtil.isNotEmpty(properties.getFtp()) && (doesNotExistClass("org.apache.commons.net.ftp.FTPClient") || doesNotExistClass("cn.hutool.extra.ftp.Ftp"))) {
+            log.warn(template," FTP ");
         }
     }
 

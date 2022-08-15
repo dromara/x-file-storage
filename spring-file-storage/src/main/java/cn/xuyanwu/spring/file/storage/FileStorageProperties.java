@@ -5,6 +5,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,6 +61,11 @@ public class FileStorageProperties {
      * AWS S3
      */
     private List<AwsS3> awsS3 = new ArrayList<>();
+
+    /**
+     * FTP
+     */
+    private List<FTP> ftp = new ArrayList<>();
 
     /**
      * 本地存储
@@ -306,5 +313,68 @@ public class FileStorageProperties {
         private String basePath = "";
     }
 
+    /**
+     * FTP
+     */
+    @Data
+    public static class FTP {
+        /**
+         * 主机
+         */
+        private String host;
+        /**
+         * 端口，默认21
+         */
+        private int port = 21;
+        /**
+         * 用户名，默认 anonymous（匿名）
+         */
+        private String user = "anonymous";
+        /**
+         * 密码，默认空
+         */
+        private String password = "";
+        /**
+         * 编码，默认UTF-8
+         */
+        private Charset charset = StandardCharsets.UTF_8;
+        /**
+         * 连接超时时长，单位毫秒，默认10秒 {@link org.apache.commons.net.SocketClient#setConnectTimeout(int)}
+         */
+        private long connectionTimeout = 10 * 1000;
+        /**
+         * Socket连接超时时长，单位毫秒，默认10秒 {@link org.apache.commons.net.SocketClient#setSoTimeout(int)}
+         */
+        private long soTimeout = 10 * 1000;
+        /**
+         * 设置服务器语言，默认空，{@link org.apache.commons.net.ftp.FTPClientConfig#setServerLanguageCode(String)}
+         */
+        private String serverLanguageCode;
+        /**
+         * 服务器标识，默认空，{@link org.apache.commons.net.ftp.FTPClientConfig#FTPClientConfig(String)}
+         * 例如：org.apache.commons.net.ftp.FTPClientConfig.SYST_NT
+         */
+        private String systemKey;
+        /**
+         * 是否主动模式，默认被动模式
+         */
+        private Boolean isActive = false;
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+        /**
+         * 存储平台
+         */
+        private String platform = "";
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+    }
 
 }

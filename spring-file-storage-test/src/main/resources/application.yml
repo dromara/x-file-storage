@@ -88,6 +88,15 @@ spring:
         secret-key: ??
         region: ?? # 与 end-point 参数至少填一个
         end-point: ?? # 与 region 参数至少填一个
-        bucket-name: ？？
+        bucket-name: ??
         domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.hn-bkt.clouddn.com/
         base-path: s3/ # 基础路径
+    ftp: # FTP
+      - platform: ftp-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        host: ?? # 主机，例如：192.168.1.105
+        port: 21 # 端口，默认21
+        user: anonymous # 用户名，默认 anonymous（匿名）
+        password: "" # 密码，默认空
+        domain: ?? # 访问域名，注意“/”结尾，例如：ftp://192.168.1.105/
+        base-path: ftp/ # 基础路径
