@@ -59,10 +59,10 @@ public class UpyunUssFileStorage implements FileStorage {
         fileInfo.setUrl(domain + newFileKey);
 
         RestManager manager = getClient();
-        try {
+        try (InputStream in = pre.getFileWrapper().getInputStream()) {
             HashMap<String,String> params = new HashMap<>();
             params.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getContentType());
-            try (Response result = manager.writeFile(newFileKey,pre.getFileWrapper().getInputStream(),params)) {
+            try (Response result = manager.writeFile(newFileKey,in,params)) {
                 if (!result.isSuccessful()) {
                     throw new UpException(result.toString());
                 }

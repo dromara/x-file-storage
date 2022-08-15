@@ -58,9 +58,9 @@ public class MinIOFileStorage implements FileStorage {
         fileInfo.setUrl(domain + newFileKey);
 
         MinioClient client = getClient();
-        try {
+        try (InputStream in = pre.getFileWrapper().getInputStream()) {
             client.putObject(PutObjectArgs.builder().bucket(bucketName).object(newFileKey)
-                    .stream(pre.getFileWrapper().getInputStream(),pre.getFileWrapper().getSize(),-1)
+                    .stream(in,pre.getFileWrapper().getSize(),-1)
                     .contentType(fileInfo.getContentType()).build());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();

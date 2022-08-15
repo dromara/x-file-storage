@@ -68,11 +68,11 @@ public class TencentCosFileStorage implements FileStorage {
         fileInfo.setUrl(domain + newFileKey);
 
         COSClient client = getClient();
-        try {
+        try (InputStream in = pre.getFileWrapper().getInputStream()) {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(fileInfo.getSize());
             metadata.setContentType(fileInfo.getContentType());
-            client.putObject(bucketName,newFileKey,pre.getFileWrapper().getInputStream(),metadata);
+            client.putObject(bucketName,newFileKey,in,metadata);
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
