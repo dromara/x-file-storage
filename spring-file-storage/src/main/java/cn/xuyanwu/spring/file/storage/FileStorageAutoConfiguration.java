@@ -369,7 +369,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             log.warn(template," FTP ");
         }
         if (CollUtil.isNotEmpty(properties.getFtp()) && (doesNotExistClass("com.jcraft.jsch.ChannelSftp") || doesNotExistClass("cn.hutool.extra.ftp.Ftp"))) {
-            log.warn(template," FTP ");
+            log.warn(template," SFTP ");
         }
     }
 
