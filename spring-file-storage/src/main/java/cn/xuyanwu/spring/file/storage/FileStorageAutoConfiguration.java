@@ -251,7 +251,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             storage.setIsActive(ftp.getIsActive());
             storage.setDomain(ftp.getDomain());
             storage.setBasePath(ftp.getBasePath());
-            storage.setStoragePath(sftp.getStoragePath());
+            storage.setStoragePath(ftp.getStoragePath());
             return storage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
