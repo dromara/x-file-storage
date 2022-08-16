@@ -380,6 +380,10 @@ public class FileStorageProperties {
          * 基础路径
          */
         private String basePath = "";
+        /**
+         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+         */
+        private String storagePath = "/";
     }
 
     /**
@@ -432,7 +436,7 @@ public class FileStorageProperties {
          */
         private String basePath = "";
         /**
-         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”
+         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
          */
         private String storagePath = "/";
     }

@@ -52,6 +52,7 @@ public class FtpFileStorage implements FileStorage {
     private String platform;
     private String domain;
     private String basePath;
+    private String storagePath;
 
     /**
      * 不支持单例模式运行，每次使用完了需要销毁
@@ -72,8 +73,7 @@ public class FtpFileStorage implements FileStorage {
      * 获取远程绝对路径
      */
     public String getAbsolutePath(String path) {
-        if (StrUtil.isEmpty(path)) return "/";
-        return path.startsWith("/") ? path : "/" + path;
+        return storagePath + path;
     }
 
     @Override
