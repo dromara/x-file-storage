@@ -270,6 +270,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             storage.setPort(sftp.getPort());
             storage.setUser(sftp.getUser());
             storage.setPassword(sftp.getPassword());
+            storage.setPrivateKeyPath(sftp.getPrivateKeyPath());
             storage.setCharset(sftp.getCharset());
             storage.setConnectionTimeout(sftp.getConnectionTimeout());
             storage.setDomain(sftp.getDomain());

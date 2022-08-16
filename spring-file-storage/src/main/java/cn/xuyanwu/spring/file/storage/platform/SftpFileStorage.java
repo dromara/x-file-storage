@@ -3,11 +3,14 @@ package cn.xuyanwu.spring.file.storage.platform;
 import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.extra.ftp.FtpConfig;
+import cn.hutool.core.util.URLUtil;
+import cn.hutool.extra.ssh.JschUtil;
 import cn.hutool.extra.ssh.Sftp;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 
 /**
@@ -33,6 +37,8 @@ public class SftpFileStorage implements FileStorage {
     private String user;
     /* 密码，默认空 */
     private String password;
+    /* 私钥路径，默认空 */
+    private String privateKeyPath;
     /* 编码，默认UTF-8 */
     private Charset charset;
     /* 连接超时时长，单位毫秒，默认10秒 */
@@ -47,12 +53,24 @@ public class SftpFileStorage implements FileStorage {
      * 不支持单例模式运行，每次使用完了需要销毁
      */
     public Sftp getClient() {
-//        Session session = JschUtil.getSession(host,port,user,password);
-//        JschUtil.openSession(host,port,user,password,connectionTimeout);
-
-        FtpConfig config = FtpConfig.create().setHost(host).setPort(port).setUser(user).setPassword(password).setCharset(charset)
-                .setConnectionTimeout(connectionTimeout);
-        return new Sftp(config,true);
+        Session session = null;
+        try {
+            if (StrUtil.isNotBlank(privateKeyPath)) {
+                //使用秘钥连接，这里手动读取 byte 进行构造用于兼容Spring的ClassPath路径、文件路径、HTTP路径等
+                byte[] passphrase = StrUtil.isBlank(password) ? null : password.getBytes(StandardCharsets.UTF_8);
+                JSch jsch = new JSch();
+                byte[] privateKey = IoUtil.readBytes(URLUtil.url(privateKeyPath).openStream());
+                jsch.addIdentity(privateKeyPath,privateKey,null,passphrase);
+                session = JschUtil.createSession(jsch,host,port,user);
+                session.connect((int) connectionTimeout);
+            } else {
+                session = JschUtil.openSession(host,port,user,password,(int) connectionTimeout);
+            }
+            return new Sftp(session,charset,connectionTimeout);
+        } catch (Exception e) {
+            JschUtil.close(session);
+            throw new FileStorageRuntimeException("SFTP连接失败！platform：" + platform,e);
+        }
     }
 
 
@@ -76,7 +94,7 @@ public class SftpFileStorage implements FileStorage {
         Sftp client = getClient();
         try (InputStream in = pre.getFileWrapper().getInputStream()) {
             String path = getAbsolutePath(basePath + fileInfo.getPath());
-            if(!client.exist(path)){
+            if (!client.exist(path)) {
                 client.mkDirs(path);
             }
             client.upload(path,fileInfo.getFilename(),in);

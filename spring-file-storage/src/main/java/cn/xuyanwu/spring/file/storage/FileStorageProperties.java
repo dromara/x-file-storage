@@ -404,6 +404,10 @@ public class FileStorageProperties {
          */
         private String password;
         /**
+         * 私钥路径
+         */
+        private String privateKeyPath;
+        /**
          * 编码，默认UTF-8
          */
         private Charset charset = StandardCharsets.UTF_8;
