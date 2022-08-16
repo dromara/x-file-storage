@@ -68,6 +68,11 @@ public class FileStorageProperties {
     private List<FTP> ftp = new ArrayList<>();
 
     /**
+     * FTP
+     */
+    private List<SFTP> sftp = new ArrayList<>();
+
+    /**
      * 本地存储
      */
     @Data
@@ -377,4 +382,54 @@ public class FileStorageProperties {
         private String basePath = "";
     }
 
+    /**
+     * SFTP
+     */
+    @Data
+    public static class SFTP {
+        /**
+         * 主机
+         */
+        private String host;
+        /**
+         * 端口，默认22
+         */
+        private int port = 22;
+        /**
+         * 用户名
+         */
+        private String user;
+        /**
+         * 密码
+         */
+        private String password;
+        /**
+         * 编码，默认UTF-8
+         */
+        private Charset charset = StandardCharsets.UTF_8;
+        /**
+         * 连接超时时长，单位毫秒，默认10秒
+         */
+        private long connectionTimeout = 10 * 1000;
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+        /**
+         * 存储平台
+         */
+        private String platform = "";
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+        /**
+         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”
+         */
+        private String storagePath = "/";
+    }
 }

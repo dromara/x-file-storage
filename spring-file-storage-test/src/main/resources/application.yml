@@ -100,3 +100,13 @@ spring:
         password: "" # 密码，默认空
         domain: ?? # 访问域名，注意“/”结尾，例如：ftp://192.168.1.105/
         base-path: ftp/ # 基础路径
+    sftp: # SFTP
+      - platform: sftp-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        host: ?? # 主机，例如：192.168.1.105
+        port: 22 # 端口，默认22
+        user: root # 用户名
+        password: ?? # 密码
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://file.abc.com/
+        base-path: sftp/ # 基础路径
+        storage-path: /www/wwwroot/file.abc.com/ # 存储路径，注意“/”结尾

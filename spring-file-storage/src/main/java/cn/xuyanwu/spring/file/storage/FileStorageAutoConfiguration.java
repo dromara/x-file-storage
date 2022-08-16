@@ -256,6 +256,30 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     }
 
     /**
+     * SFTP 存储 Bean
+     */
+    @Bean
+    @ConditionalOnClass(name = {"com.jcraft.jsch.ChannelSftp","cn.hutool.extra.ftp.Ftp"})
+    public List<SftpFileStorage> sftpFileStorageList() {
+        return properties.getSftp().stream().map(sftp -> {
+            if (!sftp.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",sftp.getPlatform());
+            SftpFileStorage storage = new SftpFileStorage();
+            storage.setPlatform(sftp.getPlatform());
+            storage.setHost(sftp.getHost());
+            storage.setPort(sftp.getPort());
+            storage.setUser(sftp.getUser());
+            storage.setPassword(sftp.getPassword());
+            storage.setCharset(sftp.getCharset());
+            storage.setConnectionTimeout(sftp.getConnectionTimeout());
+            storage.setDomain(sftp.getDomain());
+            storage.setBasePath(sftp.getBasePath());
+            storage.setStoragePath(sftp.getStoragePath());
+            return storage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
      * 当没有找到 FileRecorder 时使用默认的 FileRecorder
      */
     @Bean
@@ -318,6 +342,9 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             log.warn(template," AmazonS3 ");
         }
         if (CollUtil.isNotEmpty(properties.getFtp()) && (doesNotExistClass("org.apache.commons.net.ftp.FTPClient") || doesNotExistClass("cn.hutool.extra.ftp.Ftp"))) {
+            log.warn(template," FTP ");
+        }
+        if (CollUtil.isNotEmpty(properties.getFtp()) && (doesNotExistClass("com.jcraft.jsch.ChannelSftp") || doesNotExistClass("cn.hutool.extra.ftp.Ftp"))) {
             log.warn(template," FTP ");
         }
     }
