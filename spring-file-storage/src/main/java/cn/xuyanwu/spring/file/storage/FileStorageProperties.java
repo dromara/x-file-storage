@@ -29,6 +29,10 @@ public class FileStorageProperties {
      */
     private List<Local> local = new ArrayList<>();
     /**
+     * 本地存储
+     */
+    private List<LocalPlus> localPlus = new ArrayList<>();
+    /**
      * 华为云 OBS
      */
     private List<HuaweiObs> huaweiObs = new ArrayList<>();
@@ -81,6 +85,41 @@ public class FileStorageProperties {
          * 本地存储路径
          */
         private String basePath = "";
+        /**
+         * 本地存储访问路径
+         */
+        private String[] pathPatterns = new String[0];
+        /**
+         * 启用本地存储
+         */
+        private Boolean enableStorage = false;
+        /**
+         * 启用本地访问
+         */
+        private Boolean enableAccess = false;
+        /**
+         * 存储平台
+         */
+        private String platform = "local";
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+    }
+
+    /**
+     * 本地存储升级版
+     */
+    @Data
+    public static class LocalPlus {
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+        /**
+         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+         */
+        private String storagePath = "/";
         /**
          * 本地存储访问路径
          */

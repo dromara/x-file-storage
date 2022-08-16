@@ -43,6 +43,11 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
                 registry.addResourceHandler(local.getPathPatterns()).addResourceLocations("file:" + local.getBasePath());
             }
         }
+        for (FileStorageProperties.LocalPlus local : properties.getLocalPlus()) {
+            if (local.getEnableAccess()) {
+                registry.addResourceHandler(local.getPathPatterns()).addResourceLocations("file:" + local.getStoragePath());
+            }
+        }
     }
 
     /**
@@ -57,6 +62,23 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             localFileStorage.setPlatform(local.getPlatform());
             localFileStorage.setBasePath(local.getBasePath());
             localFileStorage.setDomain(local.getDomain());
+            return localFileStorage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
+     * 本地存储升级版 Bean
+     */
+    @Bean
+    public List<LocalPlusFileStorage> localPlusFileStorageList() {
+        return properties.getLocalPlus().stream().map(local -> {
+            if (!local.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",local.getPlatform());
+            LocalPlusFileStorage localFileStorage = new LocalPlusFileStorage();
+            localFileStorage.setPlatform(local.getPlatform());
+            localFileStorage.setBasePath(local.getBasePath());
+            localFileStorage.setDomain(local.getDomain());
+            localFileStorage.setStoragePath(local.getStoragePath());
             return localFileStorage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
