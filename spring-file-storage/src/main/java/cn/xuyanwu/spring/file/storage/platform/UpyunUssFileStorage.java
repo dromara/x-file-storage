@@ -97,8 +97,8 @@ public class UpyunUssFileStorage implements FileStorage {
         String thFile = fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
 
         try (Response ignored = fileInfo.getThFilename() != null ? manager.deleteFile(thFile,null) : null;
-             Response response = manager.deleteFile(file,null)) {
-            return response.isSuccessful();
+             Response ignored2 = manager.deleteFile(file,null)) {
+            return true;
         } catch (IOException | UpException e) {
             throw new FileStorageRuntimeException("文件删除失败！fileInfo：" + fileInfo,e);
         }
