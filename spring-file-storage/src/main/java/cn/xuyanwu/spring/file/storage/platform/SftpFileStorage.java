@@ -1,9 +1,9 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
-import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
+import cn.hutool.extra.ssh.JschRuntimeException;
 import cn.hutool.extra.ssh.JschUtil;
 import cn.hutool.extra.ssh.Sftp;
 import cn.xuyanwu.spring.file.storage.FileInfo;
@@ -21,6 +21,8 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
+
+import static com.jcraft.jsch.ChannelSftp.SSH_FX_NO_SUCH_FILE;
 
 /**
  * SFTP 存储
@@ -107,10 +109,10 @@ public class SftpFileStorage implements FileStorage {
             }
 
             return true;
-        } catch (IOException | IORuntimeException e) {
+        } catch (IOException | JschRuntimeException e) {
             try {
                 client.delFile(getAbsolutePath(newFileKey));
-            } catch (IORuntimeException ignored) {
+            } catch (JschRuntimeException ignored) {
             }
             throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
         } finally {
@@ -122,12 +124,22 @@ public class SftpFileStorage implements FileStorage {
     public boolean delete(FileInfo fileInfo) {
         try (Sftp client = getClient()) {
             if (fileInfo.getThFilename() != null) {   //删除缩略图
-                client.delFile(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename()));
+                delFile(client,getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename()));
             }
-            client.delFile(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()));
+            delFile(client,getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()));
             return true;
-        } catch (IORuntimeException e) {
+        } catch (JschRuntimeException e) {
             throw new FileStorageRuntimeException("文件删除失败！fileInfo：" + fileInfo,e);
+        }
+    }
+
+    public void delFile(Sftp client,String filename) {
+        try {
+            client.delFile(filename);
+        } catch (JschRuntimeException e) {
+            if (!(e.getCause() instanceof SftpException && ((SftpException) e.getCause()).id == SSH_FX_NO_SUCH_FILE)) {
+                throw e;
+            }
         }
     }
 
@@ -136,7 +148,7 @@ public class SftpFileStorage implements FileStorage {
     public boolean exists(FileInfo fileInfo) {
         try (Sftp client = getClient()) {
             return client.exist(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()));
-        } catch (IORuntimeException e) {
+        } catch (JschRuntimeException e) {
             throw new FileStorageRuntimeException("查询文件是否存在失败！fileInfo：" + fileInfo,e);
         }
     }
@@ -146,7 +158,7 @@ public class SftpFileStorage implements FileStorage {
         try (Sftp client = getClient();
              InputStream in = client.getClient().get(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()))) {
             consumer.accept(in);
-        } catch (IOException | IORuntimeException | SftpException e) {
+        } catch (IOException | JschRuntimeException | SftpException e) {
             throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
         }
     }
@@ -159,7 +171,7 @@ public class SftpFileStorage implements FileStorage {
 
         try (Sftp client = getClient(); InputStream in = client.getClient().get(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath()) + fileInfo.getThFilename())) {
             consumer.accept(in);
-        } catch (IOException | IORuntimeException | SftpException e) {
+        } catch (IOException | JschRuntimeException | SftpException e) {
             throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
         }
     }
