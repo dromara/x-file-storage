@@ -59,10 +59,10 @@ public class UpyunUssFileStorage implements FileStorage {
         fileInfo.setUrl(domain + newFileKey);
 
         RestManager manager = getClient();
-        try {
+        try (InputStream in = pre.getFileWrapper().getInputStream()) {
             HashMap<String,String> params = new HashMap<>();
             params.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getContentType());
-            try (Response result = manager.writeFile(newFileKey,pre.getFileWrapper().getInputStream(),params)) {
+            try (Response result = manager.writeFile(newFileKey,in,params)) {
                 if (!result.isSuccessful()) {
                     throw new UpException(result.toString());
                 }
@@ -97,8 +97,8 @@ public class UpyunUssFileStorage implements FileStorage {
         String thFile = fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
 
         try (Response ignored = fileInfo.getThFilename() != null ? manager.deleteFile(thFile,null) : null;
-             Response response = manager.deleteFile(file,null)) {
-            return response.isSuccessful();
+             Response ignored2 = manager.deleteFile(file,null)) {
+            return true;
         } catch (IOException | UpException e) {
             throw new FileStorageRuntimeException("文件删除失败！fileInfo：" + fileInfo,e);
         }
