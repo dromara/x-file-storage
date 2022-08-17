@@ -88,13 +88,23 @@ public class QiniuKodoFileStorage implements FileStorage {
         BucketManager manager = getClient().getBucketManager();
         try {
             if (fileInfo.getThFilename() != null) {   //删除缩略图
-                manager.delete(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+                delete(manager,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
             }
-            manager.delete(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+            delete(manager,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
         } catch (QiniuException e) {
             throw new FileStorageRuntimeException("删除文件失败！" + e.code() + "，" + e.response.toString(),e);
         }
         return true;
+    }
+
+    public void delete(BucketManager manager,String filename) throws QiniuException {
+        try {
+            manager.delete(bucketName,filename);
+        } catch (QiniuException e) {
+            if (!(e.response != null && e.response.statusCode == 612)) {
+                throw e;
+            }
+        }
     }
 
 
