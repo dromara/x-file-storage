@@ -304,6 +304,27 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     }
 
     /**
+     * WebDAV 存储 Bean
+     */
+    @Bean
+    @ConditionalOnClass(name = "com.github.sardine.Sardine")
+    public List<WebDavFileStorage> webDavFileStorageList() {
+        return properties.getWebDav().stream().map(sftp -> {
+            if (!sftp.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",sftp.getPlatform());
+            WebDavFileStorage storage = new WebDavFileStorage();
+            storage.setPlatform(sftp.getPlatform());
+            storage.setServer(sftp.getServer());
+            storage.setUser(sftp.getUser());
+            storage.setPassword(sftp.getPassword());
+            storage.setDomain(sftp.getDomain());
+            storage.setBasePath(sftp.getBasePath());
+            storage.setStoragePath(sftp.getStoragePath());
+            return storage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
      * 当没有找到 FileRecorder 时使用默认的 FileRecorder
      */
     @Bean
@@ -370,6 +391,9 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         }
         if (CollUtil.isNotEmpty(properties.getFtp()) && (doesNotExistClass("com.jcraft.jsch.ChannelSftp") || doesNotExistClass("cn.hutool.extra.ftp.Ftp"))) {
             log.warn(template," SFTP ");
+        }
+        if (CollUtil.isNotEmpty(properties.getAwsS3()) && doesNotExistClass("com.github.sardine.Sardine")) {
+            log.warn(template," WebDAV ");
         }
     }
 

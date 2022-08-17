@@ -77,6 +77,11 @@ public class FileStorageProperties {
     private List<SFTP> sftp = new ArrayList<>();
 
     /**
+     * WebDAV
+     */
+    private List<WebDAV> WebDav = new ArrayList<>();
+
+    /**
      * 本地存储
      */
     @Data
@@ -458,6 +463,45 @@ public class FileStorageProperties {
          * 连接超时时长，单位毫秒，默认10秒
          */
         private long connectionTimeout = 10 * 1000;
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+        /**
+         * 存储平台
+         */
+        private String platform = "";
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+        /**
+         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+         */
+        private String storagePath = "/";
+    }
+
+    /**
+     * WebDAV
+     */
+    @Data
+    public static class WebDAV {
+        /**
+         * 服务器地址，注意“/”结尾，例如：http://192.168.1.105:8405/
+         */
+        private String server;
+        /**
+         * 用户名
+         */
+        private String user;
+        /**
+         * 密码
+         */
+        private String password;
         /**
          * 访问域名
          */
