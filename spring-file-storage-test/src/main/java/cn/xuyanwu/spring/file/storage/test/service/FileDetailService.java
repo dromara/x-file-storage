@@ -61,7 +61,8 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper,FileDetail> 
      */
     @Override
     public boolean delete(String url) {
-        return remove(new QueryWrapper<FileDetail>().eq(FileDetail.COL_URL,url));
+        remove(new QueryWrapper<FileDetail>().eq(FileDetail.COL_URL,url));
+        return true;
     }
 }
 

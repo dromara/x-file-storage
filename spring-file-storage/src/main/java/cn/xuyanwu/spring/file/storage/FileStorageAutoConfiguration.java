@@ -43,6 +43,11 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
                 registry.addResourceHandler(local.getPathPatterns()).addResourceLocations("file:" + local.getBasePath());
             }
         }
+        for (FileStorageProperties.LocalPlus local : properties.getLocalPlus()) {
+            if (local.getEnableAccess()) {
+                registry.addResourceHandler(local.getPathPatterns()).addResourceLocations("file:" + local.getStoragePath());
+            }
+        }
     }
 
     /**
@@ -57,6 +62,23 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             localFileStorage.setPlatform(local.getPlatform());
             localFileStorage.setBasePath(local.getBasePath());
             localFileStorage.setDomain(local.getDomain());
+            return localFileStorage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
+     * 本地存储升级版 Bean
+     */
+    @Bean
+    public List<LocalPlusFileStorage> localPlusFileStorageList() {
+        return properties.getLocalPlus().stream().map(local -> {
+            if (!local.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",local.getPlatform());
+            LocalPlusFileStorage localFileStorage = new LocalPlusFileStorage();
+            localFileStorage.setPlatform(local.getPlatform());
+            localFileStorage.setBasePath(local.getBasePath());
+            localFileStorage.setDomain(local.getDomain());
+            localFileStorage.setStoragePath(local.getStoragePath());
             return localFileStorage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
@@ -229,6 +251,80 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     }
 
     /**
+     * FTP 存储 Bean
+     */
+    @Bean
+    @ConditionalOnClass(name = {"org.apache.commons.net.ftp.FTPClient","cn.hutool.extra.ftp.Ftp"})
+    public List<FtpFileStorage> ftpFileStorageList() {
+        return properties.getFtp().stream().map(ftp -> {
+            if (!ftp.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",ftp.getPlatform());
+            FtpFileStorage storage = new FtpFileStorage();
+            storage.setPlatform(ftp.getPlatform());
+            storage.setHost(ftp.getHost());
+            storage.setPort(ftp.getPort());
+            storage.setUser(ftp.getUser());
+            storage.setPassword(ftp.getPassword());
+            storage.setCharset(ftp.getCharset());
+            storage.setConnectionTimeout(ftp.getConnectionTimeout());
+            storage.setSoTimeout(ftp.getSoTimeout());
+            storage.setServerLanguageCode(ftp.getServerLanguageCode());
+            storage.setSystemKey(ftp.getSystemKey());
+            storage.setIsActive(ftp.getIsActive());
+            storage.setDomain(ftp.getDomain());
+            storage.setBasePath(ftp.getBasePath());
+            storage.setStoragePath(ftp.getStoragePath());
+            return storage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
+     * SFTP 存储 Bean
+     */
+    @Bean
+    @ConditionalOnClass(name = {"com.jcraft.jsch.ChannelSftp","cn.hutool.extra.ftp.Ftp"})
+    public List<SftpFileStorage> sftpFileStorageList() {
+        return properties.getSftp().stream().map(sftp -> {
+            if (!sftp.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",sftp.getPlatform());
+            SftpFileStorage storage = new SftpFileStorage();
+            storage.setPlatform(sftp.getPlatform());
+            storage.setHost(sftp.getHost());
+            storage.setPort(sftp.getPort());
+            storage.setUser(sftp.getUser());
+            storage.setPassword(sftp.getPassword());
+            storage.setPrivateKeyPath(sftp.getPrivateKeyPath());
+            storage.setCharset(sftp.getCharset());
+            storage.setConnectionTimeout(sftp.getConnectionTimeout());
+            storage.setDomain(sftp.getDomain());
+            storage.setBasePath(sftp.getBasePath());
+            storage.setStoragePath(sftp.getStoragePath());
+            return storage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
+     * WebDAV 存储 Bean
+     */
+    @Bean
+    @ConditionalOnClass(name = "com.github.sardine.Sardine")
+    public List<WebDavFileStorage> webDavFileStorageList() {
+        return properties.getWebDav().stream().map(sftp -> {
+            if (!sftp.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",sftp.getPlatform());
+            WebDavFileStorage storage = new WebDavFileStorage();
+            storage.setPlatform(sftp.getPlatform());
+            storage.setServer(sftp.getServer());
+            storage.setUser(sftp.getUser());
+            storage.setPassword(sftp.getPassword());
+            storage.setDomain(sftp.getDomain());
+            storage.setBasePath(sftp.getBasePath());
+            storage.setStoragePath(sftp.getStoragePath());
+            return storage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
      * 当没有找到 FileRecorder 时使用默认的 FileRecorder
      */
     @Bean
@@ -265,7 +361,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     }
 
     public void initDetect() {
-        String template = "检测到{}配置，但是没有找到对应的依赖库，所以无法加载此存储平台！配置参考地址：https://gitee.com/XYW1171736840/spring-file-storage";
+        String template = "检测到{}配置，但是没有找到对应的依赖库，所以无法加载此存储平台！配置参考地址：https://spring-file-storage.xuyanwu.cn/#/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8";
         if (CollUtil.isNotEmpty(properties.getHuaweiObs()) && doesNotExistClass("com.obs.services.ObsClient")) {
             log.warn(template,"华为云 OBS ");
         }
@@ -289,6 +385,15 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         }
         if (CollUtil.isNotEmpty(properties.getAwsS3()) && doesNotExistClass("com.amazonaws.services.s3.AmazonS3")) {
             log.warn(template," AmazonS3 ");
+        }
+        if (CollUtil.isNotEmpty(properties.getFtp()) && (doesNotExistClass("org.apache.commons.net.ftp.FTPClient") || doesNotExistClass("cn.hutool.extra.ftp.Ftp"))) {
+            log.warn(template," FTP ");
+        }
+        if (CollUtil.isNotEmpty(properties.getFtp()) && (doesNotExistClass("com.jcraft.jsch.ChannelSftp") || doesNotExistClass("cn.hutool.extra.ftp.Ftp"))) {
+            log.warn(template," SFTP ");
+        }
+        if (CollUtil.isNotEmpty(properties.getAwsS3()) && doesNotExistClass("com.github.sardine.Sardine")) {
+            log.warn(template," WebDAV ");
         }
     }
 

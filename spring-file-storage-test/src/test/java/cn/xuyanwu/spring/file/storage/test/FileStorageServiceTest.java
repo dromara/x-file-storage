@@ -62,7 +62,17 @@ class FileStorageServiceTest {
 
         FileInfo fileInfo = fileStorageService.of(in).setOriginalFilename(filename).setPath("test/").setObjectId("0").setObjectType("0").putAttr("role","admin").thumbnail(200,200).upload();
         Assert.notNull(fileInfo,"文件上传失败！");
+
+        log.info("尝试删除已存在的文件：{}",fileInfo);
         boolean delete = fileStorageService.delete(fileInfo.getUrl());
+        Assert.isTrue(delete,"文件删除失败！" + fileInfo.getUrl());
+        log.info("文件删除成功：{}",fileInfo);
+
+        fileInfo = BeanUtil.copyProperties(fileInfo,FileInfo.class);
+        fileInfo.setFilename(fileInfo.getFilename() + "111.tmp");
+        fileInfo.setUrl(fileInfo.getUrl() + "111.tmp");
+        log.info("尝试删除不存在的文件：{}",fileInfo);
+        delete = fileStorageService.delete(fileInfo);
         Assert.isTrue(delete,"文件删除失败！" + fileInfo.getUrl());
         log.info("文件删除成功：{}",fileInfo);
     }
