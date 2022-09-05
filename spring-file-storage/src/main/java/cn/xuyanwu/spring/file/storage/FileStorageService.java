@@ -101,7 +101,8 @@ public class FileStorageService implements DisposableBean {
         } else if (pre.getFileWrapper().getContentType() != null) {
             fileInfo.setContentType(pre.getFileWrapper().getContentType());
         } else {
-            fileInfo.setContentType(URLConnection.guessContentTypeFromName(fileInfo.getFilename()));
+            String contentType = URLConnection.guessContentTypeFromName(fileInfo.getFilename());
+            fileInfo.setContentType(contentType != null ? contentType : "application/octet-stream");
         }
 
         byte[] thumbnailBytes = pre.getThumbnailBytes();
@@ -112,7 +113,8 @@ public class FileStorageService implements DisposableBean {
             } else {
                 fileInfo.setThFilename(fileInfo.getFilename() + pre.getThumbnailSuffix());
             }
-            fileInfo.setThContentType(URLConnection.guessContentTypeFromName(fileInfo.getThFilename()));
+            String contentType = URLConnection.guessContentTypeFromName(fileInfo.getThFilename());
+            fileInfo.setThContentType(contentType != null ? contentType : "application/octet-stream");
         }
 
         FileStorage fileStorage = getFileStorage(pre.getPlatform());
