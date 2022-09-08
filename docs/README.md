@@ -28,12 +28,11 @@
 AWS S3、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动云 EOS、沃云 OSS、
 网易数帆 NOS、Ucloud US3、青云 QingStor、平安云 OBS、首云 OSS、IBM COS、其它兼容 S3 协议的平台
 
-通过 WebDAV 连接到 Alist 后，可以使用百度网盘、天翼云盘、阿里云盘、迅雷网盘等常见存储服务，
-[查看 Alist 支持的存储平台](https://alist-doc.nn.ci/docs/webdav)
-
 查看 [所有支持的存储平台](存储平台)
 
 后续即将支持 谷歌云存储、Samba、NFS
+
+> 通过 WebDAV 连接到 Alist 后，可以使用百度网盘、天翼云盘、阿里云盘、迅雷网盘等常见存储服务，[查看 Alist 支持的存储平台](https://alist-doc.nn.ci/docs/webdav)
 
 GitHub：https://github.com/1171736840/spring-file-storage
 <br />
