@@ -32,6 +32,8 @@ AWS S3、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动�
 
 后续即将支持 谷歌云存储、Samba、NFS
 
+> 通过 WebDAV 连接到 Alist 后，可以使用百度网盘、天翼云盘、阿里云盘、迅雷网盘等常见存储服务，[查看 Alist 支持的存储平台](https://alist-doc.nn.ci/docs/webdav)
+
 GitHub：https://github.com/1171736840/spring-file-storage
 <br />
 Gitee：https://gitee.com/XYW1171736840/spring-file-storage
