@@ -127,6 +127,15 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- 谷歌云 Google Cloud Platform Storage-->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-storage</artifactId>
+            <version>2.14.0</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!--糊涂工具类核心-->
         <dependency>
             <groupId>cn.hutool</groupId>

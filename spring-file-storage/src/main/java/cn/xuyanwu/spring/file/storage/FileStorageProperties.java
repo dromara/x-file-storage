@@ -82,6 +82,11 @@ public class FileStorageProperties {
     private List<WebDAV> WebDav = new ArrayList<>();
 
     /**
+     * 谷歌云存储
+     */
+    private List<GoogleCloud> googleCloud = new ArrayList<>();
+
+    /**
      * 本地存储
      */
     @Data
@@ -522,5 +527,28 @@ public class FileStorageProperties {
          * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
          */
         private String storagePath = "/";
+    }
+
+    @Data
+    public static class GoogleCloud {
+        private String projectId;
+        private String credentialsLocation;
+        private String bucketName;
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+        /**
+         * 存储平台
+         */
+        private String platform = "";
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
     }
 }
