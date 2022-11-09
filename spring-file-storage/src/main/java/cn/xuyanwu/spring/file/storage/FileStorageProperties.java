@@ -3,6 +3,7 @@ package cn.xuyanwu.spring.file.storage;
 import lombok.Data;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.Charset;
@@ -532,7 +533,7 @@ public class FileStorageProperties {
     @Data
     public static class GoogleCloud {
         private String projectId;
-        private String credentialsLocation;
+        private Resource credentialsLocation;
         private String bucketName;
         /**
          * 访问域名

@@ -134,6 +134,6 @@ spring:
         enable-storage: true  # 启用存储
         project-id: ?? # 项目 id
         bucket-name: ??
-        credentials-location: /deploy/example-key.json # 授权 key json 文件路径
+        credentials-location: file:/deploy/example-key.json # 授权 key json 文件路径，支持 file, classpath, http 等，参考 https://docs.spring.io/spring-framework/docs/3.2.x/spring-framework-reference/html/resources.html#:~:text=Table%C2%A06.1.%C2%A0Resource%20strings
         domain: ?? # 访问域名，注意“/”结尾，例如：https://storage.googleapis.com/test-bucket/
         base-path: hy/ # 基础路径

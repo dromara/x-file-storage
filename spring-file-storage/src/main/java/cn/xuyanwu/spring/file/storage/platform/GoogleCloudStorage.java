@@ -9,13 +9,12 @@ import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.core.io.Resource;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.Channels;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
@@ -30,7 +29,11 @@ import java.util.function.Consumer;
 public class GoogleCloudStorage implements FileStorage {
     private String projectId;
     private String bucketName;
-    private String credentialsLocation;
+    /**
+     * 配置文件路径，支持 classpath, file, http 等
+     * 参考 <a href="https://docs.spring.io/spring-framework/docs/3.2.x/spring-framework-reference/html/resources.html#:~:text=Table%C2%A06.1.%C2%A0Resource%20strings">Resource</a>
+     */
+    private Resource credentialsLocation;
     /* 基础路径 */
     private String basePath;
     /* 存储平台 */
@@ -47,8 +50,7 @@ public class GoogleCloudStorage implements FileStorage {
         if (client == null) {
             ServiceAccountCredentials credentialsFromStream;
             try {
-                InputStream stream = Files.newInputStream(Paths.get(credentialsLocation));
-                credentialsFromStream = ServiceAccountCredentials.fromStream(stream);
+                credentialsFromStream = ServiceAccountCredentials.fromStream(credentialsLocation.getInputStream());
             } catch (IOException e) {
                 throw new FileStorageRuntimeException("Google Cloud Platform 授权 key 文件获取失败！credentialsLocation：" + credentialsLocation);
             }
