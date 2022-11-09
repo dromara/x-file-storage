@@ -409,7 +409,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         if (CollUtil.isNotEmpty(properties.getFtp()) && (doesNotExistClass("com.jcraft.jsch.ChannelSftp") || doesNotExistClass("cn.hutool.extra.ftp.Ftp"))) {
             log.warn(template," SFTP ");
         }
-        if (CollUtil.isNotEmpty(properties.getAwsS3()) && doesNotExistClass("com.github.sardine.Sardine")) {
+        if (CollUtil.isNotEmpty(properties.getWebDav()) && doesNotExistClass("com.github.sardine.Sardine")) {
             log.warn(template," WebDAV ");
         }
         if (CollUtil.isNotEmpty(properties.getGoogleCloud()) && doesNotExistClass("com.google.cloud.storage.Storage")) {
