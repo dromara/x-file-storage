@@ -323,7 +323,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             return storage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
-    
+
     @Bean
     @ConditionalOnClass(name = "com.google.cloud.storage.Storage")
     public List<GoogleCloudStorage> googleCloudStorageList() {
@@ -334,7 +334,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             storage.setPlatform(googleCloud.getPlatform());
             storage.setProjectId(googleCloud.getProjectId());
             storage.setBucketName(googleCloud.getBucketName());
-            storage.setCredentialsLocation(googleCloud.getCredentialsLocation());
+            storage.setCredentialsPath(googleCloud.getCredentialsPath());
             storage.setDomain(googleCloud.getDomain());
             storage.setBasePath(googleCloud.getBasePath());
             return storage;

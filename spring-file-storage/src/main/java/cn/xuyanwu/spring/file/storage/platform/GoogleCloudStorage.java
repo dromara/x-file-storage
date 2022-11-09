@@ -1,6 +1,7 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.core.util.URLUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
@@ -9,7 +10,6 @@ import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.core.io.Resource;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -30,10 +30,9 @@ public class GoogleCloudStorage implements FileStorage {
     private String projectId;
     private String bucketName;
     /**
-     * 配置文件路径，支持 classpath, file, http 等
-     * 参考 <a href="https://docs.spring.io/spring-framework/docs/3.2.x/spring-framework-reference/html/resources.html#:~:text=Table%C2%A06.1.%C2%A0Resource%20strings">Resource</a>
+     * 证书路径，兼容Spring的ClassPath路径、文件路径、HTTP路径等
      */
-    private Resource credentialsLocation;
+    private String credentialsPath;
     /* 基础路径 */
     private String basePath;
     /* 存储平台 */
@@ -49,10 +48,10 @@ public class GoogleCloudStorage implements FileStorage {
     public Storage getClient() {
         if (client == null) {
             ServiceAccountCredentials credentialsFromStream;
-            try {
-                credentialsFromStream = ServiceAccountCredentials.fromStream(credentialsLocation.getInputStream());
+            try (InputStream in = URLUtil.url(credentialsPath).openStream()) {
+                credentialsFromStream = ServiceAccountCredentials.fromStream(in);
             } catch (IOException e) {
-                throw new FileStorageRuntimeException("Google Cloud Platform 授权 key 文件获取失败！credentialsLocation：" + credentialsLocation);
+                throw new FileStorageRuntimeException("Google Cloud Platform 授权 key 文件获取失败！credentialsPath：" + credentialsPath);
             }
             List<String> scopes = Collections.singletonList("https://www.googleapis.com/auth/cloud-platform");
             ServiceAccountCredentials credentials = credentialsFromStream.toBuilder().setScopes(scopes).build();
