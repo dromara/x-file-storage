@@ -129,3 +129,11 @@ spring:
         domain: ?? # 访问域名，注意“/”结尾，例如：https://file.abc.com/
         base-path: webdav/ # 基础路径
         storage-path: / # 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+    google-cloud: # 谷歌云存储
+      - platform: google-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        project-id: ?? # 项目 id
+        bucket-name: ??
+        credentials-location: /deploy/example-key.json # 授权 key json 文件路径
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://storage.googleapis.com/test-bucket/
+        base-path: hy/ # 基础路径

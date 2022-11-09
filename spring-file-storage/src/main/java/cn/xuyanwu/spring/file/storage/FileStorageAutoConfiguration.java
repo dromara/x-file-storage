@@ -323,6 +323,23 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             return storage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
+    
+    @Bean
+    @ConditionalOnClass(name = "com.google.cloud.storage.Storage")
+    public List<GoogleCloudStorage> googleCloudStorageList() {
+        return properties.getGoogleCloud().stream().map(googleCloud -> {
+            if (!googleCloud.getEnableStorage()) return null;
+            log.info("加载存储平台：{}", googleCloud.getPlatform());
+            GoogleCloudStorage storage = new GoogleCloudStorage();
+            storage.setPlatform(googleCloud.getPlatform());
+            storage.setProjectId(googleCloud.getProjectId());
+            storage.setBucketName(googleCloud.getBucketName());
+            storage.setCredentialsLocation(googleCloud.getCredentialsLocation());
+            storage.setDomain(googleCloud.getDomain());
+            storage.setBasePath(googleCloud.getBasePath());
+            return storage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
 
     /**
      * 当没有找到 FileRecorder 时使用默认的 FileRecorder
@@ -394,6 +411,9 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         }
         if (CollUtil.isNotEmpty(properties.getAwsS3()) && doesNotExistClass("com.github.sardine.Sardine")) {
             log.warn(template," WebDAV ");
+        }
+        if (CollUtil.isNotEmpty(properties.getGoogleCloud()) && doesNotExistClass("com.google.cloud.storage.Storage")) {
+            log.warn(template, " 谷歌云存储 ");
         }
     }
 
