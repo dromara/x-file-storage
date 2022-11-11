@@ -346,7 +346,7 @@ public class FileStorageService implements DisposableBean {
         for (FileStorage fileStorage : fileStorageList) {
             try {
                 fileStorage.close();
-                log.error("销毁存储平台 {} 成功",fileStorage.getPlatform());
+                log.info("销毁存储平台 {} 成功",fileStorage.getPlatform());
             } catch (Exception e) {
                 log.error("销毁存储平台 {} 失败，{}",fileStorage.getPlatform(),e.getMessage(),e);
             }
