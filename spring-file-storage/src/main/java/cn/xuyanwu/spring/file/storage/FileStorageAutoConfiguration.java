@@ -5,6 +5,8 @@ import cn.xuyanwu.spring.file.storage.aspect.FileStorageAspect;
 import cn.xuyanwu.spring.file.storage.platform.*;
 import cn.xuyanwu.spring.file.storage.recorder.DefaultFileRecorder;
 import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
+import cn.xuyanwu.spring.file.storage.tika.DefaultTikaFactory;
+import cn.xuyanwu.spring.file.storage.tika.TikaFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -324,6 +326,23 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
+    @Bean
+    @ConditionalOnClass(name = "com.google.cloud.storage.Storage")
+    public List<GoogleCloudStorage> googleCloudStorageList() {
+        return properties.getGoogleCloud().stream().map(googleCloud -> {
+            if (!googleCloud.getEnableStorage()) return null;
+            log.info("加载存储平台：{}", googleCloud.getPlatform());
+            GoogleCloudStorage storage = new GoogleCloudStorage();
+            storage.setPlatform(googleCloud.getPlatform());
+            storage.setProjectId(googleCloud.getProjectId());
+            storage.setBucketName(googleCloud.getBucketName());
+            storage.setCredentialsPath(googleCloud.getCredentialsPath());
+            storage.setDomain(googleCloud.getDomain());
+            storage.setBasePath(googleCloud.getBasePath());
+            return storage;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
     /**
      * 当没有找到 FileRecorder 时使用默认的 FileRecorder
      */
@@ -335,12 +354,22 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     }
 
     /**
+     * Tika 工厂类型，用于识别上传的文件的 MINE
+     */
+    @Bean
+    @ConditionalOnMissingBean(TikaFactory.class)
+    public TikaFactory tikaFactory() {
+        return new DefaultTikaFactory();
+    }
+
+    /**
      * 文件存储服务
      */
     @Bean
     public FileStorageService fileStorageService(FileRecorder fileRecorder,
                                                  List<List<? extends FileStorage>> fileStorageLists,
-                                                 List<FileStorageAspect> aspectList) {
+                                                 List<FileStorageAspect> aspectList,
+                                                 TikaFactory tikaFactory) {
         this.initDetect();
         FileStorageService service = new FileStorageService();
         service.setFileStorageList(new CopyOnWriteArrayList<>());
@@ -348,6 +377,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         service.setFileRecorder(fileRecorder);
         service.setProperties(properties);
         service.setAspectList(new CopyOnWriteArrayList<>(aspectList));
+        service.setTikaFactory(tikaFactory);
         return service;
     }
 
@@ -392,8 +422,11 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         if (CollUtil.isNotEmpty(properties.getFtp()) && (doesNotExistClass("com.jcraft.jsch.ChannelSftp") || doesNotExistClass("cn.hutool.extra.ftp.Ftp"))) {
             log.warn(template," SFTP ");
         }
-        if (CollUtil.isNotEmpty(properties.getAwsS3()) && doesNotExistClass("com.github.sardine.Sardine")) {
+        if (CollUtil.isNotEmpty(properties.getWebDav()) && doesNotExistClass("com.github.sardine.Sardine")) {
             log.warn(template," WebDAV ");
+        }
+        if (CollUtil.isNotEmpty(properties.getGoogleCloud()) && doesNotExistClass("com.google.cloud.storage.Storage")) {
+            log.warn(template, " 谷歌云存储 ");
         }
     }
 

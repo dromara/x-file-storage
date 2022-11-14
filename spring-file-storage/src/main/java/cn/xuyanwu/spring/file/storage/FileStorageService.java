@@ -1,5 +1,6 @@
 package cn.xuyanwu.spring.file.storage;
 
+import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ReUtil;
@@ -12,6 +13,7 @@ import cn.xuyanwu.spring.file.storage.aspect.UploadAspectChain;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import cn.xuyanwu.spring.file.storage.platform.FileStorage;
 import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
+import cn.xuyanwu.spring.file.storage.tika.TikaFactory;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +45,7 @@ public class FileStorageService implements DisposableBean {
     private CopyOnWriteArrayList<FileStorage> fileStorageList;
     private FileStorageProperties properties;
     private CopyOnWriteArrayList<FileStorageAspect> aspectList;
+    private TikaFactory tikaFactory;
 
 
     /**
@@ -101,8 +104,7 @@ public class FileStorageService implements DisposableBean {
         } else if (pre.getFileWrapper().getContentType() != null) {
             fileInfo.setContentType(pre.getFileWrapper().getContentType());
         } else {
-            String contentType = URLConnection.guessContentTypeFromName(fileInfo.getFilename());
-            fileInfo.setContentType(contentType != null ? contentType : "application/octet-stream");
+            fileInfo.setContentType(tikaFactory.getTika().detect(fileInfo.getFilename()));
         }
 
         byte[] thumbnailBytes = pre.getThumbnailBytes();
@@ -113,8 +115,7 @@ public class FileStorageService implements DisposableBean {
             } else {
                 fileInfo.setThFilename(fileInfo.getFilename() + pre.getThumbnailSuffix());
             }
-            String contentType = URLConnection.guessContentTypeFromName(fileInfo.getThFilename());
-            fileInfo.setThContentType(contentType != null ? contentType : "application/octet-stream");
+            fileInfo.setThContentType(tikaFactory.getTika().detect(thumbnailBytes,fileInfo.getThFilename()));
         }
 
         FileStorage fileStorage = getFileStorage(pre.getPlatform());
@@ -249,7 +250,8 @@ public class FileStorageService implements DisposableBean {
      */
     public UploadPretreatment of(byte[] bytes) {
         UploadPretreatment pre = of();
-        pre.setFileWrapper(new MultipartFileWrapper(new MockMultipartFile("",bytes)));
+        String contentType = tikaFactory.getTika().detect(bytes);
+        pre.setFileWrapper(new MultipartFileWrapper(new MockMultipartFile("","",contentType,bytes)));
         return pre;
     }
 
@@ -258,8 +260,10 @@ public class FileStorageService implements DisposableBean {
      */
     public UploadPretreatment of(InputStream in) {
         try {
+            byte[] bytes = IoUtil.readBytes(in);
+            String contentType = tikaFactory.getTika().detect(bytes);
             UploadPretreatment pre = of();
-            pre.setFileWrapper(new MultipartFileWrapper(new MockMultipartFile("",in)));
+            pre.setFileWrapper(new MultipartFileWrapper(new MockMultipartFile("","",contentType,bytes)));
             return pre;
         } catch (Exception e) {
             throw new FileStorageRuntimeException("根据 InputStream 创建上传预处理器失败！",e);
@@ -272,7 +276,8 @@ public class FileStorageService implements DisposableBean {
     public UploadPretreatment of(File file) {
         try {
             UploadPretreatment pre = of();
-            pre.setFileWrapper(new MultipartFileWrapper(new MockMultipartFile(file.getName(),file.getName(),URLConnection.guessContentTypeFromName(file.getName()),Files.newInputStream(file.toPath()))));
+            String contentType = tikaFactory.getTika().detect(file);
+            pre.setFileWrapper(new MultipartFileWrapper(new MockMultipartFile(file.getName(),file.getName(),contentType,Files.newInputStream(file.toPath()))));
             return pre;
         } catch (Exception e) {
             throw new FileStorageRuntimeException("根据 File 创建上传预处理器失败！",e);
@@ -305,7 +310,9 @@ public class FileStorageService implements DisposableBean {
                 }
             }
 
-            pre.setFileWrapper(new MultipartFileWrapper(new MockMultipartFile(url.toString(),name,conn.getContentType(),conn.getInputStream())));
+            byte[] bytes = IoUtil.readBytes(conn.getInputStream());
+            String contentType = tikaFactory.getTika().detect(bytes,name);
+            pre.setFileWrapper(new MultipartFileWrapper(new MockMultipartFile(url.toString(),name,contentType,bytes)));
             return pre;
         } catch (Exception e) {
             throw new FileStorageRuntimeException("根据 URL 创建上传预处理器失败！",e);
@@ -339,7 +346,7 @@ public class FileStorageService implements DisposableBean {
         for (FileStorage fileStorage : fileStorageList) {
             try {
                 fileStorage.close();
-                log.error("销毁存储平台 {} 成功",fileStorage.getPlatform());
+                log.info("销毁存储平台 {} 成功",fileStorage.getPlatform());
             } catch (Exception e) {
                 log.error("销毁存储平台 {} 失败，{}",fileStorage.getPlatform(),e.getMessage(),e);
             }

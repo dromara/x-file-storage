@@ -12,7 +12,7 @@
 
     <groupId>cn.xuyanwu</groupId>
     <artifactId>spring-file-storage-test</artifactId>
-    <version>0.6.1</version>
+    <version>0.7.0</version>
     <name>spring-file-storage-test</name>
     <description>spring-file-storage 的测试和演示模块</description>
 
@@ -106,6 +106,20 @@
             <version>3.22.3.1</version>
         </dependency>
 
+        <!-- 谷歌云 Google Cloud Platform Storage-->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-storage</artifactId>
+            <version>2.14.0</version>
+        </dependency>
+
+        <!--因存在较多冲突版本导致谷歌云无法使用，故引入独立版本-->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>31.1-jre</version>
+        </dependency>
+
         <!--糊涂工具类核心-->
         <dependency>
             <groupId>cn.hutool</groupId>
@@ -116,7 +130,7 @@
         <dependency>
             <groupId>cn.xuyanwu</groupId>
             <artifactId>spring-file-storage</artifactId>
-            <version>0.6.1</version>
+            <version>0.7.0</version>
         </dependency>
 
         <dependency>
