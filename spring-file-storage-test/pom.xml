@@ -12,7 +12,7 @@
 
     <groupId>cn.xuyanwu</groupId>
     <artifactId>spring-file-storage-test</artifactId>
-    <version>0.6.1</version>
+    <version>0.7.0</version>
     <name>spring-file-storage-test</name>
     <description>spring-file-storage 的测试和演示模块</description>
 
@@ -130,7 +130,7 @@
         <dependency>
             <groupId>cn.xuyanwu</groupId>
             <artifactId>spring-file-storage</artifactId>
-            <version>0.6.1</version>
+            <version>0.7.0</version>
         </dependency>
 
         <dependency>

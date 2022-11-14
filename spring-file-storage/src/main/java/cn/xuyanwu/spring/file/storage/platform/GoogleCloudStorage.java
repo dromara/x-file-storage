@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 /**
  * @author Kytrun
  * @version 1.0
- * @date 2022/11/4 9:56
+ * {@code @date} 2022/11/4 9:56
  */
 @Getter
 @Setter
