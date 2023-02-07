@@ -1,6 +1,7 @@
 package cn.xuyanwu.spring.file.storage;
 
 import lombok.Data;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -371,7 +372,7 @@ public class FileStorageProperties {
      * FTP
      */
     @Data
-    public static class FTP {
+    public static class FTP extends GenericObjectPoolConfig {
         /**
          * 主机
          */
@@ -395,11 +396,11 @@ public class FileStorageProperties {
         /**
          * 连接超时时长，单位毫秒，默认10秒 {@link org.apache.commons.net.SocketClient#setConnectTimeout(int)}
          */
-        private long connectionTimeout = 10 * 1000;
+        private int connectionTimeout = 10 * 1000;
         /**
          * Socket连接超时时长，单位毫秒，默认10秒 {@link org.apache.commons.net.SocketClient#setSoTimeout(int)}
          */
-        private long soTimeout = 10 * 1000;
+        private int soTimeout = 10 * 1000;
         /**
          * 设置服务器语言，默认空，{@link org.apache.commons.net.ftp.FTPClientConfig#setServerLanguageCode(String)}
          */
@@ -433,13 +434,18 @@ public class FileStorageProperties {
          * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
          */
         private String storagePath = "/";
+
+        /**
+         * 传输模式  org.apache.commons.net.ftp.FTP.BINARY_FILE_TYPE
+         */
+        private int transferFileType = org.apache.commons.net.ftp.FTP.BINARY_FILE_TYPE;
     }
 
     /**
      * SFTP
      */
     @Data
-    public static class SFTP {
+    public static class SFTP extends GenericObjectPoolConfig{
         /**
          * 主机
          */

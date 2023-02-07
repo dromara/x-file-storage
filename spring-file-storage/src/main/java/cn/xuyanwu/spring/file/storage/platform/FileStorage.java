@@ -2,6 +2,9 @@ package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
+import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.pool2.impl.GenericObjectPool;
 
 import java.io.InputStream;
 import java.util.function.Consumer;
@@ -51,5 +54,9 @@ public interface FileStorage extends AutoCloseable {
      * 释放相关资源
      */
     void close();
+
+    default GenericObjectPool clientCache(){
+        throw new FileStorageRuntimeException("没有定义连接池信息！");
+    }
 
 }

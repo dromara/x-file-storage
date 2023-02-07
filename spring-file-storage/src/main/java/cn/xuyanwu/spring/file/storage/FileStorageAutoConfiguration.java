@@ -1,13 +1,18 @@
 package cn.xuyanwu.spring.file.storage;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.extra.spring.SpringUtil;
 import cn.xuyanwu.spring.file.storage.aspect.FileStorageAspect;
 import cn.xuyanwu.spring.file.storage.platform.*;
 import cn.xuyanwu.spring.file.storage.recorder.DefaultFileRecorder;
 import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
 import cn.xuyanwu.spring.file.storage.tika.DefaultTikaFactory;
 import cn.xuyanwu.spring.file.storage.tika.TikaFactory;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -19,9 +24,11 @@ import org.springframework.context.event.EventListener;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -257,25 +264,17 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = {"org.apache.commons.net.ftp.FTPClient","cn.hutool.extra.ftp.Ftp"})
-    public List<FtpFileStorage> ftpFileStorageList() {
+    public List<FtpFileStorage> ftpFileStorageList(ClientPoolHelper clientPoolHelper) {
         return properties.getFtp().stream().map(ftp -> {
             if (!ftp.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",ftp.getPlatform());
+            log.info("加载FTP存储平台：{}", ftp.getPlatform());
             FtpFileStorage storage = new FtpFileStorage();
             storage.setPlatform(ftp.getPlatform());
-            storage.setHost(ftp.getHost());
-            storage.setPort(ftp.getPort());
-            storage.setUser(ftp.getUser());
-            storage.setPassword(ftp.getPassword());
-            storage.setCharset(ftp.getCharset());
-            storage.setConnectionTimeout(ftp.getConnectionTimeout());
-            storage.setSoTimeout(ftp.getSoTimeout());
-            storage.setServerLanguageCode(ftp.getServerLanguageCode());
-            storage.setSystemKey(ftp.getSystemKey());
-            storage.setIsActive(ftp.getIsActive());
             storage.setDomain(ftp.getDomain());
             storage.setBasePath(ftp.getBasePath());
             storage.setStoragePath(ftp.getStoragePath());
+            storage.setClientPoolHelper(clientPoolHelper);
+            storage.setFtpConfig(ftp);
             return storage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
@@ -284,25 +283,25 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      * SFTP 存储 Bean
      */
     @Bean
-    @ConditionalOnClass(name = {"com.jcraft.jsch.ChannelSftp","cn.hutool.extra.ftp.Ftp"})
-    public List<SftpFileStorage> sftpFileStorageList() {
-        return properties.getSftp().stream().map(sftp -> {
-            if (!sftp.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",sftp.getPlatform());
+    @ConditionalOnClass(name = {"com.jcraft.jsch.ChannelSftp", "cn.hutool.extra.ssh.Sftp"})
+    public List<SftpFileStorage> sftpFileStorageList(ClientPoolHelper clientPoolHelper) {
+
+        List<SftpFileStorage> sftpFileStorages = new ArrayList<>(1);
+        for (FileStorageProperties.SFTP sftp : properties.getSftp()) {
+            if (!sftp.getEnableStorage()){
+                continue;
+            }
+            log.info("加载存储平台：{}", sftp.getPlatform());
             SftpFileStorage storage = new SftpFileStorage();
             storage.setPlatform(sftp.getPlatform());
-            storage.setHost(sftp.getHost());
-            storage.setPort(sftp.getPort());
-            storage.setUser(sftp.getUser());
-            storage.setPassword(sftp.getPassword());
-            storage.setPrivateKeyPath(sftp.getPrivateKeyPath());
-            storage.setCharset(sftp.getCharset());
-            storage.setConnectionTimeout(sftp.getConnectionTimeout());
             storage.setDomain(sftp.getDomain());
             storage.setBasePath(sftp.getBasePath());
             storage.setStoragePath(sftp.getStoragePath());
-            return storage;
-        }).filter(Objects::nonNull).collect(Collectors.toList());
+            storage.setSftpConfig(sftp);
+            storage.setClientPoolHelper(clientPoolHelper);
+            sftpFileStorages.add(storage);
+        }
+        return sftpFileStorages;
     }
 
     /**
@@ -388,6 +387,37 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     public void onContextRefreshedEvent() {
         FileStorageService service = applicationContext.getBean(FileStorageService.class);
         service.setSelf(service);
+    }
+
+    @Bean
+    public ClientPoolHelper clientPoolHelper(){
+        LoadingCache<String, GenericObjectPool> clientCache =  CacheBuilder.newBuilder()
+                //设置并发级别为8，并发级别是指可以同时写缓存的线程数
+                .concurrencyLevel(8)
+                //设置写缓存后8分钟过期
+                .expireAfterWrite(8, TimeUnit.MINUTES)
+                //设置写缓存后8秒钟刷新
+                .refreshAfterWrite(8, TimeUnit.MINUTES)
+                //设置缓存容器的初始容量为5
+                .initialCapacity(5)
+                //设置缓存最大容量为100，超过100之后就会按照LRU最近虽少使用算法来移除缓存项
+                .maximumSize(100)
+                //设置要统计缓存的命中率
+                .recordStats()
+                .removalListener(notification -> {
+                    log.warn("{}被移除了，原因：{}", notification.getKey(),notification.getCause());
+                })
+                .build(new CacheLoader<String, GenericObjectPool>() {
+                    @Override
+                    public GenericObjectPool load(String platform){
+                        FileStorage fileStorage = SpringUtil.getBean(FileStorageService.class).getFileStorage(platform);
+                        if(fileStorage!=null){
+                            return fileStorage.clientCache();
+                        }
+                        return null;
+                    }
+                });
+        return new ClientPoolHelper(clientCache);
     }
 
     public void initDetect() {
