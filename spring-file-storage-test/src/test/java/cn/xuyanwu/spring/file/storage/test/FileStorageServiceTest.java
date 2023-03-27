@@ -1,15 +1,20 @@
 package cn.xuyanwu.spring.file.storage.test;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.Assert;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.FileStorageService;
+import cn.xuyanwu.spring.file.storage.ProgressListener;
+import cn.xuyanwu.spring.file.storage.constant.Constant;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.io.File;
 import java.io.InputStream;
+import java.util.Date;
 
 
 @Slf4j
@@ -34,9 +39,35 @@ class FileStorageServiceTest {
                 .setPath("test/")
                 .thumbnail()
                 .putAttr("role","admin")
+                .setAcl(Constant.ACL.PRIVATE)
+                .setProgressMonitor(new ProgressListener() {
+                    @Override
+                    public void start() {
+                        System.out.println("上传开始");
+                    }
+
+                    @Override
+                    public void progress(long progressSize,long allSize) {
+                        System.out.println("已上传 " + progressSize + " 总大小" + allSize + " " + (progressSize * 10000 / allSize * 0.01) + "%");
+                    }
+
+                    @Override
+                    public void finish() {
+                        System.out.println("上传结束");
+                    }
+                })
                 .upload();
         Assert.notNull(fileInfo,"文件上传失败！");
         log.info("文件上传成功：{}",fileInfo.toString());
+
+        String presignedUrl = fileStorageService.generatePresignedUrl(fileInfo,DateUtil.offsetHour(new Date(),1));
+        System.out.println("文件授权访问地址：" + presignedUrl);
+
+        String thPresignedUrl = fileStorageService.generateThPresignedUrl(fileInfo,DateUtil.offsetHour(new Date(),1));
+        System.out.println("缩略图文件授权访问地址：" + thPresignedUrl);
+
+//        fileStorageService.setFileAcl(fileInfo,Constant.ACL.PUBLIC_READ);
+//        fileStorageService.setThFileAcl(fileInfo,Constant.ACL.PUBLIC_READ);
     }
 
     /**
