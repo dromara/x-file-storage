@@ -6,6 +6,7 @@ import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
+import com.baidubce.BceServiceException;
 import com.baidubce.Protocol;
 import com.baidubce.auth.DefaultBceCredentials;
 import com.baidubce.services.bos.BosClient;
@@ -22,6 +23,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * 百度云 BOS 存储
@@ -43,6 +45,7 @@ public class BaiduBosFileStorage implements FileStorage {
     private int multipartThreshold;
     private int multipartPartSize;
     private BosClientConfiguration clientConfiguration;
+    private Supplier<BosClientConfiguration> clientConfigurationSupplier;
 
     /**
      * 单例模式运行，不需要每次使用完再销毁了
@@ -52,11 +55,20 @@ public class BaiduBosFileStorage implements FileStorage {
             synchronized (this) {
                 if (client == null) {
                     if (clientConfiguration == null) {
-                        clientConfiguration = new BosClientConfiguration();
+                        if (clientConfigurationSupplier != null) {
+                            clientConfiguration = clientConfigurationSupplier.get();
+                        }
+                        if (clientConfiguration == null) {
+                            clientConfiguration = new BosClientConfiguration();
+                            clientConfiguration.setProtocol(Protocol.HTTPS);
+                        }
                     }
-                    clientConfiguration.setCredentials(new DefaultBceCredentials(accessKey,secretKey));
-                    clientConfiguration.setProtocol(Protocol.HTTPS);
-                    clientConfiguration.setEndpoint(endPoint);
+                    if (StrUtil.isNotBlank(accessKey)) {
+                        clientConfiguration.setCredentials(new DefaultBceCredentials(accessKey,secretKey));
+                    }
+                    if (StrUtil.isNotBlank(endPoint)) {
+                        clientConfiguration.setEndpoint(endPoint);
+                    }
                     client = new BosClient(clientConfiguration);
                 }
             }
@@ -223,9 +235,17 @@ public class BaiduBosFileStorage implements FileStorage {
     public boolean delete(FileInfo fileInfo) {
         BosClient client = getClient();
         if (fileInfo.getThFilename() != null) {   //删除缩略图
-            client.deleteObject(bucketName,getThFileKey(fileInfo));
+            try {
+                client.deleteObject(bucketName,getThFileKey(fileInfo));
+            } catch (BceServiceException e) {
+                if (!"NoSuchKey".equals(e.getErrorCode())) throw e;
+            }
         }
-        client.deleteObject(bucketName,getFileKey(fileInfo));
+        try {
+            client.deleteObject(bucketName,getFileKey(fileInfo));
+        } catch (BceServiceException e) {
+            if (!"NoSuchKey".equals(e.getErrorCode())) throw e;
+        }
         return true;
     }
 

@@ -80,18 +80,18 @@
 <!--        </dependency>-->
 
         <!-- 百度云 BOS -->
-        <dependency>
-            <groupId>com.baidubce</groupId>
-            <artifactId>bce-java-sdk</artifactId>
-            <version>0.10.251</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.baidubce</groupId>-->
+<!--            <artifactId>bce-java-sdk</artifactId>-->
+<!--            <version>0.10.251</version>-->
+<!--        </dependency>-->
 
         <!-- 腾讯云 COS -->
-<!--        <dependency>-->
-<!--            <groupId>com.qcloud</groupId>-->
-<!--            <artifactId>cos_api</artifactId>-->
-<!--            <version>5.6.98</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.qcloud</groupId>
+            <artifactId>cos_api</artifactId>
+            <version>5.6.98</version>
+        </dependency>
 
         <!-- 七牛云 Kodo -->
 <!--        <dependency>-->

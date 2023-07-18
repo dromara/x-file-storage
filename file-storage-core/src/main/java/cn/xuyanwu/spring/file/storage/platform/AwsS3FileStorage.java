@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * AWS S3 存储
@@ -47,6 +48,7 @@ public class AwsS3FileStorage implements FileStorage {
     private int multipartThreshold;
     private int multipartPartSize;
     private ClientConfiguration clientConfiguration;
+    private Supplier<ClientConfiguration> clientConfigurationSupplier;
 
     /**
      * 单例模式运行，不需要每次使用完再销毁了
@@ -55,6 +57,14 @@ public class AwsS3FileStorage implements FileStorage {
         if (client == null) {
             synchronized (this) {
                 if (client == null) {
+                    if (clientConfiguration == null) {
+                        if (clientConfigurationSupplier != null) {
+                            clientConfiguration = clientConfigurationSupplier.get();
+                        }
+                        if (clientConfiguration == null) {
+                            clientConfiguration = new ClientConfiguration();
+                        }
+                    }
                     AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
                             .withClientConfiguration(clientConfiguration)
                             .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey,secretKey)));

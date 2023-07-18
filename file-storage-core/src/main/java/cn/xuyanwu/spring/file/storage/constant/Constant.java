@@ -63,4 +63,13 @@ public interface Constant {
     interface BaiduBosACL extends ACL {
 
     }
+
+
+    /**
+     * 腾讯云 COS 的 ACL
+     * {@link com.qcloud.cos.model.CannedAccessControlList}
+     */
+    interface TencentCosACL extends ACL {
+        String DEFAULT = "default";
+    }
 }

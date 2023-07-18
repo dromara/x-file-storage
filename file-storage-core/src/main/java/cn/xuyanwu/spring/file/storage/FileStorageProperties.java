@@ -1,15 +1,10 @@
 package cn.xuyanwu.spring.file.storage;
 
-import com.aliyun.oss.ClientBuilderConfiguration;
-import com.amazonaws.ClientConfiguration;
-import com.baidubce.services.bos.BosClientConfiguration;
-import com.obs.services.ObsConfiguration;
 import lombok.Data;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 @Data
@@ -288,6 +283,22 @@ public class FileStorageProperties {
          * 基础路径
          */
         private String basePath = "";
+        /**
+         * 默认的 ACL，详情 {@link cn.xuyanwu.spring.file.storage.constant.Constant.TencentCosACL}
+         */
+        private String defaultAcl;
+        /**
+         * 自动分片上传阈值，超过此大小则使用分片上传，默认 128MB
+         */
+        private int multipartThreshold = 128 * 1024 * 1024;
+        /**
+         * 自动分片上传时每个分片大小，默认 32MB
+         */
+        private int multipartPartSize = 32 * 1024 * 1024;
+        /**
+         * 自定义配置，详情：{@link com.qcloud.cos.ClientConfig}
+         */
+        private Object clientConfiguration;
     }
 
     /**

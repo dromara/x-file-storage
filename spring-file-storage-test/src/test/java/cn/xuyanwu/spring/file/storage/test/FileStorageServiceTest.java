@@ -2,18 +2,24 @@ package cn.xuyanwu.spring.file.storage.test;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.Assert;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.FileStorageService;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.constant.Constant;
+import cn.xuyanwu.spring.file.storage.platform.FileStorage;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Date;
 
 
@@ -81,6 +87,25 @@ class FileStorageServiceTest {
         FileInfo fileInfo = fileStorageService.of(url).thumbnail().setPath("test/").setObjectId("0").setObjectType("0").upload();
         Assert.notNull(fileInfo,"文件上传失败！");
         log.info("文件上传成功：{}",fileInfo.toString());
+    }
+
+    /**
+     * 测试大文件上传
+     */
+    @Test
+    public void uploadBigFile() throws IOException {
+        String url = "https://app.xuyanwu.cn/BadApple/video/Bad%20Apple.mp4";
+
+        File file = new File(System.getProperty("java.io.tmpdir"),"Bad Apple.mp4");
+        if (!file.exists()) {
+            log.info("测试大文件不存在，正在下载中");
+            FileUtil.writeFromStream(new URL(url).openStream(),file);
+            log.info("测试大文件下载完成");
+        }
+
+        FileInfo fileInfo = fileStorageService.of(file).setPath("test/").setObjectId("0").setObjectType("0").upload();
+        Assert.notNull(fileInfo,"大文件上传失败！");
+        log.info("大文件上传成功：{}",fileInfo.toString());
     }
 
     /**
@@ -154,6 +179,17 @@ class FileStorageServiceTest {
         log.info("缩略图文件下载成功，文件大小：{}",thBytes.length);
 
 
+    }
+
+    /**
+     * 测试通过反射调用存储平台的方法
+     */
+    @Test
+    public void invoke() {
+        FileStorage fileStorage = fileStorageService.getFileStorage();
+        Object[] args = new Object[]{fileStorage.getPlatform()};
+        Object exists = fileStorageService.invoke(fileStorage,"setPlatform",args);
+        log.info("通过反射调用存储平台的方法（文件是否存在）成功，结果：{}",exists);
     }
 
 }

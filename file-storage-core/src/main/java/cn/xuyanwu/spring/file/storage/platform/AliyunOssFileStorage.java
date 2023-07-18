@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * 阿里云 OSS 存储
@@ -43,6 +44,7 @@ public class AliyunOssFileStorage implements FileStorage {
     private int multipartThreshold;
     private int multipartPartSize;
     private ClientBuilderConfiguration clientConfiguration;
+    private Supplier<ClientBuilderConfiguration> clientConfigurationSupplier;
 
     /**
      * 单例模式运行，不需要每次使用完再销毁了
@@ -51,6 +53,11 @@ public class AliyunOssFileStorage implements FileStorage {
         if (client == null) {
             synchronized (this) {
                 if (client == null) {
+                    if (clientConfiguration == null) {
+                        if (clientConfigurationSupplier != null) {
+                            clientConfiguration = clientConfigurationSupplier.get();
+                        }
+                    }
                     client = new OSSClientBuilder().build(endPoint,accessKey,secretKey,clientConfiguration);
                 }
             }

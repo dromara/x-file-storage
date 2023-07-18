@@ -2,12 +2,10 @@ package cn.xuyanwu.spring.file.storage.spring;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileStorageService;
 import cn.xuyanwu.spring.file.storage.aspect.FileStorageAspect;
-import cn.xuyanwu.spring.file.storage.file.ByteFileWrapperAdapter;
-import cn.xuyanwu.spring.file.storage.file.FileWrapperAdapter;
-import cn.xuyanwu.spring.file.storage.file.InputStreamFileWrapperAdapter;
-import cn.xuyanwu.spring.file.storage.file.LocalFileWrapperAdapter;
+import cn.xuyanwu.spring.file.storage.file.*;
 import cn.xuyanwu.spring.file.storage.platform.*;
 import cn.xuyanwu.spring.file.storage.recorder.DefaultFileRecorder;
 import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
@@ -16,10 +14,12 @@ import cn.xuyanwu.spring.file.storage.tika.ContentTypeDetect;
 import cn.xuyanwu.spring.file.storage.tika.DefaultTikaFactory;
 import cn.xuyanwu.spring.file.storage.tika.TikaContentTypeDetect;
 import cn.xuyanwu.spring.file.storage.tika.TikaFactory;
+import cn.xuyanwu.spring.file.storage.util.Tools;
 import com.aliyun.oss.ClientBuilderConfiguration;
 import com.amazonaws.ClientConfiguration;
 import com.baidubce.services.bos.BosClientConfiguration;
 import com.obs.services.ObsConfiguration;
+import com.qcloud.cos.ClientConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -29,12 +29,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -118,6 +122,8 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             storage.setDefaultAcl(obs.getDefaultAcl());
             storage.setMultipartThreshold(obs.getMultipartThreshold());
             storage.setMultipartPartSize(obs.getMultipartPartSize());
+            storage.setClientConfigurationSupplier(getClientConfigurationSupplier(obs::getClientConfiguration,ObsConfiguration.class));
+
             if (obs.getClientConfiguration() != null) {
                 if (obs.getClientConfiguration() instanceof ObsConfiguration) {
                     storage.setClientConfiguration((ObsConfiguration) obs.getClientConfiguration());
@@ -149,13 +155,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             storage.setDefaultAcl(oss.getDefaultAcl());
             storage.setMultipartThreshold(oss.getMultipartThreshold());
             storage.setMultipartPartSize(oss.getMultipartPartSize());
-            if (oss.getClientConfiguration() != null) {
-                if (oss.getClientConfiguration() instanceof ObsConfiguration) {
-                    storage.setClientConfiguration((ClientBuilderConfiguration) oss.getClientConfiguration());
-                } else {
-                    storage.setClientConfiguration(BeanUtil.copyProperties(oss.getClientConfiguration(),ClientBuilderConfiguration.class));
-                }
-            }
+            storage.setClientConfigurationSupplier(getClientConfigurationSupplier(oss::getClientConfiguration,ClientBuilderConfiguration.class));
             return storage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
@@ -197,6 +197,10 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             storage.setBucketName(cos.getBucketName());
             storage.setDomain(cos.getDomain());
             storage.setBasePath(cos.getBasePath());
+            storage.setDefaultAcl(cos.getDefaultAcl());
+            storage.setMultipartThreshold(cos.getMultipartThreshold());
+            storage.setMultipartPartSize(cos.getMultipartPartSize());
+            storage.setClientConfigurationSupplier(getClientConfigurationSupplier(cos::getClientConfiguration,ClientConfig.class));
             return storage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
@@ -221,13 +225,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             storage.setDefaultAcl(bos.getDefaultAcl());
             storage.setMultipartThreshold(bos.getMultipartThreshold());
             storage.setMultipartPartSize(bos.getMultipartPartSize());
-            if (bos.getClientConfiguration() != null) {
-                if (bos.getClientConfiguration() instanceof ObsConfiguration) {
-                    storage.setClientConfiguration((BosClientConfiguration) bos.getClientConfiguration());
-                } else {
-                    storage.setClientConfiguration(BeanUtil.copyProperties(bos.getClientConfiguration(),BosClientConfiguration.class));
-                }
-            }
+            storage.setClientConfigurationSupplier(getClientConfigurationSupplier(bos::getClientConfiguration,BosClientConfiguration.class));
             return storage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
@@ -294,13 +292,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             storage.setDefaultAcl(s3.getDefaultAcl());
             storage.setMultipartThreshold(s3.getMultipartThreshold());
             storage.setMultipartPartSize(s3.getMultipartPartSize());
-            if (s3.getClientConfiguration() != null) {
-                if (s3.getClientConfiguration() instanceof ObsConfiguration) {
-                    storage.setClientConfiguration((ClientConfiguration) s3.getClientConfiguration());
-                } else {
-                    storage.setClientConfiguration(BeanUtil.copyProperties(s3.getClientConfiguration(),ClientConfiguration.class));
-                }
-            }
+            storage.setClientConfigurationSupplier(getClientConfigurationSupplier(s3::getClientConfiguration,ClientConfiguration.class));
             return storage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
@@ -435,6 +427,15 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     }
 
     /**
+     * URL 文件包装适配器，兼容Spring的ClassPath路径、文件路径、HTTP路径等
+     */
+    @Bean
+    @ConditionalOnMissingBean(URLFileWrapperAdapter.class)
+    public URLFileWrapperAdapter httpFileWrapperAdapter(ContentTypeDetect contentTypeDetect) {
+        return new URLFileWrapperAdapter(contentTypeDetect);
+    }
+
+    /**
      * InputStream 文件包装适配器
      */
     @Bean
@@ -542,6 +543,34 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         } catch (ClassNotFoundException e) {
             return true;
         }
+    }
+
+    /**
+     * 尝试获取 ClientConfiguration 对象，支持以下三种方式：
+     * 1、本身就是 ClientConfiguration 及其子类，直接返回
+     * 2、通过 SpEL 表达式获取，例如 @fileStorageClientConfigurationSupplier.getBosClientConfiguration()
+     * 3、通过 copy 对象属性创建，可以支持将 Map 或自定义对象转换为 ClientConfiguration 对象
+     */
+    public <T> Supplier<T> getClientConfigurationSupplier(Supplier<Object> objectSupplier,Class<T> clazz) {
+        return () -> {
+            Object obj = objectSupplier.get();
+            if (obj == null) return null;
+
+            if (obj instanceof String) {//尝试通过 SpEL 表达式获取
+                String expressionString = (String) obj;
+                if (StrUtil.isBlank(expressionString)) return null;
+                ExpressionParser parser = new SpelExpressionParser();
+                StandardEvaluationContext context = new StandardEvaluationContext();
+                context.setBeanResolver((evaluationContext,beanName) -> applicationContext.getBean(beanName));
+                obj = parser.parseExpression((String) obj).getValue(context);
+            }
+
+            if (clazz.isInstance(obj)) {//本身就是 ClientConfiguration 及其子类
+                return Tools.cast(obj);
+            } else {//尝试通过 copy 对象方式获取
+                return BeanUtil.copyProperties(obj,clazz);
+            }
+        };
     }
 
 }

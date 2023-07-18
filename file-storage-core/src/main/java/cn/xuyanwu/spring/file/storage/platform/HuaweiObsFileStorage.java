@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * 华为云 OBS 存储
@@ -42,8 +43,8 @@ public class HuaweiObsFileStorage implements FileStorage {
     private String defaultAcl;
     private int multipartThreshold;
     private int multipartPartSize;
-    @Setter
     private ObsConfiguration clientConfiguration;
+    private Supplier<ObsConfiguration> clientConfigurationSupplier;
 
     /**
      * 单例模式运行，不需要每次使用完再销毁了
@@ -53,9 +54,16 @@ public class HuaweiObsFileStorage implements FileStorage {
             synchronized (this) {
                 if (client == null) {
                     if (clientConfiguration == null) {
-                        clientConfiguration = new ObsConfiguration();
+                        if (clientConfigurationSupplier != null) {
+                            clientConfiguration = clientConfigurationSupplier.get();
+                        }
+                        if (clientConfiguration == null) {
+                            clientConfiguration = new ObsConfiguration();
+                        }
                     }
-                    clientConfiguration.setEndPoint(endPoint);
+                    if (StrUtil.isNotBlank(endPoint)) {
+                        clientConfiguration.setEndPoint(endPoint);
+                    }
                     client = new ObsClient(accessKey,secretKey,null,clientConfiguration);
                 }
             }

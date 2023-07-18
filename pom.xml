@@ -94,7 +94,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-web</artifactId>
                 <scope>provided</scope>
-                <version>2.4.6</version>
+                <version>2.7.2</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>

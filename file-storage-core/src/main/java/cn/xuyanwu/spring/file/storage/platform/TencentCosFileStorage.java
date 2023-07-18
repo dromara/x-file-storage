@@ -1,16 +1,16 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
+import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.ClientConfig;
 import com.qcloud.cos.auth.BasicCOSCredentials;
-import com.qcloud.cos.auth.COSCredentials;
-import com.qcloud.cos.http.HttpProtocol;
-import com.qcloud.cos.model.COSObject;
-import com.qcloud.cos.model.ObjectMetadata;
+import com.qcloud.cos.event.ProgressEventType;
+import com.qcloud.cos.model.*;
 import com.qcloud.cos.region.Region;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,8 +18,12 @@ import lombok.Setter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * 腾讯云 COS 存储
@@ -36,17 +40,34 @@ public class TencentCosFileStorage implements FileStorage {
     private String bucketName;
     private String domain;
     private String basePath;
-    private COSClient client;
+    private volatile COSClient client;
+    private String defaultAcl;
+    private int multipartThreshold;
+    private int multipartPartSize;
+    private ClientConfig clientConfiguration;
+    private Supplier<ClientConfig> clientConfigurationSupplier;
 
     /**
      * 单例模式运行，不需要每次使用完再销毁了
      */
     public COSClient getClient() {
         if (client == null) {
-            COSCredentials cred = new BasicCOSCredentials(secretId,secretKey);
-            ClientConfig clientConfig = new ClientConfig(new Region(region));
-            clientConfig.setHttpProtocol(HttpProtocol.https);
-            client = new COSClient(cred,clientConfig);
+            synchronized (this) {
+                if (client == null) {
+                    if (clientConfiguration == null) {
+                        if (clientConfigurationSupplier != null) {
+                            clientConfiguration = clientConfigurationSupplier.get();
+                        }
+                        if (clientConfiguration == null) {
+                            clientConfiguration = new ClientConfig();
+                        }
+                    }
+                    if (StrUtil.isNotBlank(region)) {
+                        clientConfiguration.setRegion(new Region(region));
+                    }
+                    client = new COSClient(new BasicCOSCredentials(secretId,secretKey),clientConfiguration);
+                }
+            }
         }
         return client;
     }
@@ -62,54 +83,147 @@ public class TencentCosFileStorage implements FileStorage {
         }
     }
 
+    public String getFileKey(FileInfo fileInfo) {
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
+    }
+
+    public String getThFileKey(FileInfo fileInfo) {
+        if (fileInfo.getThFilename() == null) return null;
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
+    }
+
     @Override
     public boolean save(FileInfo fileInfo,UploadPretreatment pre) {
-        String newFileKey = basePath + fileInfo.getPath() + fileInfo.getFilename();
         fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-
+        CannedAccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
+        ProgressListener listener = pre.getProgressListener();
         COSClient client = getClient();
+        boolean useMultipartUpload = fileInfo.getSize() >= multipartThreshold;
+        String uploadId = null;
         try (InputStream in = pre.getFileWrapper().getInputStream()) {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(fileInfo.getSize());
             metadata.setContentType(fileInfo.getContentType());
-            client.putObject(bucketName,newFileKey,in,metadata);
+            if (useMultipartUpload) {//分片上传
+                InitiateMultipartUploadRequest initiateMultipartUploadRequest = new InitiateMultipartUploadRequest(bucketName,newFileKey,metadata);
+                initiateMultipartUploadRequest.setCannedACL(fileAcl);
+                uploadId = client.initiateMultipartUpload(initiateMultipartUploadRequest).getUploadId();
+                List<PartETag> partList = new ArrayList<>();
+                int i = 0;
+                AtomicLong progressSize = new AtomicLong();
+                if (listener != null) listener.start();
+                while (true) {
+                    byte[] bytes = IoUtil.readBytes(in,multipartPartSize);
+                    if (bytes == null || bytes.length == 0) break;
+                    UploadPartRequest part = new UploadPartRequest();
+                    part.setBucketName(bucketName);
+                    part.setKey(newFileKey);
+                    part.setUploadId(uploadId);
+                    part.setInputStream(new ByteArrayInputStream(bytes));
+                    part.setPartSize(bytes.length); // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为默认为5MB，可在控制台自行调整。
+                    part.setPartNumber(++i); // 设置要上传的分块编号，从 1 开始
+                    if (listener != null) {
+                        part.setGeneralProgressListener(e -> {
+                            if (e.getEventType() == ProgressEventType.REQUEST_BYTE_TRANSFER_EVENT) {
+                                listener.progress(progressSize.addAndGet(e.getBytes()),fileInfo.getSize());
+                            }
+                        });
+                    }
+                    partList.add(client.uploadPart(part).getPartETag());
+                }
+                client.completeMultipartUpload(new CompleteMultipartUploadRequest(bucketName,newFileKey,uploadId,partList));
+                if (listener != null) listener.finish();
+            } else {
+                PutObjectRequest request = new PutObjectRequest(bucketName,newFileKey,in,metadata);
+                request.setCannedAcl(fileAcl);
+                if (listener != null) {
+                    AtomicLong progressSize = new AtomicLong();
+                    request.setGeneralProgressListener(e -> {
+                        if (e.getEventType() == ProgressEventType.TRANSFER_STARTED_EVENT) {
+                            listener.start();
+                        } else if (e.getEventType() == ProgressEventType.REQUEST_BYTE_TRANSFER_EVENT) {
+                            listener.progress(progressSize.addAndGet(e.getBytes()),fileInfo.getSize());
+                        } else if (e.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT) {
+                            listener.finish();
+                        }
+                    });
+                }
+                client.putObject(request);
+            }
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
-                String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
+                String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
                 ObjectMetadata thMetadata = new ObjectMetadata();
                 thMetadata.setContentLength(thumbnailBytes.length);
                 thMetadata.setContentType(fileInfo.getThContentType());
-                client.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),thMetadata);
+                PutObjectRequest request = new PutObjectRequest(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),thMetadata);
+                request.setCannedAcl(getAcl(fileInfo.getThFileAcl()));
+                client.putObject(request);
             }
 
             return true;
         } catch (IOException e) {
-            client.deleteObject(bucketName,newFileKey);
+            if (useMultipartUpload) {
+                client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName,newFileKey,uploadId));
+            } else {
+                client.deleteObject(bucketName,newFileKey);
+            }
             throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
+        }
+    }
+
+    /**
+     * 获取文件的访问控制列表
+     */
+    public CannedAccessControlList getAcl(Object acl) {
+        if (acl instanceof CannedAccessControlList) {
+            return (CannedAccessControlList) acl;
+        } else if (acl instanceof String || acl == null) {
+            String sAcl = (String) acl;
+            if (StrUtil.isEmpty(sAcl)) sAcl = defaultAcl;
+            for (CannedAccessControlList item : CannedAccessControlList.values()) {
+                if (item.toString().equals(sAcl)) {
+                    return item;
+                }
+            }
+            return null;
+        } else {
+            throw new FileStorageRuntimeException("不支持的ACL：" + acl);
         }
     }
 
     @Override
     public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
+        return getClient().generatePresignedUrl(bucketName,getFileKey(fileInfo),expiration).toString();
     }
 
     @Override
     public String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
+        String key = getThFileKey(fileInfo);
+        if (key == null) return null;
+        return getClient().generatePresignedUrl(bucketName,key,expiration).toString();
     }
 
     @Override
     public boolean setFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
+        CannedAccessControlList oAcl = getAcl(acl);
+        if (oAcl == null) return false;
+        getClient().setObjectAcl(bucketName,getFileKey(fileInfo),oAcl);
+        return true;
     }
 
     @Override
     public boolean setThFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
+        CannedAccessControlList oAcl = getAcl(acl);
+        if (oAcl == null) return false;
+        String key = getThFileKey(fileInfo);
+        if (key == null) return false;
+        getClient().setObjectAcl(bucketName,key,oAcl);
+        return true;
     }
 
     @Override
