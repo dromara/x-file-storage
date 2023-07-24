@@ -51,6 +51,13 @@ public interface FileStorageAspect {
     }
 
     /**
+     * 是否支持对文件生成可以签名访问的 URL
+     */
+    default boolean isSupportPresignedUrlAround(IsSupportPresignedUrlAspectChain chain,FileStorage fileStorage) {
+        return chain.next(fileStorage);
+    }
+
+    /**
      * 对文件生成可以签名访问的 URL，无法生成则返回 null
      */
     default String generatePresignedUrlAround(GeneratePresignedUrlAspectChain chain,FileInfo fileInfo,Date expiration,FileStorage fileStorage) {
@@ -62,6 +69,13 @@ public interface FileStorageAspect {
      */
     default String generateThPresignedUrlAround(GenerateThPresignedUrlAspectChain chain,FileInfo fileInfo,Date expiration,FileStorage fileStorage) {
         return chain.next(fileInfo,expiration,fileStorage);
+    }
+
+    /**
+     * 是否支持文件的访问控制列表
+     */
+    default boolean isSupportAclAround(IsSupportAclAspectChain chain,FileStorage fileStorage) {
+        return chain.next(fileStorage);
     }
 
     /**

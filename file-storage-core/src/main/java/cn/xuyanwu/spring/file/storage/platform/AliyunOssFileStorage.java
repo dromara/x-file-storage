@@ -78,12 +78,12 @@ public class AliyunOssFileStorage implements FileStorage {
 
 
     public String getFileKey(FileInfo fileInfo) {
-        return basePath + fileInfo.getPath() + fileInfo.getFilename();
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
     }
 
     public String getThFileKey(FileInfo fileInfo) {
-        if (fileInfo.getThFilename() == null) return null;
-        return basePath + fileInfo.getPath() + fileInfo.getThFilename();
+        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
     }
 
     @Override
@@ -190,6 +190,11 @@ public class AliyunOssFileStorage implements FileStorage {
 
 
     @Override
+    public boolean isSupportPresignedUrl() {
+        return true;
+    }
+
+    @Override
     public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
         return getClient().generatePresignedUrl(bucketName,getFileKey(fileInfo),expiration).toString();
     }
@@ -199,6 +204,11 @@ public class AliyunOssFileStorage implements FileStorage {
         String key = getThFileKey(fileInfo);
         if (key == null) return null;
         return getClient().generatePresignedUrl(bucketName,key,expiration).toString();
+    }
+
+    @Override
+    public boolean isSupportAcl() {
+        return true;
     }
 
     @Override

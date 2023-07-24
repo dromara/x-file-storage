@@ -27,30 +27,51 @@ public interface FileStorage extends AutoCloseable {
      */
     boolean save(FileInfo fileInfo,UploadPretreatment pre);
 
+    /**
+     * 是否支持对文件生成可以签名访问的 URL
+     */
+    default boolean isSupportPresignedUrl() {
+        return false;
+    }
 
     /**
      * 对文件生成可以签名访问的 URL，无法生成则返回 null
      *
      * @param expiration 到期时间
      */
-    String generatePresignedUrl(FileInfo fileInfo,Date expiration);
+    default String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
+        return null;
+    }
 
     /**
      * 对缩略图文件生成可以签名访问的 URL，无法生成则返回 null
      *
      * @param expiration 到期时间
      */
-    String generateThPresignedUrl(FileInfo fileInfo,Date expiration);
+    default String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
+        return null;
+    }
+
+    /**
+     * 是否支持文件的访问控制列表，一般情况下只有对象存储支持该功能
+     */
+    default boolean isSupportAcl() {
+        return false;
+    }
 
     /**
      * 设置文件的访问控制列表，一般情况下只有对象存储支持该功能
      */
-    boolean setFileAcl(FileInfo fileInfo,Object acl);
+    default boolean setFileAcl(FileInfo fileInfo,Object acl) {
+        return false;
+    }
 
     /**
      * 设置缩略图文件的访问控制列表，一般情况下只有对象存储支持该功能
      */
-    boolean setThFileAcl(FileInfo fileInfo,Object acl);
+    default boolean setThFileAcl(FileInfo fileInfo,Object acl) {
+        return false;
+    }
 
     /**
      * 删除文件
@@ -75,6 +96,7 @@ public interface FileStorage extends AutoCloseable {
     /**
      * 释放相关资源
      */
-    void close();
+    default void close() {
+    }
 
 }

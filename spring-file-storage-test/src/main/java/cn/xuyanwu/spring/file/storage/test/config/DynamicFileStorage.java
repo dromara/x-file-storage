@@ -3,6 +3,7 @@ package cn.xuyanwu.spring.file.storage.test.config;
 import cn.xuyanwu.spring.file.storage.platform.LocalFileStorage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
 import java.util.List;
 
 /**
@@ -24,7 +25,7 @@ public class DynamicFileStorage {
 
     public void remove(String platform){
         for (LocalFileStorage localFileStorage : list) {
-            
+
         }
     }
 }

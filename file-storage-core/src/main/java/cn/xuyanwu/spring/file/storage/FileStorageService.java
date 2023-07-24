@@ -222,6 +222,21 @@ public class FileStorageService {
         return self.downloadTh(getFileInfoByUrl(url));
     }
 
+    /**
+     * 是否支持对文件生成可以签名访问的 URL
+     */
+    public boolean isSupportPresignedUrl(String platform) {
+        FileStorage storage = self.getFileStorageVerify(platform);
+        return self.isSupportPresignedUrl(storage);
+    }
+
+    /**
+     * 是否支持对文件生成可以签名访问的 URL
+     */
+    public boolean isSupportPresignedUrl(FileStorage fileStorage) {
+        if (fileStorage == null) return false;
+        return new IsSupportPresignedUrlAspectChain(aspectList,FileStorage::isSupportPresignedUrl).next(fileStorage);
+    }
 
     /**
      * 对文件生成可以签名访问的 URL，无法生成则返回 null
@@ -232,7 +247,7 @@ public class FileStorageService {
         if (fileInfo == null) return null;
         return new GeneratePresignedUrlAspectChain(aspectList,(_fileInfo,_expiration,_fileStorage) ->
                 _fileStorage.generatePresignedUrl(_fileInfo,_expiration)
-        ).next(fileInfo,expiration,getFileStorageVerify(fileInfo));
+        ).next(fileInfo,expiration,self.getFileStorageVerify(fileInfo));
     }
 
     /**
@@ -244,9 +259,24 @@ public class FileStorageService {
         if (fileInfo == null) return null;
         return new GenerateThPresignedUrlAspectChain(aspectList,(_fileInfo,_expiration,_fileStorage) ->
                 _fileStorage.generateThPresignedUrl(_fileInfo,_expiration)
-        ).next(fileInfo,expiration,getFileStorageVerify(fileInfo));
+        ).next(fileInfo,expiration,self.getFileStorageVerify(fileInfo));
     }
 
+    /**
+     * 是否支持对文件生成可以签名访问的 URL
+     */
+    public boolean isSupportAcl(String platform) {
+        FileStorage storage = self.getFileStorageVerify(platform);
+        return self.isSupportAcl(storage);
+    }
+
+    /**
+     * 是否支持对文件生成可以签名访问的 URL
+     */
+    public boolean isSupportAcl(FileStorage fileStorage) {
+        if (fileStorage == null) return false;
+        return new IsSupportAclAspectChain(aspectList,FileStorage::isSupportAcl).next(fileStorage);
+    }
 
     /**
      * 设置文件的访问控制列表，一般情况下只有对象存储支持该功能
@@ -256,7 +286,7 @@ public class FileStorageService {
         if (fileInfo == null) return false;
         return new SetFileAclAspectChain(aspectList,(_fileInfo,_acl,_fileStorage) ->
                 _fileStorage.setFileAcl(_fileInfo,_acl)
-        ).next(fileInfo,acl,getFileStorageVerify(fileInfo));
+        ).next(fileInfo,acl,self.getFileStorageVerify(fileInfo));
     }
 
     /**
@@ -267,7 +297,7 @@ public class FileStorageService {
         if (fileInfo == null) return false;
         return new SetThFileAclAspectChain(aspectList,(_fileInfo,_acl,_fileStorage) ->
                 _fileStorage.setThFileAcl(_fileInfo,_acl)
-        ).next(fileInfo,acl,getFileStorageVerify(fileInfo));
+        ).next(fileInfo,acl,self.getFileStorageVerify(fileInfo));
     }
 
     /**

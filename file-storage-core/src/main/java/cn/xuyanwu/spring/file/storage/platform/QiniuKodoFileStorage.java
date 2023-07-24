@@ -2,6 +2,8 @@ package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.ProgressInputStream;
+import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.qiniu.common.QiniuException;
@@ -35,14 +37,18 @@ public class QiniuKodoFileStorage implements FileStorage {
     private String domain;
     private String basePath;
     private Region region;
-    private QiniuKodoClient client;
+    private volatile QiniuKodoClient client;
 
     /**
      * 单例模式运行，不需要每次使用完再销毁了
      */
     public QiniuKodoClient getClient() {
         if (client == null) {
-            client = new QiniuKodoClient(accessKey,secretKey);
+            synchronized (this) {
+                if (client == null) {
+                    client = new QiniuKodoClient(accessKey,secretKey);
+                }
+            }
         }
         return client;
     }
@@ -55,21 +61,36 @@ public class QiniuKodoFileStorage implements FileStorage {
         client = null;
     }
 
+    public String getFileKey(FileInfo fileInfo) {
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
+    }
+
+    public String getThFileKey(FileInfo fileInfo) {
+        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
+    }
+
     @Override
     public boolean save(FileInfo fileInfo,UploadPretreatment pre) {
-        String newFileKey = basePath + fileInfo.getPath() + fileInfo.getFilename();
         fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
+        if (fileInfo.getFileAcl() != null) {
+            throw new FileStorageRuntimeException("文件上传失败，七牛云 Kodo 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
+        }
+        ProgressListener listener = pre.getProgressListener();
 
         try (InputStream in = pre.getFileWrapper().getInputStream()) {
+            //七牛云 Kodo 的 SDK 内部会自动分片上传
             QiniuKodoClient client = getClient();
             UploadManager uploadManager = client.getUploadManager();
             String token = client.getAuth().uploadToken(bucketName);
-            uploadManager.put(in,newFileKey,token,null,fileInfo.getContentType());
+            uploadManager.put(listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize()),
+                    newFileKey,token,null,fileInfo.getContentType());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
-                String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
+                String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
                 uploadManager.put(new ByteArrayInputStream(thumbnailBytes),newThFileKey,token,null,fileInfo.getThContentType());
             }
@@ -85,23 +106,21 @@ public class QiniuKodoFileStorage implements FileStorage {
     }
 
     @Override
+    public boolean isSupportPresignedUrl() {
+        return true;
+    }
+
+    @Override
     public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
+        int deadline = (int) (expiration.getTime() / 1000);
+        return getClient().getAuth().privateDownloadUrlWithDeadline(fileInfo.getUrl(),deadline);
     }
 
     @Override
     public String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
-    }
-
-    @Override
-    public boolean setFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
-    }
-
-    @Override
-    public boolean setThFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
+        if (StrUtil.isBlank(fileInfo.getThUrl())) return null;
+        int deadline = (int) (expiration.getTime() / 1000);
+        return getClient().getAuth().privateDownloadUrlWithDeadline(fileInfo.getThUrl(),deadline);
     }
 
     @Override
@@ -109,9 +128,9 @@ public class QiniuKodoFileStorage implements FileStorage {
         BucketManager manager = getClient().getBucketManager();
         try {
             if (fileInfo.getThFilename() != null) {   //删除缩略图
-                delete(manager,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+                delete(manager,getThFileKey(fileInfo));
             }
-            delete(manager,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+            delete(manager,getFileKey(fileInfo));
         } catch (QiniuException e) {
             throw new FileStorageRuntimeException("删除文件失败！" + e.code() + "，" + e.response.toString(),e);
         }
@@ -133,9 +152,10 @@ public class QiniuKodoFileStorage implements FileStorage {
     public boolean exists(FileInfo fileInfo) {
         BucketManager manager = getClient().getBucketManager();
         try {
-            com.qiniu.storage.model.FileInfo stat = manager.stat(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-            if (stat != null && stat.md5 != null) return true;
+            com.qiniu.storage.model.FileInfo stat = manager.stat(bucketName,getFileKey(fileInfo));
+            if (stat != null && (StrUtil.isNotBlank(stat.md5) || StrUtil.isNotBlank(stat.hash))) return true;
         } catch (QiniuException e) {
+            if (e.code() == 612) return false;
             throw new FileStorageRuntimeException("查询文件是否存在失败！" + e.code() + "，" + e.response.toString(),e);
         }
         return false;
@@ -170,9 +190,10 @@ public class QiniuKodoFileStorage implements FileStorage {
     public static class QiniuKodoClient {
         private String accessKey;
         private String secretKey;
-        private Auth auth;
-        private BucketManager bucketManager;
-        private UploadManager uploadManager;
+        private volatile Auth auth;
+        private volatile Configuration configuration;
+        private volatile BucketManager bucketManager;
+        private volatile UploadManager uploadManager;
 
         public QiniuKodoClient(String accessKey,String secretKey) {
             this.accessKey = accessKey;
@@ -181,21 +202,45 @@ public class QiniuKodoFileStorage implements FileStorage {
 
         public Auth getAuth() {
             if (auth == null) {
-                auth = Auth.create(accessKey,secretKey);
+                synchronized (this) {
+                    if (auth == null) {
+                        auth = Auth.create(accessKey,secretKey);
+                    }
+                }
             }
             return auth;
         }
 
+        public Configuration getConfiguration() {
+            if (configuration == null) {
+                synchronized (this) {
+                    if (configuration == null) {
+                        configuration = new Configuration(Region.autoRegion());
+                        configuration.resumableUploadAPIVersion = Configuration.ResumableUploadAPIVersion.V2;
+                    }
+                }
+            }
+            return configuration;
+        }
+
         public BucketManager getBucketManager() {
             if (bucketManager == null) {
-                bucketManager = new BucketManager(getAuth(),new Configuration(Region.autoRegion()));
+                synchronized (this) {
+                    if (bucketManager == null) {
+                        bucketManager = new BucketManager(getAuth(),getConfiguration());
+                    }
+                }
             }
             return bucketManager;
         }
 
         public UploadManager getUploadManager() {
             if (uploadManager == null) {
-                uploadManager = new UploadManager(new Configuration(Region.autoRegion()));
+                synchronized (this) {
+                    if (uploadManager == null) {
+                        uploadManager = new UploadManager(getConfiguration());
+                    }
+                }
             }
             return uploadManager;
         }

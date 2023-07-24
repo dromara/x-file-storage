@@ -1,8 +1,6 @@
 package cn.xuyanwu.spring.file.storage.test.aspect;
 
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.aspect.*;
@@ -75,6 +73,14 @@ public class LogFileStorageAspect implements FileStorageAspect {
         log.info("下载缩略图文件 after -> {}",fileInfo);
     }
 
+    @Override
+    public boolean isSupportPresignedUrlAround(IsSupportPresignedUrlAspectChain chain,FileStorage fileStorage) {
+        log.info("是否支持对文件生成可以签名访问的 URL before -> {}",fileStorage.getPlatform());
+        boolean res = chain.next(fileStorage);
+        log.info("是否支持对文件生成可以签名访问的 URL -> {}",res);
+        return res;
+    }
+
     /**
      * 对文件生成可以签名访问的 URL，无法生成则返回 null
      */
@@ -94,6 +100,14 @@ public class LogFileStorageAspect implements FileStorageAspect {
         log.info("对缩略图文件生成可以签名访问的 URL before -> {}",fileInfo);
         String res = chain.next(fileInfo,expiration,fileStorage);
         log.info("对缩略图文件生成可以签名访问的 URL after -> {}",res);
+        return res;
+    }
+
+    @Override
+    public boolean isSupportAclAround(IsSupportAclAspectChain chain,FileStorage fileStorage) {
+        log.info("是否支持文件的访问控制列表 before -> {}",fileStorage.getPlatform());
+        boolean res = chain.next(fileStorage);
+        log.info("是否支持文件的访问控制列表 -> {}",res);
         return res;
     }
 

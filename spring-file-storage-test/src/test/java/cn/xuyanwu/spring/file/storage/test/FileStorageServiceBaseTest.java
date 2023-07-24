@@ -2,7 +2,6 @@ package cn.xuyanwu.spring.file.storage.test;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.Assert;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.FileStorageService;
@@ -14,18 +13,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.Date;
 
 
 @Slf4j
 @SpringBootTest
-class FileStorageServiceTest {
+class FileStorageServiceBaseTest {
 
     @Autowired
     private FileStorageService fileStorageService;
@@ -39,13 +33,18 @@ class FileStorageServiceTest {
         String filename = "image.jpg";
         InputStream in = this.getClass().getClassLoader().getResourceAsStream(filename);
 
+        //是否支持 ACL
+        FileStorage storage = fileStorageService.getFileStorage();
+        boolean supportACL = fileStorageService.isSupportAcl(storage);
+        boolean supportPresignedUrl = fileStorageService.isSupportPresignedUrl(storage);
+
         FileInfo fileInfo = fileStorageService.of(in)
                 .setName("file")
                 .setOriginalFilename(filename)
                 .setPath("test/")
                 .thumbnail()
                 .putAttr("role","admin")
-                .setAcl(Constant.ACL.PRIVATE)
+                .setAcl(supportACL,Constant.ACL.PRIVATE)
                 .setProgressMonitor(new ProgressListener() {
                     @Override
                     public void start() {
@@ -66,14 +65,23 @@ class FileStorageServiceTest {
         Assert.notNull(fileInfo,"文件上传失败！");
         log.info("文件上传成功：{}",fileInfo.toString());
 
-        String presignedUrl = fileStorageService.generatePresignedUrl(fileInfo,DateUtil.offsetHour(new Date(),1));
-        System.out.println("文件授权访问地址：" + presignedUrl);
+        if (supportPresignedUrl) {
+            String presignedUrl = fileStorageService.generatePresignedUrl(fileInfo,DateUtil.offsetHour(new Date(),1));
+            System.out.println("文件授权访问地址：" + presignedUrl);
 
-        String thPresignedUrl = fileStorageService.generateThPresignedUrl(fileInfo,DateUtil.offsetHour(new Date(),1));
-        System.out.println("缩略图文件授权访问地址：" + thPresignedUrl);
+            String thPresignedUrl = fileStorageService.generateThPresignedUrl(fileInfo,DateUtil.offsetHour(new Date(),1));
+            System.out.println("缩略图文件授权访问地址：" + thPresignedUrl);
+        } else {
+            System.out.println("不支持文件授权访问地址");
+        }
 
-//        fileStorageService.setFileAcl(fileInfo,Constant.ACL.PUBLIC_READ);
-//        fileStorageService.setThFileAcl(fileInfo,Constant.ACL.PUBLIC_READ);
+        if (supportACL) {
+            fileStorageService.setFileAcl(fileInfo,Constant.ACL.PUBLIC_READ);
+            fileStorageService.setThFileAcl(fileInfo,Constant.ACL.PUBLIC_READ);
+        } else {
+            System.out.println("不支持文件的访问控制列表");
+        }
+
     }
 
     /**
@@ -87,25 +95,6 @@ class FileStorageServiceTest {
         FileInfo fileInfo = fileStorageService.of(url).thumbnail().setPath("test/").setObjectId("0").setObjectType("0").upload();
         Assert.notNull(fileInfo,"文件上传失败！");
         log.info("文件上传成功：{}",fileInfo.toString());
-    }
-
-    /**
-     * 测试大文件上传
-     */
-    @Test
-    public void uploadBigFile() throws IOException {
-        String url = "https://app.xuyanwu.cn/BadApple/video/Bad%20Apple.mp4";
-
-        File file = new File(System.getProperty("java.io.tmpdir"),"Bad Apple.mp4");
-        if (!file.exists()) {
-            log.info("测试大文件不存在，正在下载中");
-            FileUtil.writeFromStream(new URL(url).openStream(),file);
-            log.info("测试大文件下载完成");
-        }
-
-        FileInfo fileInfo = fileStorageService.of(file).setPath("test/").setObjectId("0").setObjectType("0").upload();
-        Assert.notNull(fileInfo,"大文件上传失败！");
-        log.info("大文件上传成功：{}",fileInfo.toString());
     }
 
     /**

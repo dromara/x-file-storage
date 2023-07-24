@@ -3,16 +3,15 @@ package cn.xuyanwu.spring.file.storage.test.service;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.Dict;
 import cn.hutool.core.util.StrUtil;
+import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
+import cn.xuyanwu.spring.file.storage.test.mapper.FileDetailMapper;
+import cn.xuyanwu.spring.file.storage.test.model.FileDetail;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
-
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import cn.xuyanwu.spring.file.storage.test.mapper.FileDetailMapper;
-import cn.xuyanwu.spring.file.storage.test.model.FileDetail;
-import cn.xuyanwu.spring.file.storage.FileInfo;
-import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
 
 /**
  * 用来将文件上传记录保存到数据库，这里使用了 MyBatis-Plus 和 Hutool 工具类

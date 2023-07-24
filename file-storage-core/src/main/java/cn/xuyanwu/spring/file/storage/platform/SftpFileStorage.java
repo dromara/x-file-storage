@@ -7,6 +7,8 @@ import cn.hutool.extra.ssh.JschRuntimeException;
 import cn.hutool.extra.ssh.JschUtil;
 import cn.hutool.extra.ssh.Sftp;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.ProgressInputStream;
+import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.jcraft.jsch.JSch;
@@ -20,7 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
 import java.util.function.Consumer;
 
 import static com.jcraft.jsch.ChannelSftp.SSH_FX_NO_SUCH_FILE;
@@ -32,53 +33,39 @@ import static com.jcraft.jsch.ChannelSftp.SSH_FX_NO_SUCH_FILE;
 @Setter
 public class SftpFileStorage implements FileStorage {
 
-    /* 主机 */
-    private String host;
-    /* 端口，默认22 */
-    private int port;
-    /* 用户名 */
-    private String user;
-    /* 密码，默认空 */
-    private String password;
-    /* 私钥路径，默认空 */
-    private String privateKeyPath;
-    /* 编码，默认UTF-8 */
-    private Charset charset;
-    /* 连接超时时长，单位毫秒，默认10秒 */
-    private long connectionTimeout;
     /* 存储平台 */
     private String platform;
     private String domain;
     private String basePath;
     private String storagePath;
+    private FileStorageClientFactory<Sftp> clientFactory;
 
     /**
-     * 不支持单例模式运行，每次使用完了需要销毁
+     * 获取 Client ，使用完后需要归还
      */
     public Sftp getClient() {
-        Session session = null;
-        try {
-            if (StrUtil.isNotBlank(privateKeyPath)) {
-                //使用秘钥连接，这里手动读取 byte 进行构造用于兼容Spring的ClassPath路径、文件路径、HTTP路径等
-                byte[] passphrase = StrUtil.isBlank(password) ? null : password.getBytes(StandardCharsets.UTF_8);
-                JSch jsch = new JSch();
-                byte[] privateKey = IoUtil.readBytes(URLUtil.url(privateKeyPath).openStream());
-                jsch.addIdentity(privateKeyPath,privateKey,null,passphrase);
-                session = JschUtil.createSession(jsch,host,port,user);
-                session.connect((int) connectionTimeout);
-            } else {
-                session = JschUtil.openSession(host,port,user,password,(int) connectionTimeout);
-            }
-            return new Sftp(session,charset,connectionTimeout);
-        } catch (Exception e) {
-            JschUtil.close(session);
-            throw new FileStorageRuntimeException("SFTP连接失败！platform：" + platform,e);
-        }
+        return clientFactory.getClient();
     }
 
+    /**
+     * 归还 Client
+     */
+    public void returnClient(Sftp client) {
+        clientFactory.returnClient(client);
+    }
 
     @Override
     public void close() {
+        clientFactory.close();
+    }
+
+    public String getFileKey(FileInfo fileInfo) {
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
+    }
+
+    public String getThFileKey(FileInfo fileInfo) {
+        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
     }
 
     /**
@@ -90,9 +77,13 @@ public class SftpFileStorage implements FileStorage {
 
     @Override
     public boolean save(FileInfo fileInfo,UploadPretreatment pre) {
-        String newFileKey = basePath + fileInfo.getPath() + fileInfo.getFilename();
         fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
+        if (fileInfo.getFileAcl() != null) {
+            throw new FileStorageRuntimeException("文件上传失败，SFTP 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
+        }
+        ProgressListener listener = pre.getProgressListener();
 
         Sftp client = getClient();
         try (InputStream in = pre.getFileWrapper().getInputStream()) {
@@ -100,11 +91,11 @@ public class SftpFileStorage implements FileStorage {
             if (!client.exist(path)) {
                 client.mkDirs(path);
             }
-            client.upload(path,fileInfo.getFilename(),in);
+            client.upload(path,fileInfo.getFilename(),listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize()));
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
-                String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
+                String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
                 client.upload(path,fileInfo.getThFilename(),new ByteArrayInputStream(thumbnailBytes));
             }
@@ -117,40 +108,23 @@ public class SftpFileStorage implements FileStorage {
             }
             throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
         } finally {
-            IoUtil.close(client);
+            returnClient(client);
         }
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
-    }
-
-    @Override
-    public boolean setFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
-    }
-
-    @Override
-    public boolean setThFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
-    }
-
-    @Override
     public boolean delete(FileInfo fileInfo) {
-        try (Sftp client = getClient()) {
+        Sftp client = getClient();
+        try {
             if (fileInfo.getThFilename() != null) {   //删除缩略图
-                delFile(client,getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename()));
+                delFile(client,getAbsolutePath(getThFileKey(fileInfo)));
             }
-            delFile(client,getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()));
+            delFile(client,getAbsolutePath(getFileKey(fileInfo)));
             return true;
         } catch (JschRuntimeException e) {
             throw new FileStorageRuntimeException("文件删除失败！fileInfo：" + fileInfo,e);
+        } finally {
+            returnClient(client);
         }
     }
 
@@ -167,20 +141,25 @@ public class SftpFileStorage implements FileStorage {
 
     @Override
     public boolean exists(FileInfo fileInfo) {
-        try (Sftp client = getClient()) {
-            return client.exist(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()));
+        Sftp client = getClient();
+        try {
+            return client.exist(getAbsolutePath(getFileKey(fileInfo)));
         } catch (JschRuntimeException e) {
             throw new FileStorageRuntimeException("查询文件是否存在失败！fileInfo：" + fileInfo,e);
+        } finally {
+            returnClient(client);
         }
     }
 
     @Override
     public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
-        try (Sftp client = getClient();
-             InputStream in = client.getClient().get(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()))) {
+        Sftp client = getClient();
+        try (InputStream in = client.getClient().get(getAbsolutePath(getFileKey(fileInfo)))) {
             consumer.accept(in);
         } catch (IOException | JschRuntimeException | SftpException e) {
             throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+        } finally {
+            returnClient(client);
         }
     }
 
@@ -189,11 +168,13 @@ public class SftpFileStorage implements FileStorage {
         if (StrUtil.isBlank(fileInfo.getThFilename())) {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
-
-        try (Sftp client = getClient(); InputStream in = client.getClient().get(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath()) + fileInfo.getThFilename())) {
+        Sftp client = getClient();
+        try (InputStream in = client.getClient().get(getAbsolutePath(getThFileKey(fileInfo)))) {
             consumer.accept(in);
         } catch (IOException | JschRuntimeException | SftpException e) {
             throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        } finally {
+            returnClient(client);
         }
     }
 }

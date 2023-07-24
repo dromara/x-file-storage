@@ -1,6 +1,5 @@
 package cn.xuyanwu.spring.file.storage.file;
 
-import cn.hutool.core.io.IoUtil;
 import cn.xuyanwu.spring.file.storage.tika.ContentTypeDetect;
 import cn.xuyanwu.spring.file.storage.util.Tools;
 import lombok.AllArgsConstructor;

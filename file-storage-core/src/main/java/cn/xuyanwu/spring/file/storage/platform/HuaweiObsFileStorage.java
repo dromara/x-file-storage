@@ -79,13 +79,13 @@ public class HuaweiObsFileStorage implements FileStorage {
         IoUtil.close(client);
     }
 
-    public String getFileKey(FileInfo fileInfo) {
-        return basePath + fileInfo.getPath() + fileInfo.getFilename();
+   public String getFileKey(FileInfo fileInfo) {
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
     }
 
     public String getThFileKey(FileInfo fileInfo) {
-        if (fileInfo.getThFilename() == null) return null;
-        return basePath + fileInfo.getPath() + fileInfo.getThFilename();
+        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
     }
 
     @Override
@@ -184,6 +184,11 @@ public class HuaweiObsFileStorage implements FileStorage {
     }
 
     @Override
+    public boolean isSupportPresignedUrl() {
+        return true;
+    }
+
+    @Override
     public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
         long expires = (expiration.getTime() - System.currentTimeMillis()) / 1000;
         TemporarySignatureRequest request = new TemporarySignatureRequest(HttpMethodEnum.GET,expires);
@@ -201,6 +206,11 @@ public class HuaweiObsFileStorage implements FileStorage {
         request.setBucketName(bucketName);
         request.setObjectKey(key);
         return getClient().createTemporarySignature(request).getSignedUrl();
+    }
+
+    @Override
+    public boolean isSupportAcl() {
+        return true;
     }
 
     @Override

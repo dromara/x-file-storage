@@ -3,6 +3,7 @@ package cn.xuyanwu.spring.file.storage.spring;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.extra.ssh.Sftp;
 import cn.xuyanwu.spring.file.storage.FileStorageService;
 import cn.xuyanwu.spring.file.storage.aspect.FileStorageAspect;
 import cn.xuyanwu.spring.file.storage.file.*;
@@ -36,6 +37,7 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
@@ -76,7 +78,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     public List<LocalFileStorage> localFileStorageList() {
         return properties.getLocal().stream().map(local -> {
             if (!local.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",local.getPlatform());
+            log.info("加载存储平台：{}，此存储平台已不推荐使用，新项目请使用 LocalPlusFileStorage",local.getPlatform());
             LocalFileStorage localFileStorage = new LocalFileStorage();
             localFileStorage.setPlatform(local.getPlatform());
             localFileStorage.setBasePath(local.getBasePath());
@@ -330,22 +332,19 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = {"com.jcraft.jsch.ChannelSftp","cn.hutool.extra.ftp.Ftp"})
-    public List<SftpFileStorage> sftpFileStorageList() {
+    public List<SftpFileStorage> sftpFileStorageList(List<FileStorageClientFactory<Sftp>> factoryList) {
+        Map<String,FileStorageClientFactory<Sftp>> factoryMap = factoryList.stream().collect(Collectors.toMap(FileStorageClientFactory::getPlatform,v -> v));
         return properties.getSftp().stream().map(sftp -> {
             if (!sftp.getEnableStorage()) return null;
             log.info("加载存储平台：{}",sftp.getPlatform());
             SftpFileStorage storage = new SftpFileStorage();
             storage.setPlatform(sftp.getPlatform());
-            storage.setHost(sftp.getHost());
-            storage.setPort(sftp.getPort());
-            storage.setUser(sftp.getUser());
-            storage.setPassword(sftp.getPassword());
-            storage.setPrivateKeyPath(sftp.getPrivateKeyPath());
-            storage.setCharset(sftp.getCharset());
-            storage.setConnectionTimeout(sftp.getConnectionTimeout());
             storage.setDomain(sftp.getDomain());
             storage.setBasePath(sftp.getBasePath());
             storage.setStoragePath(sftp.getStoragePath());
+            FileStorageClientFactory<Sftp> clientFactory = factoryMap.get(sftp.getPlatform());
+            if (clientFactory == null) clientFactory = new SftpFileStorageClientFactory(sftp);
+            storage.setClientFactory(clientFactory);
             return storage;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
@@ -466,7 +465,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     /**
      * 文件存储服务
      */
-    @Bean
+    @Bean(destroyMethod = "destroy")
     public FileStorageService fileStorageService(FileRecorder fileRecorder,
                                                  List<List<? extends FileStorage>> fileStorageLists,
                                                  List<FileStorageAspect> aspectList,
@@ -529,7 +528,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             log.warn(template," WebDAV ");
         }
         if (CollUtil.isNotEmpty(properties.getGoogleCloud()) && doesNotExistClass("com.google.cloud.storage.Storage")) {
-            log.warn(template," 谷歌云存储 ");
+            log.warn(template,"谷歌云存储 ");
         }
     }
 

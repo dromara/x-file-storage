@@ -1,9 +1,11 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.hutool.core.io.IORuntimeException;
-import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.core.util.URLUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.ProgressInputStream;
+import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import cn.xuyanwu.spring.file.storage.util.Tools;
@@ -16,11 +18,10 @@ import lombok.SneakyThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Date;
 import java.util.function.Consumer;
 
 /**
- * WebDav 存储
+ * WebDAV 存储
  */
 @Getter
 @Setter
@@ -33,14 +34,16 @@ public class WebDavFileStorage implements FileStorage {
     private String domain;
     private String basePath;
     private String storagePath;
-    private Sardine client;
+    private volatile Sardine client;
 
-    /**
-     * 不支持单例模式运行，每次使用完了需要销毁
-     */
     public Sardine getClient() {
         if (client == null) {
-            client = SardineFactory.begin(user,password);
+            synchronized (this) {
+                if (client == null) {
+                    client = SardineFactory.begin(user,password);
+                    client.enablePreemptiveAuthentication(URLUtil.url(server));
+                }
+            }
         }
         return client;
     }
@@ -57,6 +60,15 @@ public class WebDavFileStorage implements FileStorage {
         }
     }
 
+    public String getFileKey(FileInfo fileInfo) {
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
+    }
+
+    public String getThFileKey(FileInfo fileInfo) {
+        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
+    }
+
     /**
      * 获取远程绝对路径
      */
@@ -64,11 +76,21 @@ public class WebDavFileStorage implements FileStorage {
         return Tools.join(server,storagePath + path);
     }
 
+    public boolean existsDirectory(Sardine client,String path) throws IOException {
+        if (server.equals(path)) return true;
+        try {
+            return client.list(path,0).size() > 0;
+        } catch (SardineException e) {
+            if (e.getStatusCode() == 404 || e.getStatusCode() == 409) return false;
+            throw e;
+        }
+    }
+
     /**
      * 递归创建目录
      */
     public void createDirectory(Sardine client,String path) throws IOException {
-        if (!client.exists(path)) {
+        if (!existsDirectory(client,path)) {
             createDirectory(client,Tools.join(Tools.getParent(path),"/"));
             client.createDirectory(path);
         }
@@ -76,20 +98,24 @@ public class WebDavFileStorage implements FileStorage {
 
     @Override
     public boolean save(FileInfo fileInfo,UploadPretreatment pre) {
-        String path = basePath + fileInfo.getPath();
-        String newFileKey = path + fileInfo.getFilename();
         fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
+        if (fileInfo.getFileAcl() != null) {
+            throw new FileStorageRuntimeException("文件上传失败，WebDAV 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
+        }
+        ProgressListener listener = pre.getProgressListener();
 
         Sardine client = getClient();
         try (InputStream in = pre.getFileWrapper().getInputStream()) {
-            byte[] bytes = IoUtil.readBytes(in);
-            createDirectory(client,getUrl(path));
-            client.put(getUrl(newFileKey),bytes);
+            createDirectory(client,getUrl(fileInfo.getBasePath() + fileInfo.getPath()));
+            client.put(getUrl(newFileKey),
+                    listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize()),
+                    fileInfo.getContentType(),true,fileInfo.getSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
-                String newThFileKey = path + fileInfo.getThFilename();
+                String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
                 client.put(getUrl(newThFileKey),thumbnailBytes);
             }
@@ -105,38 +131,18 @@ public class WebDavFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
-    }
-
-    @Override
-    public boolean setFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
-    }
-
-    @Override
-    public boolean setThFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
-    }
-
-    @Override
     public boolean delete(FileInfo fileInfo) {
         Sardine client = getClient();
         try {
             if (fileInfo.getThFilename() != null) {   //删除缩略图
                 try {
-                    client.delete(getUrl(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename()));
+                    client.delete(getUrl(getThFileKey(fileInfo)));
                 } catch (SardineException e) {
                     if (e.getStatusCode() != 404) throw e;
                 }
             }
             try {
-                client.delete(getUrl(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()));
+                client.delete(getUrl(getFileKey(fileInfo)));
             } catch (SardineException e) {
                 if (e.getStatusCode() != 404) throw e;
             }
@@ -150,7 +156,7 @@ public class WebDavFileStorage implements FileStorage {
     @Override
     public boolean exists(FileInfo fileInfo) {
         try {
-            return getClient().exists(getUrl(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()));
+            return getClient().exists(getUrl(getFileKey(fileInfo)));
         } catch (IOException e) {
             throw new FileStorageRuntimeException("查询文件是否存在失败！fileInfo：" + fileInfo,e);
         }
@@ -158,7 +164,7 @@ public class WebDavFileStorage implements FileStorage {
 
     @Override
     public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
-        try (InputStream in = getClient().get(getUrl(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()))) {
+        try (InputStream in = getClient().get(getUrl(getFileKey(fileInfo)))) {
             consumer.accept(in);
         } catch (IOException e) {
             throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
@@ -171,7 +177,7 @@ public class WebDavFileStorage implements FileStorage {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
 
-        try (InputStream in = getClient().get(getUrl(fileInfo.getBasePath() + fileInfo.getPath()) + fileInfo.getThFilename())) {
+        try (InputStream in = getClient().get(getUrl(getThFileKey(fileInfo)))) {
             consumer.accept(in);
         } catch (IOException e) {
             throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);

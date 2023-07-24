@@ -7,6 +7,8 @@ import cn.hutool.extra.ftp.Ftp;
 import cn.hutool.extra.ftp.FtpConfig;
 import cn.hutool.extra.ftp.FtpMode;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.ProgressInputStream;
+import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import lombok.Getter;
@@ -16,7 +18,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.Date;
 import java.util.function.Consumer;
 
 /**
@@ -70,6 +71,15 @@ public class FtpFileStorage implements FileStorage {
     public void close() {
     }
 
+    public String getFileKey(FileInfo fileInfo) {
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
+    }
+
+    public String getThFileKey(FileInfo fileInfo) {
+        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
+    }
+
     /**
      * 获取远程绝对路径
      */
@@ -79,17 +89,23 @@ public class FtpFileStorage implements FileStorage {
 
     @Override
     public boolean save(FileInfo fileInfo,UploadPretreatment pre) {
-        String newFileKey = basePath + fileInfo.getPath() + fileInfo.getFilename();
         fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
+        if (fileInfo.getFileAcl() != null) {
+            throw new FileStorageRuntimeException("文件上传失败，FTP 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
+        }
+        ProgressListener listener = pre.getProgressListener();
 
         Ftp client = getClient();
         try (InputStream in = pre.getFileWrapper().getInputStream()) {
-            client.upload(getAbsolutePath(basePath + fileInfo.getPath()),fileInfo.getFilename(),in);
+            client.upload(getAbsolutePath(basePath + fileInfo.getPath()),fileInfo.getFilename(),
+                    listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize())
+            );
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
-                String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
+                String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
                 client.upload(getAbsolutePath(basePath + fileInfo.getPath()),fileInfo.getThFilename(),new ByteArrayInputStream(thumbnailBytes));
             }
@@ -107,32 +123,12 @@ public class FtpFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
-    }
-
-    @Override
-    public boolean setFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
-    }
-
-    @Override
-    public boolean setThFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
-    }
-
-    @Override
     public boolean delete(FileInfo fileInfo) {
         try (Ftp client = getClient()) {
             if (fileInfo.getThFilename() != null) {   //删除缩略图
-                client.delFile(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename()));
+                client.delFile(getAbsolutePath(getThFileKey(fileInfo)));
             }
-            client.delFile(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()));
+            client.delFile(getAbsolutePath(getFileKey(fileInfo)));
             return true;
         } catch (IOException | IORuntimeException e) {
             throw new FileStorageRuntimeException("文件删除失败！fileInfo：" + fileInfo,e);
@@ -143,7 +139,7 @@ public class FtpFileStorage implements FileStorage {
     @Override
     public boolean exists(FileInfo fileInfo) {
         try (Ftp client = getClient()) {
-            return client.existFile(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()));
+            return client.existFile(getAbsolutePath(getFileKey(fileInfo)));
         } catch (IOException | IORuntimeException e) {
             throw new FileStorageRuntimeException("查询文件是否存在失败！fileInfo：" + fileInfo,e);
         }

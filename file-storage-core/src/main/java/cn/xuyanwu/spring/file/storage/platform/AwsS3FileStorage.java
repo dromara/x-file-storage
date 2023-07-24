@@ -96,7 +96,7 @@ public class AwsS3FileStorage implements FileStorage {
     }
 
     public String getThFileKey(FileInfo fileInfo) {
-        if (fileInfo.getThFilename() == null) return null;
+        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
         return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
     }
 
@@ -204,6 +204,11 @@ public class AwsS3FileStorage implements FileStorage {
     }
 
     @Override
+    public boolean isSupportPresignedUrl() {
+        return true;
+    }
+
+    @Override
     public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
         return getClient().generatePresignedUrl(bucketName,getFileKey(fileInfo),expiration).toString();
     }
@@ -213,6 +218,11 @@ public class AwsS3FileStorage implements FileStorage {
         String key = getThFileKey(fileInfo);
         if (key == null) return null;
         return getClient().generatePresignedUrl(bucketName,key,expiration).toString();
+    }
+
+    @Override
+    public boolean isSupportAcl() {
+        return true;
     }
 
     @Override

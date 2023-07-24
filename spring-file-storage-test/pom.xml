@@ -30,6 +30,13 @@
 
     <dependencies>
 
+        <!-- Apache commons-pool2 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+            <version>2.11.1</version>
+        </dependency>
+
         <!-- WebDAV -->
 <!--        <dependency>-->
 <!--            <groupId>com.github.lookfirst</groupId>-->
@@ -38,11 +45,11 @@
 <!--        </dependency>-->
 
         <!-- SFTP -->
-<!--        <dependency>-->
-<!--            <groupId>com.jcraft</groupId>-->
-<!--            <artifactId>jsch</artifactId>-->
-<!--            <version>0.1.55</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.jcraft</groupId>
+            <artifactId>jsch</artifactId>
+            <version>0.1.55</version>
+        </dependency>
 
         <!-- FTP -->
 <!--        <dependency>-->
@@ -52,11 +59,11 @@
 <!--        </dependency>-->
 
         <!--糊涂工具类扩展-->
-<!--        <dependency>-->
-<!--            <groupId>cn.hutool</groupId>-->
-<!--            <artifactId>hutool-extra</artifactId>-->
-<!--            <version>5.8.5</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-extra</artifactId>
+            <version>5.8.16</version>
+        </dependency>
 
         <!-- AWS S3 -->
 <!--        <dependency>-->
@@ -87,11 +94,11 @@
 <!--        </dependency>-->
 
         <!-- 腾讯云 COS -->
-        <dependency>
-            <groupId>com.qcloud</groupId>
-            <artifactId>cos_api</artifactId>
-            <version>5.6.98</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.qcloud</groupId>-->
+<!--            <artifactId>cos_api</artifactId>-->
+<!--            <version>5.6.98</version>-->
+<!--        </dependency>-->
 
         <!-- 七牛云 Kodo -->
 <!--        <dependency>-->

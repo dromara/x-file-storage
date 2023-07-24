@@ -2,10 +2,13 @@ package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.ProgressInputStream;
+import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import io.minio.*;
 import io.minio.errors.*;
+import io.minio.http.Method;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -32,14 +35,18 @@ public class MinIOFileStorage implements FileStorage {
     private String bucketName;
     private String domain;
     private String basePath;
-    private MinioClient client;
+    private volatile MinioClient client;
 
     /**
      * 单例模式运行，不需要每次使用完再销毁了
      */
     public MinioClient getClient() {
         if (client == null) {
-            client = new MinioClient.Builder().credentials(accessKey,secretKey).endpoint(endPoint).build();
+            synchronized (this) {
+                if (client == null) {
+                    client = new MinioClient.Builder().credentials(accessKey,secretKey).endpoint(endPoint).build();
+                }
+            }
         }
         return client;
     }
@@ -52,21 +59,35 @@ public class MinIOFileStorage implements FileStorage {
         client = null;
     }
 
+   public String getFileKey(FileInfo fileInfo) {
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
+    }
+
+    public String getThFileKey(FileInfo fileInfo) {
+        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
+        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
+    }
+
     @Override
     public boolean save(FileInfo fileInfo,UploadPretreatment pre) {
-        String newFileKey = basePath + fileInfo.getPath() + fileInfo.getFilename();
         fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-
+        if (fileInfo.getFileAcl() != null) {
+            throw new FileStorageRuntimeException("文件上传失败，MinIO 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
+        }
+        ProgressListener listener = pre.getProgressListener();
         MinioClient client = getClient();
         try (InputStream in = pre.getFileWrapper().getInputStream()) {
+            //MinIO 的 SDK 内部会自动分片上传
+            Long size = fileInfo.getSize();
             client.putObject(PutObjectArgs.builder().bucket(bucketName).object(newFileKey)
-                    .stream(in,pre.getFileWrapper().getSize(),-1)
+                    .stream(listener == null ? in : new ProgressInputStream(in,listener,size),size,-1)
                     .contentType(fileInfo.getContentType()).build());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
-                String newThFileKey = basePath + fileInfo.getPath() + fileInfo.getThFilename();
+                String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
                 client.putObject(PutObjectArgs.builder().bucket(bucketName).object(newThFileKey)
                         .stream(new ByteArrayInputStream(thumbnailBytes),thumbnailBytes.length,-1)
@@ -86,23 +107,46 @@ public class MinIOFileStorage implements FileStorage {
     }
 
     @Override
+    public boolean isSupportPresignedUrl() {
+        return true;
+    }
+
+    @Override
     public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
+        int expiry = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
+        GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
+                .bucket(bucketName)
+                .object(getFileKey(fileInfo))
+                .method(Method.GET)
+                .expiry(expiry)
+                .build();
+        try {
+            return getClient().getPresignedObjectUrl(args);
+        } catch (ErrorResponseException | InsufficientDataException | InternalException | InvalidKeyException |
+                 InvalidResponseException | IOException | NoSuchAlgorithmException | XmlParserException |
+                 ServerException e) {
+            throw new FileStorageRuntimeException("对文件生成可以签名访问的 URL 失败！fileInfo：" + fileInfo,e);
+        }
     }
 
     @Override
     public String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
-    }
-
-    @Override
-    public boolean setFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
-    }
-
-    @Override
-    public boolean setThFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
+        String key = getThFileKey(fileInfo);
+        if (key == null) return null;
+        int expiry = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
+        GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
+                .bucket(bucketName)
+                .object(key)
+                .method(Method.GET)
+                .expiry(expiry)
+                .build();
+        try {
+            return getClient().getPresignedObjectUrl(args);
+        } catch (ErrorResponseException | InsufficientDataException | InternalException | InvalidKeyException |
+                 InvalidResponseException | IOException | NoSuchAlgorithmException | XmlParserException |
+                 ServerException e) {
+            throw new FileStorageRuntimeException("对文件生成可以签名访问的 URL 失败！fileInfo：" + fileInfo,e);
+        }
     }
 
     @Override
@@ -110,9 +154,9 @@ public class MinIOFileStorage implements FileStorage {
         MinioClient client = getClient();
         try {
             if (fileInfo.getThFilename() != null) {   //删除缩略图
-                client.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename()).build());
+                client.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(getThFileKey(fileInfo)).build());
             }
-            client.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()).build());
+            client.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(getFileKey(fileInfo)).build());
             return true;
         } catch (ErrorResponseException | InsufficientDataException | InternalException | ServerException |
                  InvalidKeyException | InvalidResponseException | IOException | NoSuchAlgorithmException |
@@ -126,7 +170,7 @@ public class MinIOFileStorage implements FileStorage {
     public boolean exists(FileInfo fileInfo) {
         MinioClient client = getClient();
         try {
-            StatObjectResponse stat = client.statObject(StatObjectArgs.builder().bucket(bucketName).object(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()).build());
+            StatObjectResponse stat = client.statObject(StatObjectArgs.builder().bucket(bucketName).object(getFileKey(fileInfo)).build());
             return stat != null && stat.lastModified() != null;
         } catch (ErrorResponseException e) {
             String code = e.errorResponse().code();
@@ -143,7 +187,7 @@ public class MinIOFileStorage implements FileStorage {
     @Override
     public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
         MinioClient client = getClient();
-        try (InputStream in = client.getObject(GetObjectArgs.builder().bucket(bucketName).object(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename()).build())) {
+        try (InputStream in = client.getObject(GetObjectArgs.builder().bucket(bucketName).object(getFileKey(fileInfo)).build())) {
             consumer.accept(in);
         } catch (ErrorResponseException | InsufficientDataException | InternalException | ServerException |
                  InvalidKeyException | InvalidResponseException | IOException | NoSuchAlgorithmException |
@@ -158,7 +202,7 @@ public class MinIOFileStorage implements FileStorage {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
         MinioClient client = getClient();
-        try (InputStream in = client.getObject(GetObjectArgs.builder().bucket(bucketName).object(fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename()).build())) {
+        try (InputStream in = client.getObject(GetObjectArgs.builder().bucket(bucketName).object(getThFileKey(fileInfo)).build())) {
             consumer.accept(in);
         } catch (ErrorResponseException | InsufficientDataException | InternalException | ServerException |
                  InvalidKeyException | InvalidResponseException | IOException | NoSuchAlgorithmException |

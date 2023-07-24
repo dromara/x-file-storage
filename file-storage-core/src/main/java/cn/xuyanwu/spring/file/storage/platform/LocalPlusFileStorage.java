@@ -14,7 +14,6 @@ import lombok.Setter;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Date;
 import java.util.function.Consumer;
 
 /**
@@ -49,7 +48,7 @@ public class LocalPlusFileStorage implements FileStorage {
     }
 
     public String getThFileKey(FileInfo fileInfo) {
-        if (fileInfo.getThFilename() == null) return null;
+        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
         return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
     }
 
@@ -58,6 +57,9 @@ public class LocalPlusFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
+        if (fileInfo.getFileAcl() != null) {
+            throw new FileStorageRuntimeException("文件上传失败，LocalFile 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
+        }
         ProgressListener listener = pre.getProgressListener();
 
         try {
@@ -93,26 +95,6 @@ public class LocalPlusFileStorage implements FileStorage {
             FileUtil.del(getAbsolutePath(newFileKey));
             throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
         }
-    }
-
-    @Override
-    public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
-        return null;
-    }
-
-    @Override
-    public boolean setFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
-    }
-
-    @Override
-    public boolean setThFileAcl(FileInfo fileInfo,Object acl) {
-        return false;
     }
 
 

@@ -2,13 +2,10 @@ package cn.xuyanwu.spring.file.storage.spring.file;
 
 import cn.xuyanwu.spring.file.storage.file.FileWrapper;
 import cn.xuyanwu.spring.file.storage.file.FileWrapperAdapter;
-import cn.xuyanwu.spring.file.storage.tika.ContentTypeDetect;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 
 /**
