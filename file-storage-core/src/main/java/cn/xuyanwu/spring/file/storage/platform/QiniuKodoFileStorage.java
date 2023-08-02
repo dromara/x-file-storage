@@ -2,17 +2,17 @@ package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.FileStorageProperties.QiniuKodoConfig;
 import cn.xuyanwu.spring.file.storage.ProgressInputStream;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
+import cn.xuyanwu.spring.file.storage.platform.QiniuKodoFileStorageClientFactory.QiniuKodoClient;
 import com.qiniu.common.QiniuException;
 import com.qiniu.storage.BucketManager;
-import com.qiniu.storage.Configuration;
-import com.qiniu.storage.Region;
 import com.qiniu.storage.UploadManager;
-import com.qiniu.util.Auth;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
@@ -27,38 +27,31 @@ import java.util.function.Consumer;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class QiniuKodoFileStorage implements FileStorage {
-
-    /* 存储平台 */
     private String platform;
-    private String accessKey;
-    private String secretKey;
     private String bucketName;
     private String domain;
     private String basePath;
-    private Region region;
-    private volatile QiniuKodoClient client;
+    private FileStorageClientFactory<QiniuKodoClient> clientFactory;
 
-    /**
-     * 单例模式运行，不需要每次使用完再销毁了
-     */
-    public QiniuKodoClient getClient() {
-        if (client == null) {
-            synchronized (this) {
-                if (client == null) {
-                    client = new QiniuKodoClient(accessKey,secretKey);
-                }
-            }
-        }
-        return client;
+
+    public QiniuKodoFileStorage(QiniuKodoConfig config,FileStorageClientFactory<QiniuKodoClient> clientFactory) {
+        platform = config.getPlatform();
+        bucketName = config.getBucketName();
+        domain = config.getDomain();
+        basePath = config.getBasePath();
+        this.clientFactory = clientFactory;
     }
 
-    /**
-     * 仅在移除这个存储平台时调用
-     */
+    public QiniuKodoClient getClient() {
+        return clientFactory.getClient();
+    }
+
+
     @Override
     public void close() {
-        client = null;
+        clientFactory.close();
     }
 
     public String getFileKey(FileInfo fileInfo) {
@@ -98,7 +91,7 @@ public class QiniuKodoFileStorage implements FileStorage {
             return true;
         } catch (IOException e) {
             try {
-                client.getBucketManager().delete(bucketName,newFileKey);
+                getClient().getBucketManager().delete(bucketName,newFileKey);
             } catch (QiniuException ignored) {
             }
             throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
@@ -167,7 +160,7 @@ public class QiniuKodoFileStorage implements FileStorage {
         try (InputStream in = new URL(url).openStream()) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
         }
     }
 
@@ -185,64 +178,4 @@ public class QiniuKodoFileStorage implements FileStorage {
     }
 
 
-    @Getter
-    @Setter
-    public static class QiniuKodoClient {
-        private String accessKey;
-        private String secretKey;
-        private volatile Auth auth;
-        private volatile Configuration configuration;
-        private volatile BucketManager bucketManager;
-        private volatile UploadManager uploadManager;
-
-        public QiniuKodoClient(String accessKey,String secretKey) {
-            this.accessKey = accessKey;
-            this.secretKey = secretKey;
-        }
-
-        public Auth getAuth() {
-            if (auth == null) {
-                synchronized (this) {
-                    if (auth == null) {
-                        auth = Auth.create(accessKey,secretKey);
-                    }
-                }
-            }
-            return auth;
-        }
-
-        public Configuration getConfiguration() {
-            if (configuration == null) {
-                synchronized (this) {
-                    if (configuration == null) {
-                        configuration = new Configuration(Region.autoRegion());
-                        configuration.resumableUploadAPIVersion = Configuration.ResumableUploadAPIVersion.V2;
-                    }
-                }
-            }
-            return configuration;
-        }
-
-        public BucketManager getBucketManager() {
-            if (bucketManager == null) {
-                synchronized (this) {
-                    if (bucketManager == null) {
-                        bucketManager = new BucketManager(getAuth(),getConfiguration());
-                    }
-                }
-            }
-            return bucketManager;
-        }
-
-        public UploadManager getUploadManager() {
-            if (uploadManager == null) {
-                synchronized (this) {
-                    if (uploadManager == null) {
-                        uploadManager = new UploadManager(getConfiguration());
-                    }
-                }
-            }
-            return uploadManager;
-        }
-    }
 }

@@ -3,18 +3,15 @@ package cn.xuyanwu.spring.file.storage.platform;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.FileStorageProperties;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.event.ProgressEventType;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
@@ -25,71 +22,44 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
- * AWS S3 存储
+ * Amazon S3 存储
  */
 @Getter
 @Setter
-public class AwsS3FileStorage implements FileStorage {
-
-    /* 存储平台 */
+@NoArgsConstructor
+public class AmazonS3FileStorage implements FileStorage {
     private String platform;
-    private String accessKey;
-    private String secretKey;
-    private String region;
-    private String endPoint;
     private String bucketName;
     private String domain;
     private String basePath;
-    private volatile AmazonS3 client;
     private String defaultAcl;
     private int multipartThreshold;
     private int multipartPartSize;
-    private ClientConfiguration clientConfiguration;
-    private Supplier<ClientConfiguration> clientConfigurationSupplier;
+    private FileStorageClientFactory<AmazonS3> clientFactory;
 
-    /**
-     * 单例模式运行，不需要每次使用完再销毁了
-     */
-    public AmazonS3 getClient() {
-        if (client == null) {
-            synchronized (this) {
-                if (client == null) {
-                    if (clientConfiguration == null) {
-                        if (clientConfigurationSupplier != null) {
-                            clientConfiguration = clientConfigurationSupplier.get();
-                        }
-                        if (clientConfiguration == null) {
-                            clientConfiguration = new ClientConfiguration();
-                        }
-                    }
-                    AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
-                            .withClientConfiguration(clientConfiguration)
-                            .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey,secretKey)));
-                    if (StrUtil.isNotBlank(endPoint)) {
-                        builder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endPoint,region));
-                    } else if (StrUtil.isNotBlank(region)) {
-                        builder.withRegion(region);
-                    }
-                    client = builder.build();
-                }
-            }
-        }
-        return client;
+    public AmazonS3FileStorage(FileStorageProperties.AmazonS3Config config,FileStorageClientFactory<AmazonS3> clientFactory) {
+        platform = config.getPlatform();
+        bucketName = config.getBucketName();
+        domain = config.getDomain();
+        basePath = config.getBasePath();
+        defaultAcl = config.getDefaultAcl();
+        multipartThreshold = config.getMultipartThreshold();
+        multipartPartSize = config.getMultipartPartSize();
+        this.clientFactory = clientFactory;
     }
 
-    /**
-     * 仅在移除这个存储平台时调用
-     */
+    public AmazonS3 getClient() {
+        return clientFactory.getClient();
+    }
+
+
     @Override
     public void close() {
-        if (client != null) {
-            client.shutdown();
-            client = null;
-        }
+        clientFactory.close();
     }
+
 
     public String getFileKey(FileInfo fileInfo) {
         return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
@@ -129,7 +99,7 @@ public class AwsS3FileStorage implements FileStorage {
                     part.setUploadId(uploadId);
                     part.setInputStream(new ByteArrayInputStream(bytes));
                     part.setPartSize(bytes.length); // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为100 KB。
-                    part.setPartNumber(++i); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，OSS将返回InvalidArgument错误码。
+                    part.setPartNumber(++i); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，AmazonS3将返回InvalidArgument错误码。
                     if (listener != null) {
                         part.setGeneralProgressListener(e -> {
                             if (e.getEventType() == ProgressEventType.REQUEST_BYTE_TRANSFER_EVENT) {
@@ -265,7 +235,7 @@ public class AwsS3FileStorage implements FileStorage {
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
         }
     }
 

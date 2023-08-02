@@ -11,7 +11,7 @@ public interface FileStorageClientFactory<Client> extends AutoCloseable {
     String getPlatform();
 
     /**
-     * 获取 Client ，使用完后需要归还
+     * 获取 Client ，部分存储平台例如 FTP 、 SFTP 使用完后需要归还
      */
     Client getClient();
 
@@ -27,4 +27,5 @@ public interface FileStorageClientFactory<Client> extends AutoCloseable {
     @Override
     default void close() {
     }
+
 }

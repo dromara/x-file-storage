@@ -1,19 +1,20 @@
 package cn.xuyanwu.spring.file.storage.test;
 
-import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.Assert;
+import cn.hutool.extra.ssh.Sftp;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.FileStorageService;
-import cn.xuyanwu.spring.file.storage.ProgressListener;
+import cn.xuyanwu.spring.file.storage.platform.SftpFileStorage;
+import cn.xuyanwu.spring.file.storage.platform.SftpFileStorageClientFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -28,6 +29,17 @@ class FileStorageServicePoolTest {
      */
     @Test
     public void pool() throws InterruptedException {
+
+        SftpFileStorage sf = fileStorageService.getFileStorage();
+        SftpFileStorageClientFactory factory = (SftpFileStorageClientFactory) sf.getClientFactory();
+
+        List<Sftp> sftpList = Arrays.stream(new Integer[10])
+                .parallel()
+                .map(v -> factory.getClient())
+                .collect(Collectors.toList());
+
+        sftpList.forEach(factory::returnClient);
+
         log.info("开始尝试第一次验证");
         upload();
         log.info("第一次验证成功");

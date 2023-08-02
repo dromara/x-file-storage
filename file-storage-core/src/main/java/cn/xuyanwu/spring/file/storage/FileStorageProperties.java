@@ -1,13 +1,20 @@
 package cn.xuyanwu.spring.file.storage;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
+@Accessors(chain = true)
 public class FileStorageProperties {
 
     /**
@@ -21,101 +28,102 @@ public class FileStorageProperties {
     /**
      * 本地存储
      */
-    private List<Local> local = new ArrayList<>();
+    private List<LocalConfig> local = new ArrayList<>();
     /**
      * 本地存储
      */
-    private List<LocalPlus> localPlus = new ArrayList<>();
+    private List<LocalPlusConfig> localPlus = new ArrayList<>();
     /**
      * 华为云 OBS
      */
-    private List<HuaweiObs> huaweiObs = new ArrayList<>();
+    private List<HuaweiObsConfig> huaweiObs = new ArrayList<>();
     /**
      * 阿里云 OSS
      */
-    private List<AliyunOss> aliyunOss = new ArrayList<>();
+    private List<AliyunOssConfig> aliyunOss = new ArrayList<>();
     /**
      * 七牛云 Kodo
      */
-    private List<QiniuKodo> qiniuKodo = new ArrayList<>();
+    private List<QiniuKodoConfig> qiniuKodo = new ArrayList<>();
     /**
      * 腾讯云 COS
      */
-    private List<TencentCos> tencentCos = new ArrayList<>();
+    private List<TencentCosConfig> tencentCos = new ArrayList<>();
     /**
      * 百度云 BOS
      */
-    private List<BaiduBos> baiduBos = new ArrayList<>();
+    private List<BaiduBosConfig> baiduBos = new ArrayList<>();
     /**
      * 又拍云 USS
      */
-    private List<UpyunUSS> upyunUSS = new ArrayList<>();
+    private List<UpyunUssConfig> upyunUSS = new ArrayList<>();
     /**
      * MinIO USS
      */
-    private List<MinIO> minio = new ArrayList<>();
+    private List<MinioConfig> minio = new ArrayList<>();
 
     /**
-     * AWS S3
+     * Amazon S3
      */
-    private List<AwsS3> awsS3 = new ArrayList<>();
-
-    /**
-     * FTP
-     */
-    private List<FTP> ftp = new ArrayList<>();
+    private List<AmazonS3Config> amazonS3 = new ArrayList<>();
 
     /**
      * FTP
      */
-    private List<SFTP> sftp = new ArrayList<>();
+    private List<FtpConfig> ftp = new ArrayList<>();
+
+    /**
+     * FTP
+     */
+    private List<SftpConfig> sftp = new ArrayList<>();
 
     /**
      * WebDAV
      */
-    private List<WebDAV> WebDav = new ArrayList<>();
+    private List<WebDavConfig> WebDav = new ArrayList<>();
 
     /**
      * 谷歌云存储
      */
-    private List<GoogleCloud> googleCloud = new ArrayList<>();
+    private List<GoogleCloudStorageConfig> googleCloud = new ArrayList<>();
+
+    /**
+     * 基本的存储平台配置
+     */
+    @Data
+    public static class BaseConfig {
+        /**
+         * 存储平台
+         */
+        private String platform = "";
+    }
 
     /**
      * 本地存储
      */
     @Data
-    public static class Local {
+    @EqualsAndHashCode(callSuper = true)
+    public static class LocalConfig extends BaseConfig {
         /**
          * 本地存储路径
          */
         private String basePath = "";
         /**
-         * 本地存储访问路径
-         */
-        private String[] pathPatterns = new String[0];
-        /**
-         * 启用本地存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 启用本地访问
-         */
-        private Boolean enableAccess = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "local";
-        /**
          * 访问域名
          */
         private String domain = "";
+        /**
+         * 其它自定义配置
+         */
+        private Map<String,Object> attr = new LinkedHashMap<>();
     }
 
     /**
      * 本地存储升级版
      */
     @Data
-    public static class LocalPlus {
+    @EqualsAndHashCode(callSuper = true)
+    public static class LocalPlusConfig extends BaseConfig {
         /**
          * 基础路径
          */
@@ -125,32 +133,21 @@ public class FileStorageProperties {
          */
         private String storagePath = "/";
         /**
-         * 本地存储访问路径
-         */
-        private String[] pathPatterns = new String[0];
-        /**
-         * 启用本地存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 启用本地访问
-         */
-        private Boolean enableAccess = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "local";
-        /**
          * 访问域名
          */
         private String domain = "";
+        /**
+         * 其它自定义配置
+         */
+        private Map<String,Object> attr = new LinkedHashMap<>();
     }
 
     /**
      * 华为云 OBS
      */
     @Data
-    public static class HuaweiObs {
+    @EqualsAndHashCode(callSuper = true)
+    public static class HuaweiObsConfig extends BaseConfig {
         private String accessKey;
         private String secretKey;
         private String endPoint;
@@ -159,14 +156,6 @@ public class FileStorageProperties {
          * 访问域名
          */
         private String domain = "";
-        /**
-         * 启用存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "";
         /**
          * 基础路径
          */
@@ -184,16 +173,17 @@ public class FileStorageProperties {
          */
         private int multipartPartSize = 32 * 1024 * 1024;
         /**
-         * 自定义配置，详情：{@link com.obs.services.ObsConfiguration}
+         * 其它自定义配置
          */
-        private Object clientConfiguration;
+        private Map<String,Object> attr = new LinkedHashMap<>();
     }
 
     /**
      * 阿里云 OSS
      */
     @Data
-    public static class AliyunOss {
+    @EqualsAndHashCode(callSuper = true)
+    public static class AliyunOssConfig extends BaseConfig {
         private String accessKey;
         private String secretKey;
         private String endPoint;
@@ -202,14 +192,6 @@ public class FileStorageProperties {
          * 访问域名
          */
         private String domain = "";
-        /**
-         * 启用存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "";
         /**
          * 基础路径
          */
@@ -227,16 +209,17 @@ public class FileStorageProperties {
          */
         private int multipartPartSize = 32 * 1024 * 1024;
         /**
-         * 自定义配置，详情：{@link com.aliyun.oss.ClientBuilderConfiguration}
+         * 其它自定义配置
          */
-        private Object clientConfiguration;
+        private Map<String,Object> attr = new LinkedHashMap<>();
     }
 
     /**
      * 七牛云 Kodo
      */
     @Data
-    public static class QiniuKodo {
+    @EqualsAndHashCode(callSuper = true)
+    public static class QiniuKodoConfig extends BaseConfig {
         private String accessKey;
         private String secretKey;
         private String bucketName;
@@ -245,24 +228,21 @@ public class FileStorageProperties {
          */
         private String domain = "";
         /**
-         * 启用存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "";
-        /**
          * 基础路径
          */
         private String basePath = "";
+        /**
+         * 其它自定义配置
+         */
+        private Map<String,Object> attr = new LinkedHashMap<>();
     }
 
     /**
      * 腾讯云 COS
      */
     @Data
-    public static class TencentCos {
+    @EqualsAndHashCode(callSuper = true)
+    public static class TencentCosConfig extends BaseConfig {
         private String secretId;
         private String secretKey;
         private String region;
@@ -271,14 +251,6 @@ public class FileStorageProperties {
          * 访问域名
          */
         private String domain = "";
-        /**
-         * 启用存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "";
         /**
          * 基础路径
          */
@@ -296,16 +268,17 @@ public class FileStorageProperties {
          */
         private int multipartPartSize = 32 * 1024 * 1024;
         /**
-         * 自定义配置，详情：{@link com.qcloud.cos.ClientConfig}
+         * 其它自定义配置
          */
-        private Object clientConfiguration;
+        private Map<String,Object> attr = new LinkedHashMap<>();
     }
 
     /**
      * 百度云 BOS
      */
     @Data
-    public static class BaiduBos {
+    @EqualsAndHashCode(callSuper = true)
+    public static class BaiduBosConfig extends BaseConfig {
         private String accessKey;
         private String secretKey;
         private String endPoint;
@@ -314,14 +287,6 @@ public class FileStorageProperties {
          * 访问域名
          */
         private String domain = "";
-        /**
-         * 启用存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "";
         /**
          * 基础路径
          */
@@ -339,16 +304,17 @@ public class FileStorageProperties {
          */
         private int multipartPartSize = 32 * 1024 * 1024;
         /**
-         * 自定义配置，详情：{@link com.baidubce.services.bos.BosClientConfiguration}
+         * 其它自定义配置
          */
-        private Object clientConfiguration;
+        private Map<String,Object> attr = new LinkedHashMap<>();
     }
 
     /**
      * 又拍云 USS
      */
     @Data
-    public static class UpyunUSS {
+    @EqualsAndHashCode(callSuper = true)
+    public static class UpyunUssConfig extends BaseConfig {
         private String username;
         private String password;
         private String bucketName;
@@ -357,24 +323,21 @@ public class FileStorageProperties {
          */
         private String domain = "";
         /**
-         * 启用存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "";
-        /**
          * 基础路径
          */
         private String basePath = "";
+        /**
+         * 其它自定义配置
+         */
+        private Map<String,Object> attr = new LinkedHashMap<>();
     }
 
     /**
      * MinIO
      */
     @Data
-    public static class MinIO {
+    @EqualsAndHashCode(callSuper = true)
+    public static class MinioConfig extends BaseConfig {
         private String accessKey;
         private String secretKey;
         private String endPoint;
@@ -384,24 +347,21 @@ public class FileStorageProperties {
          */
         private String domain = "";
         /**
-         * 启用存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "";
-        /**
          * 基础路径
          */
         private String basePath = "";
+        /**
+         * 其它自定义配置
+         */
+        private Map<String,Object> attr = new LinkedHashMap<>();
     }
 
     /**
-     * AWS S3
+     * Amazon S3
      */
     @Data
-    public static class AwsS3 {
+    @EqualsAndHashCode(callSuper = true)
+    public static class AmazonS3Config extends BaseConfig {
         private String accessKey;
         private String secretKey;
         private String region;
@@ -411,14 +371,6 @@ public class FileStorageProperties {
          * 访问域名
          */
         private String domain = "";
-        /**
-         * 启用存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "";
         /**
          * 基础路径
          */
@@ -436,16 +388,17 @@ public class FileStorageProperties {
          */
         private int multipartPartSize = 32 * 1024 * 1024;
         /**
-         * 自定义配置，详情：{@link com.amazonaws.ClientConfiguration}
+         * 其它自定义配置
          */
-        private Object clientConfiguration;
+        private Map<String,Object> attr = new LinkedHashMap<>();
     }
 
     /**
      * FTP
      */
     @Data
-    public static class FTP {
+    @EqualsAndHashCode(callSuper = true)
+    public static class FtpConfig extends BaseConfig {
         /**
          * 主机
          */
@@ -492,14 +445,6 @@ public class FileStorageProperties {
          */
         private String domain = "";
         /**
-         * 启用存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "";
-        /**
          * 基础路径
          */
         private String basePath = "";
@@ -507,13 +452,22 @@ public class FileStorageProperties {
          * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
          */
         private String storagePath = "/";
+        /**
+         * Client 对象池配置
+         */
+        private CommonClientPoolConfig pool = new CommonClientPoolConfig();
+        /**
+         * 其它自定义配置
+         */
+        private Map<String,Object> attr = new LinkedHashMap<>();
     }
 
     /**
      * SFTP
      */
     @Data
-    public static class SFTP {
+    @EqualsAndHashCode(callSuper = true)
+    public static class SftpConfig extends BaseConfig {
         /**
          * 主机
          */
@@ -541,19 +495,11 @@ public class FileStorageProperties {
         /**
          * 连接超时时长，单位毫秒，默认10秒
          */
-        private long connectionTimeout = 10 * 1000;
+        private int connectionTimeout = 10 * 1000;
         /**
          * 访问域名
          */
         private String domain = "";
-        /**
-         * 启用存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "";
         /**
          * 基础路径
          */
@@ -562,13 +508,22 @@ public class FileStorageProperties {
          * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
          */
         private String storagePath = "/";
+        /**
+         * Client 对象池配置
+         */
+        private CommonClientPoolConfig pool = new CommonClientPoolConfig();
+        /**
+         * 其它自定义配置
+         */
+        private Map<String,Object> attr = new LinkedHashMap<>();
     }
 
     /**
      * WebDAV
      */
     @Data
-    public static class WebDAV {
+    @EqualsAndHashCode(callSuper = true)
+    public static class WebDavConfig extends BaseConfig {
         /**
          * 服务器地址，注意“/”结尾，例如：http://192.168.1.105:8405/
          */
@@ -586,14 +541,6 @@ public class FileStorageProperties {
          */
         private String domain = "";
         /**
-         * 启用存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "";
-        /**
          * 基础路径
          */
         private String basePath = "";
@@ -601,10 +548,15 @@ public class FileStorageProperties {
          * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
          */
         private String storagePath = "/";
+        /**
+         * 其它自定义配置
+         */
+        private Map<String,Object> attr = new LinkedHashMap<>();
     }
 
     @Data
-    public static class GoogleCloud {
+    @EqualsAndHashCode(callSuper = true)
+    public static class GoogleCloudStorageConfig extends BaseConfig {
         private String projectId;
         /**
          * 证书路径，兼容Spring的ClassPath路径、文件路径、HTTP路径等
@@ -616,16 +568,68 @@ public class FileStorageProperties {
          */
         private String domain = "";
         /**
-         * 启用存储
-         */
-        private Boolean enableStorage = false;
-        /**
-         * 存储平台
-         */
-        private String platform = "";
-        /**
          * 基础路径
          */
         private String basePath = "";
+        /**
+         * 默认的 ACL，详情 {@link cn.xuyanwu.spring.file.storage.constant.Constant.GoogleCloudStorageACL}
+         */
+        private String defaultAcl;
+        /**
+         * 其它自定义配置
+         */
+        private Map<String,Object> attr = new LinkedHashMap<>();
+    }
+
+    /**
+     * 通用的 Client 对象池配置，详情见 {@link org.apache.commons.pool2.impl.GenericObjectPoolConfig}
+     */
+    @Data
+    public static class CommonClientPoolConfig {
+        /**
+         * 取出对象前进行校验，默认开启
+         */
+        private Boolean testOnBorrow = true;
+        /**
+         * 空闲检测，默认开启
+         */
+        private Boolean testWhileIdle = true;
+        /**
+         * 最大总数量，超过此数量会进行阻塞等待，默认 16
+         */
+        private Integer maxTotal = 16;
+        /**
+         * 最大空闲数量，默认 4
+         */
+        private Integer maxIdle = 4;
+        /**
+         * 最小空闲数量，默认 1
+         */
+        private Integer minIdle = 1;
+        /**
+         * 空闲对象逐出（销毁）运行间隔时间，默认 30 秒
+         */
+        private Duration timeBetweenEvictionRuns = Duration.ofSeconds(30);
+        /**
+         * 对象空闲超过此时间将逐出（销毁），为负数则关闭此功能，默认 -1
+         */
+        private Duration minEvictableIdleDuration = Duration.ofMillis(-1);
+        /**
+         * 对象空闲超过此时间且当前对象池的空闲对象数大于最小空闲数量，将逐出（销毁），为负数则关闭此功能，默认 30 分钟
+         */
+        private Duration softMinEvictableIdleDuration = Duration.ofMillis(30);
+
+        public <T> GenericObjectPoolConfig<T> toGenericObjectPoolConfig() {
+            GenericObjectPoolConfig<T> config = new GenericObjectPoolConfig<>();
+            config.setTestOnBorrow(testOnBorrow);
+            config.setTestWhileIdle(testWhileIdle);
+            config.setMaxTotal(maxTotal);
+            config.setMinIdle(minIdle);
+            config.setMaxIdle(maxIdle);
+            config.setTimeBetweenEvictionRuns(timeBetweenEvictionRuns);
+            config.setMinEvictableIdleTime(minEvictableIdleDuration);
+            config.setSoftMinEvictableIdleTime(softMinEvictableIdleDuration);
+            return config;
+        }
     }
 }

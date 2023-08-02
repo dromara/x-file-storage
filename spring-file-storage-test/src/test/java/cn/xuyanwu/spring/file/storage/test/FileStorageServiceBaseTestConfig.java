@@ -19,7 +19,7 @@ import java.util.Date;
 
 @Slf4j
 @SpringBootTest
-class FileStorageServiceBaseTest {
+class FileStorageServiceBaseTestConfig {
 
     @Autowired
     private FileStorageService fileStorageService;

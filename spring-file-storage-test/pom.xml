@@ -52,11 +52,11 @@
         </dependency>
 
         <!-- FTP -->
-<!--        <dependency>-->
-<!--            <groupId>commons-net</groupId>-->
-<!--            <artifactId>commons-net</artifactId>-->
-<!--            <version>3.8.0</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>commons-net</groupId>
+            <artifactId>commons-net</artifactId>
+            <version>3.9.0</version>
+        </dependency>
 
         <!--糊涂工具类扩展-->
         <dependency>
@@ -65,7 +65,7 @@
             <version>5.8.16</version>
         </dependency>
 
-        <!-- AWS S3 -->
+        <!-- Amazon S3 -->
 <!--        <dependency>-->
 <!--            <groupId>com.amazonaws</groupId>-->
 <!--            <artifactId>aws-java-sdk-s3</artifactId>-->
@@ -122,18 +122,18 @@
 <!--        </dependency>-->
 
         <!-- 谷歌云 Google Cloud Platform Storage-->
-<!--        <dependency>-->
-<!--            <groupId>com.google.cloud</groupId>-->
-<!--            <artifactId>google-cloud-storage</artifactId>-->
-<!--            <version>2.20.1</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-storage</artifactId>
+            <version>2.20.1</version>
+        </dependency>
 
         <!--因存在较多冲突版本导致谷歌云无法使用，故引入独立版本-->
-<!--        <dependency>-->
-<!--            <groupId>com.google.guava</groupId>-->
-<!--            <artifactId>guava</artifactId>-->
-<!--            <version>31.1-jre</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>31.1-jre</version>
+        </dependency>
 
         <!--糊涂工具类核心-->
         <dependency>

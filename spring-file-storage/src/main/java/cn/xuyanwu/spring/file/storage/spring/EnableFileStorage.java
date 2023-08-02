@@ -10,6 +10,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
 @Documented
-@Import({FileStorageAutoConfiguration.class,FileStorageProperties.class})
+@Import({FileStorageAutoConfiguration.class,SpringFileStorageProperties.class})
 public @interface EnableFileStorage {
 }

@@ -3,15 +3,15 @@ package cn.xuyanwu.spring.file.storage.platform;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.FileStorageProperties.AliyunOssConfig;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
-import com.aliyun.oss.ClientBuilderConfiguration;
 import com.aliyun.oss.OSS;
-import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.event.ProgressEventType;
 import com.aliyun.oss.model.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
@@ -22,58 +22,43 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * 阿里云 OSS 存储
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class AliyunOssFileStorage implements FileStorage {
-
-    /* 存储平台 */
     private String platform;
-    private String accessKey;
-    private String secretKey;
-    private String endPoint;
     private String bucketName;
     private String domain;
     private String basePath;
-    private volatile OSS client;
     private String defaultAcl;
     private int multipartThreshold;
     private int multipartPartSize;
-    private ClientBuilderConfiguration clientConfiguration;
-    private Supplier<ClientBuilderConfiguration> clientConfigurationSupplier;
+    private FileStorageClientFactory<OSS> clientFactory;
 
-    /**
-     * 单例模式运行，不需要每次使用完再销毁了
-     */
-    public OSS getClient() {
-        if (client == null) {
-            synchronized (this) {
-                if (client == null) {
-                    if (clientConfiguration == null) {
-                        if (clientConfigurationSupplier != null) {
-                            clientConfiguration = clientConfigurationSupplier.get();
-                        }
-                    }
-                    client = new OSSClientBuilder().build(endPoint,accessKey,secretKey,clientConfiguration);
-                }
-            }
-        }
-        return client;
+
+    public AliyunOssFileStorage(AliyunOssConfig config,FileStorageClientFactory<OSS> clientFactory) {
+        platform = config.getPlatform();
+        bucketName = config.getBucketName();
+        domain = config.getDomain();
+        basePath = config.getBasePath();
+        defaultAcl = config.getDefaultAcl();
+        multipartThreshold = config.getMultipartThreshold();
+        multipartPartSize = config.getMultipartPartSize();
+        this.clientFactory = clientFactory;
     }
 
-    /**
-     * 仅在移除这个存储平台时调用
-     */
+    public OSS getClient() {
+        return clientFactory.getClient();
+    }
+
+
     @Override
     public void close() {
-        if (client != null) {
-            client.shutdown();
-            client = null;
-        }
+        clientFactory.close();
     }
 
 
@@ -251,7 +236,7 @@ public class AliyunOssFileStorage implements FileStorage {
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
         }
 
     }

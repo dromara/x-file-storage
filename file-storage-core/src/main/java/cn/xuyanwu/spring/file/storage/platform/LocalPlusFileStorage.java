@@ -3,12 +3,14 @@ package cn.xuyanwu.spring.file.storage.platform;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.FileStorageProperties.LocalPlusConfig;
 import cn.xuyanwu.spring.file.storage.ProgressInputStream;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import cn.xuyanwu.spring.file.storage.file.FileWrapper;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.File;
@@ -21,19 +23,19 @@ import java.util.function.Consumer;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class LocalPlusFileStorage implements FileStorage {
-
-    /* 基础路径 */
     private String basePath;
-    /* 本地存储路径*/
     private String storagePath;
-    /* 存储平台 */
     private String platform;
-    /* 访问域名 */
     private String domain;
 
-    @Override
-    public void close() {
+
+    public LocalPlusFileStorage(LocalPlusConfig config) {
+        platform = config.getPlatform();
+        basePath = config.getBasePath();
+        domain = config.getDomain();
+        storagePath = config.getStoragePath();
     }
 
     /**
@@ -117,7 +119,7 @@ public class LocalPlusFileStorage implements FileStorage {
         try (InputStream in = FileUtil.getInputStream(getAbsolutePath(getFileKey(fileInfo)))) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
         }
     }
 

@@ -1,13 +1,14 @@
 package cn.xuyanwu.spring.file.storage.spring;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.StrUtil;
+import cn.hutool.extra.ftp.Ftp;
 import cn.hutool.extra.ssh.Sftp;
 import cn.xuyanwu.spring.file.storage.FileStorageService;
 import cn.xuyanwu.spring.file.storage.aspect.FileStorageAspect;
+import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import cn.xuyanwu.spring.file.storage.file.*;
 import cn.xuyanwu.spring.file.storage.platform.*;
+import cn.xuyanwu.spring.file.storage.platform.QiniuKodoFileStorageClientFactory.QiniuKodoClient;
 import cn.xuyanwu.spring.file.storage.recorder.DefaultFileRecorder;
 import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
 import cn.xuyanwu.spring.file.storage.spring.file.MultipartFileWrapperAdapter;
@@ -16,12 +17,17 @@ import cn.xuyanwu.spring.file.storage.tika.DefaultTikaFactory;
 import cn.xuyanwu.spring.file.storage.tika.TikaContentTypeDetect;
 import cn.xuyanwu.spring.file.storage.tika.TikaFactory;
 import cn.xuyanwu.spring.file.storage.util.Tools;
-import com.aliyun.oss.ClientBuilderConfiguration;
-import com.amazonaws.ClientConfiguration;
-import com.baidubce.services.bos.BosClientConfiguration;
-import com.obs.services.ObsConfiguration;
-import com.qcloud.cos.ClientConfig;
+import com.aliyun.oss.OSS;
+import com.amazonaws.services.s3.AmazonS3;
+import com.baidubce.services.bos.BosClient;
+import com.github.sardine.Sardine;
+import com.google.cloud.storage.Storage;
+import com.obs.services.ObsClient;
+import com.qcloud.cos.COSClient;
+import com.upyun.RestManager;
+import io.minio.MinioClient;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -30,14 +36,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
@@ -49,7 +51,7 @@ import java.util.stream.Collectors;
 public class FileStorageAutoConfiguration implements WebMvcConfigurer {
 
     @Autowired
-    private FileStorageProperties properties;
+    private SpringFileStorageProperties properties;
     @Autowired
     private ApplicationContext applicationContext;
 
@@ -58,13 +60,13 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      * 配置本地存储的访问地址
      */
     @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        for (FileStorageProperties.Local local : properties.getLocal()) {
+    public void addResourceHandlers(@NotNull ResourceHandlerRegistry registry) {
+        for (SpringFileStorageProperties.SpringLocalConfig local : properties.getLocal()) {
             if (local.getEnableAccess()) {
                 registry.addResourceHandler(local.getPathPatterns()).addResourceLocations("file:" + local.getBasePath());
             }
         }
-        for (FileStorageProperties.LocalPlus local : properties.getLocalPlus()) {
+        for (SpringFileStorageProperties.SpringLocalPlusConfigConfig local : properties.getLocalPlus()) {
             if (local.getEnableAccess()) {
                 registry.addResourceHandler(local.getPathPatterns()).addResourceLocations("file:" + local.getStoragePath());
             }
@@ -76,14 +78,10 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     public List<LocalFileStorage> localFileStorageList() {
-        return properties.getLocal().stream().map(local -> {
-            if (!local.getEnableStorage()) return null;
-            log.info("加载存储平台：{}，此存储平台已不推荐使用，新项目请使用 LocalPlusFileStorage",local.getPlatform());
-            LocalFileStorage localFileStorage = new LocalFileStorage();
-            localFileStorage.setPlatform(local.getPlatform());
-            localFileStorage.setBasePath(local.getBasePath());
-            localFileStorage.setDomain(local.getDomain());
-            return localFileStorage;
+        return properties.getLocal().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}，此存储平台已不推荐使用，新项目请使用 LocalPlusFileStorage",config.getPlatform());
+            return new LocalFileStorage(config);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -92,15 +90,10 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     public List<LocalPlusFileStorage> localPlusFileStorageList() {
-        return properties.getLocalPlus().stream().map(local -> {
-            if (!local.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",local.getPlatform());
-            LocalPlusFileStorage localFileStorage = new LocalPlusFileStorage();
-            localFileStorage.setPlatform(local.getPlatform());
-            localFileStorage.setBasePath(local.getBasePath());
-            localFileStorage.setDomain(local.getDomain());
-            localFileStorage.setStoragePath(local.getStoragePath());
-            return localFileStorage;
+        return properties.getLocalPlus().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",config.getPlatform());
+            return new LocalPlusFileStorage(config);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -109,31 +102,12 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = "com.obs.services.ObsClient")
-    public List<HuaweiObsFileStorage> huaweiObsFileStorageList() {
-        return properties.getHuaweiObs().stream().map(obs -> {
-            if (!obs.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",obs.getPlatform());
-            HuaweiObsFileStorage storage = new HuaweiObsFileStorage();
-            storage.setPlatform(obs.getPlatform());
-            storage.setAccessKey(obs.getAccessKey());
-            storage.setSecretKey(obs.getSecretKey());
-            storage.setEndPoint(obs.getEndPoint());
-            storage.setBucketName(obs.getBucketName());
-            storage.setDomain(obs.getDomain());
-            storage.setBasePath(obs.getBasePath());
-            storage.setDefaultAcl(obs.getDefaultAcl());
-            storage.setMultipartThreshold(obs.getMultipartThreshold());
-            storage.setMultipartPartSize(obs.getMultipartPartSize());
-            storage.setClientConfigurationSupplier(getClientConfigurationSupplier(obs::getClientConfiguration,ObsConfiguration.class));
-
-            if (obs.getClientConfiguration() != null) {
-                if (obs.getClientConfiguration() instanceof ObsConfiguration) {
-                    storage.setClientConfiguration((ObsConfiguration) obs.getClientConfiguration());
-                } else {
-                    storage.setClientConfiguration(BeanUtil.copyProperties(obs.getClientConfiguration(),ObsConfiguration.class));
-                }
-            }
-            return storage;
+    public List<HuaweiObsFileStorage> huaweiObsFileStorageList(List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        return properties.getHuaweiObs().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",config.getPlatform());
+            FileStorageClientFactory<ObsClient> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new HuaweiObsFileStorageClientFactory(config));
+            return new HuaweiObsFileStorage(config,clientFactory);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -142,23 +116,12 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = "com.aliyun.oss.OSS")
-    public List<AliyunOssFileStorage> aliyunOssFileStorageList() {
-        return properties.getAliyunOss().stream().map(oss -> {
-            if (!oss.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",oss.getPlatform());
-            AliyunOssFileStorage storage = new AliyunOssFileStorage();
-            storage.setPlatform(oss.getPlatform());
-            storage.setAccessKey(oss.getAccessKey());
-            storage.setSecretKey(oss.getSecretKey());
-            storage.setEndPoint(oss.getEndPoint());
-            storage.setBucketName(oss.getBucketName());
-            storage.setDomain(oss.getDomain());
-            storage.setBasePath(oss.getBasePath());
-            storage.setDefaultAcl(oss.getDefaultAcl());
-            storage.setMultipartThreshold(oss.getMultipartThreshold());
-            storage.setMultipartPartSize(oss.getMultipartPartSize());
-            storage.setClientConfigurationSupplier(getClientConfigurationSupplier(oss::getClientConfiguration,ClientBuilderConfiguration.class));
-            return storage;
+    public List<AliyunOssFileStorage> aliyunOssFileStorageList(List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        return properties.getAliyunOss().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",config.getPlatform());
+            FileStorageClientFactory<OSS> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new AliyunOssFileStorageClientFactory(config));
+            return new AliyunOssFileStorage(config,clientFactory);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -167,18 +130,12 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = "com.qiniu.storage.UploadManager")
-    public List<QiniuKodoFileStorage> qiniuKodoFileStorageList() {
-        return properties.getQiniuKodo().stream().map(kodo -> {
-            if (!kodo.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",kodo.getPlatform());
-            QiniuKodoFileStorage storage = new QiniuKodoFileStorage();
-            storage.setPlatform(kodo.getPlatform());
-            storage.setAccessKey(kodo.getAccessKey());
-            storage.setSecretKey(kodo.getSecretKey());
-            storage.setBucketName(kodo.getBucketName());
-            storage.setDomain(kodo.getDomain());
-            storage.setBasePath(kodo.getBasePath());
-            return storage;
+    public List<QiniuKodoFileStorage> qiniuKodoFileStorageList(List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        return properties.getQiniuKodo().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",config.getPlatform());
+            FileStorageClientFactory<QiniuKodoClient> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new QiniuKodoFileStorageClientFactory(config));
+            return new QiniuKodoFileStorage(config,clientFactory);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -187,23 +144,12 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = "com.qcloud.cos.COSClient")
-    public List<TencentCosFileStorage> tencentCosFileStorageList() {
-        return properties.getTencentCos().stream().map(cos -> {
-            if (!cos.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",cos.getPlatform());
-            TencentCosFileStorage storage = new TencentCosFileStorage();
-            storage.setPlatform(cos.getPlatform());
-            storage.setSecretId(cos.getSecretId());
-            storage.setSecretKey(cos.getSecretKey());
-            storage.setRegion(cos.getRegion());
-            storage.setBucketName(cos.getBucketName());
-            storage.setDomain(cos.getDomain());
-            storage.setBasePath(cos.getBasePath());
-            storage.setDefaultAcl(cos.getDefaultAcl());
-            storage.setMultipartThreshold(cos.getMultipartThreshold());
-            storage.setMultipartPartSize(cos.getMultipartPartSize());
-            storage.setClientConfigurationSupplier(getClientConfigurationSupplier(cos::getClientConfiguration,ClientConfig.class));
-            return storage;
+    public List<TencentCosFileStorage> tencentCosFileStorageList(List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        return properties.getTencentCos().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",config.getPlatform());
+            FileStorageClientFactory<COSClient> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new TencentCosFileStorageClientFactory(config));
+            return new TencentCosFileStorage(config,clientFactory);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -212,23 +158,12 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = "com.baidubce.services.bos.BosClient")
-    public List<BaiduBosFileStorage> baiduBosFileStorageList() {
-        return properties.getBaiduBos().stream().map(bos -> {
-            if (!bos.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",bos.getPlatform());
-            BaiduBosFileStorage storage = new BaiduBosFileStorage();
-            storage.setPlatform(bos.getPlatform());
-            storage.setAccessKey(bos.getAccessKey());
-            storage.setSecretKey(bos.getSecretKey());
-            storage.setEndPoint(bos.getEndPoint());
-            storage.setBucketName(bos.getBucketName());
-            storage.setDomain(bos.getDomain());
-            storage.setBasePath(bos.getBasePath());
-            storage.setDefaultAcl(bos.getDefaultAcl());
-            storage.setMultipartThreshold(bos.getMultipartThreshold());
-            storage.setMultipartPartSize(bos.getMultipartPartSize());
-            storage.setClientConfigurationSupplier(getClientConfigurationSupplier(bos::getClientConfiguration,BosClientConfiguration.class));
-            return storage;
+    public List<BaiduBosFileStorage> baiduBosFileStorageList(List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        return properties.getBaiduBos().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",config.getPlatform());
+            FileStorageClientFactory<BosClient> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new BaiduBosFileStorageClientFactory(config));
+            return new BaiduBosFileStorage(config,clientFactory);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -237,18 +172,12 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = "com.upyun.RestManager")
-    public List<UpyunUssFileStorage> upyunUssFileStorageList() {
-        return properties.getUpyunUSS().stream().map(uss -> {
-            if (!uss.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",uss.getPlatform());
-            UpyunUssFileStorage storage = new UpyunUssFileStorage();
-            storage.setPlatform(uss.getPlatform());
-            storage.setUsername(uss.getUsername());
-            storage.setPassword(uss.getPassword());
-            storage.setBucketName(uss.getBucketName());
-            storage.setDomain(uss.getDomain());
-            storage.setBasePath(uss.getBasePath());
-            return storage;
+    public List<UpyunUssFileStorage> upyunUssFileStorageList(List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        return properties.getUpyunUss().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",config.getPlatform());
+            FileStorageClientFactory<RestManager> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new UpyunUssFileStorageClientFactory(config));
+            return new UpyunUssFileStorage(config,clientFactory);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -257,19 +186,12 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = "io.minio.MinioClient")
-    public List<MinIOFileStorage> minioFileStorageList() {
-        return properties.getMinio().stream().map(minio -> {
-            if (!minio.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",minio.getPlatform());
-            MinIOFileStorage storage = new MinIOFileStorage();
-            storage.setPlatform(minio.getPlatform());
-            storage.setAccessKey(minio.getAccessKey());
-            storage.setSecretKey(minio.getSecretKey());
-            storage.setEndPoint(minio.getEndPoint());
-            storage.setBucketName(minio.getBucketName());
-            storage.setDomain(minio.getDomain());
-            storage.setBasePath(minio.getBasePath());
-            return storage;
+    public List<MinioFileStorage> minioFileStorageList(List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        return properties.getMinio().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",config.getPlatform());
+            FileStorageClientFactory<MinioClient> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new MinioFileStorageClientFactory(config));
+            return new MinioFileStorage(config,clientFactory);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -278,24 +200,12 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = "com.amazonaws.services.s3.AmazonS3")
-    public List<AwsS3FileStorage> amazonS3FileStorageList() {
-        return properties.getAwsS3().stream().map(s3 -> {
-            if (!s3.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",s3.getPlatform());
-            AwsS3FileStorage storage = new AwsS3FileStorage();
-            storage.setPlatform(s3.getPlatform());
-            storage.setAccessKey(s3.getAccessKey());
-            storage.setSecretKey(s3.getSecretKey());
-            storage.setRegion(s3.getRegion());
-            storage.setEndPoint(s3.getEndPoint());
-            storage.setBucketName(s3.getBucketName());
-            storage.setDomain(s3.getDomain());
-            storage.setBasePath(s3.getBasePath());
-            storage.setDefaultAcl(s3.getDefaultAcl());
-            storage.setMultipartThreshold(s3.getMultipartThreshold());
-            storage.setMultipartPartSize(s3.getMultipartPartSize());
-            storage.setClientConfigurationSupplier(getClientConfigurationSupplier(s3::getClientConfiguration,ClientConfiguration.class));
-            return storage;
+    public List<AmazonS3FileStorage> amazonS3FileStorageList(List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        return properties.getAmazonS3().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",config.getPlatform());
+            FileStorageClientFactory<AmazonS3> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new AmazonS3FileStorageClientFactory(config));
+            return new AmazonS3FileStorage(config,clientFactory);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -304,26 +214,12 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = {"org.apache.commons.net.ftp.FTPClient","cn.hutool.extra.ftp.Ftp"})
-    public List<FtpFileStorage> ftpFileStorageList() {
-        return properties.getFtp().stream().map(ftp -> {
-            if (!ftp.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",ftp.getPlatform());
-            FtpFileStorage storage = new FtpFileStorage();
-            storage.setPlatform(ftp.getPlatform());
-            storage.setHost(ftp.getHost());
-            storage.setPort(ftp.getPort());
-            storage.setUser(ftp.getUser());
-            storage.setPassword(ftp.getPassword());
-            storage.setCharset(ftp.getCharset());
-            storage.setConnectionTimeout(ftp.getConnectionTimeout());
-            storage.setSoTimeout(ftp.getSoTimeout());
-            storage.setServerLanguageCode(ftp.getServerLanguageCode());
-            storage.setSystemKey(ftp.getSystemKey());
-            storage.setIsActive(ftp.getIsActive());
-            storage.setDomain(ftp.getDomain());
-            storage.setBasePath(ftp.getBasePath());
-            storage.setStoragePath(ftp.getStoragePath());
-            return storage;
+    public List<FtpFileStorage> ftpFileStorageList(List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        return properties.getFtp().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",config.getPlatform());
+            FileStorageClientFactory<Ftp> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new FtpFileStorageClientFactory(config));
+            return new FtpFileStorage(config,clientFactory);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -332,20 +228,12 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = {"com.jcraft.jsch.ChannelSftp","cn.hutool.extra.ftp.Ftp"})
-    public List<SftpFileStorage> sftpFileStorageList(List<FileStorageClientFactory<Sftp>> factoryList) {
-        Map<String,FileStorageClientFactory<Sftp>> factoryMap = factoryList.stream().collect(Collectors.toMap(FileStorageClientFactory::getPlatform,v -> v));
-        return properties.getSftp().stream().map(sftp -> {
-            if (!sftp.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",sftp.getPlatform());
-            SftpFileStorage storage = new SftpFileStorage();
-            storage.setPlatform(sftp.getPlatform());
-            storage.setDomain(sftp.getDomain());
-            storage.setBasePath(sftp.getBasePath());
-            storage.setStoragePath(sftp.getStoragePath());
-            FileStorageClientFactory<Sftp> clientFactory = factoryMap.get(sftp.getPlatform());
-            if (clientFactory == null) clientFactory = new SftpFileStorageClientFactory(sftp);
-            storage.setClientFactory(clientFactory);
-            return storage;
+    public List<SftpFileStorage> sftpFileStorageList(List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        return properties.getSftp().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",config.getPlatform());
+            FileStorageClientFactory<Sftp> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new SftpFileStorageClientFactory(config));
+            return new SftpFileStorage(config,clientFactory);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -354,36 +242,26 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnClass(name = "com.github.sardine.Sardine")
-    public List<WebDavFileStorage> webDavFileStorageList() {
-        return properties.getWebDav().stream().map(sftp -> {
-            if (!sftp.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",sftp.getPlatform());
-            WebDavFileStorage storage = new WebDavFileStorage();
-            storage.setPlatform(sftp.getPlatform());
-            storage.setServer(sftp.getServer());
-            storage.setUser(sftp.getUser());
-            storage.setPassword(sftp.getPassword());
-            storage.setDomain(sftp.getDomain());
-            storage.setBasePath(sftp.getBasePath());
-            storage.setStoragePath(sftp.getStoragePath());
-            return storage;
+    public List<WebDavFileStorage> webDavFileStorageList(List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        return properties.getWebDav().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",config.getPlatform());
+            FileStorageClientFactory<Sardine> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new WebDavFileStorageClientFactory(config));
+            return new WebDavFileStorage(config,clientFactory);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
+    /**
+     * Google Cloud Storage 存储 Bean
+     */
     @Bean
     @ConditionalOnClass(name = "com.google.cloud.storage.Storage")
-    public List<GoogleCloudStorage> googleCloudStorageList() {
-        return properties.getGoogleCloud().stream().map(googleCloud -> {
-            if (!googleCloud.getEnableStorage()) return null;
-            log.info("加载存储平台：{}",googleCloud.getPlatform());
-            GoogleCloudStorage storage = new GoogleCloudStorage();
-            storage.setPlatform(googleCloud.getPlatform());
-            storage.setProjectId(googleCloud.getProjectId());
-            storage.setBucketName(googleCloud.getBucketName());
-            storage.setCredentialsPath(googleCloud.getCredentialsPath());
-            storage.setDomain(googleCloud.getDomain());
-            storage.setBasePath(googleCloud.getBasePath());
-            return storage;
+    public List<GoogleCloudStorageFileStorage> googleCloudStorageFileStorageList(List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        return properties.getGoogleCloudStorage().stream().map(config -> {
+            if (!config.getEnableStorage()) return null;
+            log.info("加载存储平台：{}",config.getPlatform());
+            FileStorageClientFactory<Storage> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new GoogleCloudStorageFileStorageClientFactory(config));
+            return new GoogleCloudStorageFileStorage(config,clientFactory);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -476,7 +354,8 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         service.setFileStorageList(new CopyOnWriteArrayList<>());
         fileStorageLists.forEach(service.getFileStorageList()::addAll);
         service.setFileRecorder(fileRecorder);
-        service.setProperties(properties);
+        service.setDefaultPlatform(properties.getDefaultPlatform());
+        service.setThumbnailSuffix(properties.getThumbnailSuffix());
         service.setAspectList(new CopyOnWriteArrayList<>(aspectList));
         service.setFileWrapperAdapterList(new CopyOnWriteArrayList<>(fileWrapperAdapterList));
         service.setContentTypeDetect(contentTypeDetect);
@@ -509,13 +388,13 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         if (CollUtil.isNotEmpty(properties.getBaiduBos()) && doesNotExistClass("com.baidubce.services.bos.BosClient")) {
             log.warn(template,"百度云 BOS ");
         }
-        if (CollUtil.isNotEmpty(properties.getUpyunUSS()) && doesNotExistClass("com.upyun.RestManager")) {
+        if (CollUtil.isNotEmpty(properties.getUpyunUss()) && doesNotExistClass("com.upyun.RestManager")) {
             log.warn(template,"又拍云 USS ");
         }
         if (CollUtil.isNotEmpty(properties.getMinio()) && doesNotExistClass("io.minio.MinioClient")) {
             log.warn(template," MinIO ");
         }
-        if (CollUtil.isNotEmpty(properties.getAwsS3()) && doesNotExistClass("com.amazonaws.services.s3.AmazonS3")) {
+        if (CollUtil.isNotEmpty(properties.getAmazonS3()) && doesNotExistClass("com.amazonaws.services.s3.AmazonS3")) {
             log.warn(template," AmazonS3 ");
         }
         if (CollUtil.isNotEmpty(properties.getFtp()) && (doesNotExistClass("org.apache.commons.net.ftp.FTPClient") || doesNotExistClass("cn.hutool.extra.ftp.Ftp"))) {
@@ -527,8 +406,8 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         if (CollUtil.isNotEmpty(properties.getWebDav()) && doesNotExistClass("com.github.sardine.Sardine")) {
             log.warn(template," WebDAV ");
         }
-        if (CollUtil.isNotEmpty(properties.getGoogleCloud()) && doesNotExistClass("com.google.cloud.storage.Storage")) {
-            log.warn(template,"谷歌云存储 ");
+        if (CollUtil.isNotEmpty(properties.getGoogleCloudStorage()) && doesNotExistClass("com.google.cloud.storage.Storage")) {
+            log.warn(template,"Google Cloud Storage ");
         }
     }
 
@@ -544,32 +423,23 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         }
     }
 
+
     /**
-     * 尝试获取 ClientConfiguration 对象，支持以下三种方式：
-     * 1、本身就是 ClientConfiguration 及其子类，直接返回
-     * 2、通过 SpEL 表达式获取，例如 @fileStorageClientConfigurationSupplier.getBosClientConfiguration()
-     * 3、通过 copy 对象属性创建，可以支持将 Map 或自定义对象转换为 ClientConfiguration 对象
+     * 获取或创建指定存储平台的 Client 工厂对象
      */
-    public <T> Supplier<T> getClientConfigurationSupplier(Supplier<Object> objectSupplier,Class<T> clazz) {
-        return () -> {
-            Object obj = objectSupplier.get();
-            if (obj == null) return null;
-
-            if (obj instanceof String) {//尝试通过 SpEL 表达式获取
-                String expressionString = (String) obj;
-                if (StrUtil.isBlank(expressionString)) return null;
-                ExpressionParser parser = new SpelExpressionParser();
-                StandardEvaluationContext context = new StandardEvaluationContext();
-                context.setBeanResolver((evaluationContext,beanName) -> applicationContext.getBean(beanName));
-                obj = parser.parseExpression((String) obj).getValue(context);
+    public static <Client> FileStorageClientFactory<Client> getFactory(String platform,List<List<FileStorageClientFactory<?>>> list,Supplier<FileStorageClientFactory<Client>> defaultSupplier) {
+        for (List<FileStorageClientFactory<?>> factoryList : list) {
+            for (FileStorageClientFactory<?> factory : factoryList) {
+                if (Objects.equals(platform,factory.getPlatform())) {
+                    try {
+                        return Tools.cast(factory);
+                    } catch (Exception e) {
+                        throw new FileStorageRuntimeException("获取 FileStorageClientFactory 失败，类型不匹配，platform：" + platform,e);
+                    }
+                }
             }
-
-            if (clazz.isInstance(obj)) {//本身就是 ClientConfiguration 及其子类
-                return Tools.cast(obj);
-            } else {//尝试通过 copy 对象方式获取
-                return BeanUtil.copyProperties(obj,clazz);
-            }
-        };
+        }
+        return defaultSupplier.get();
     }
 
 }

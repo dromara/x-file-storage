@@ -1,18 +1,18 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.core.util.URLUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.FileStorageProperties.GoogleCloudStorageConfig;
 import cn.xuyanwu.spring.file.storage.ProgressInputStream;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
-import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.*;
 import com.google.cloud.storage.Storage.PredefinedAcl;
 import lombok.Data;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
@@ -25,62 +25,41 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
- * @author Kytrun
+ * Google Cloud Storage 存储
+ * @author Kytrun Xuyanwu
  * @version 1.0
  * {@code @date} 2022/11/4 9:56
  */
 @Getter
 @Setter
-public class GoogleCloudStorage implements FileStorage {
+@NoArgsConstructor
+public class GoogleCloudStorageFileStorage implements FileStorage {
     private String projectId;
     private String bucketName;
-    /**
-     * 证书路径，兼容Spring的ClassPath路径、文件路径、HTTP路径等
-     */
     private String credentialsPath;
-    /* 基础路径 */
     private String basePath;
-    /* 存储平台 */
     private String platform;
-    /* 访问域名 */
     private String domain;
-    private volatile Storage client;
     private String defaultAcl;
+    private FileStorageClientFactory<Storage> clientFactory;
 
-    /**
-     * 单例模式运行，不需要每次使用完再销毁了
-     */
+    public GoogleCloudStorageFileStorage(GoogleCloudStorageConfig config,FileStorageClientFactory<Storage> clientFactory) {
+        platform = config.getPlatform();
+        bucketName = config.getBucketName();
+        domain = config.getDomain();
+        basePath = config.getBasePath();
+        defaultAcl = config.getDefaultAcl();
+        this.clientFactory = clientFactory;
+    }
+
     public Storage getClient() {
-        if (client == null) {
-            synchronized (this) {
-                if (client == null) {
-                    ServiceAccountCredentials credentialsFromStream;
-                    try (InputStream in = URLUtil.url(credentialsPath).openStream()) {
-                        credentialsFromStream = ServiceAccountCredentials.fromStream(in);
-                    } catch (IOException e) {
-                        throw new FileStorageRuntimeException("Google Cloud Platform 授权 key 文件获取失败！credentialsPath：" + credentialsPath);
-                    }
-                    List<String> scopes = Collections.singletonList("https://www.googleapis.com/auth/cloud-platform");
-                    ServiceAccountCredentials credentials = credentialsFromStream.toBuilder().setScopes(scopes).build();
-                    StorageOptions storageOptions = StorageOptions.newBuilder().setProjectId(projectId).setCredentials(credentials).build();
-                    client = storageOptions.getService();
-                }
-            }
-        }
-        return client;
+        return clientFactory.getClient();
     }
 
 
     @Override
     public void close() {
-        if (client != null) {
-            try {
-                client.close();
-            } catch (Exception e) {
-                throw new FileStorageRuntimeException(e);
-            }
-            client = null;
-        }
+        clientFactory.close();
     }
 
     public String getFileKey(FileInfo fileInfo) {
@@ -152,7 +131,7 @@ public class GoogleCloudStorage implements FileStorage {
             String sAcl = (String) acl;
             if (StrUtil.isEmpty(sAcl)) sAcl = defaultAcl;
             for (PredefinedAcl item : PredefinedAcl.values()) {
-                if (item.toString().equalsIgnoreCase(sAcl.replace("-",""))) {
+                if (item.toString().equalsIgnoreCase(sAcl.replace("-","_"))) {
                     return new AclWrapper(item);
                 }
             }
@@ -183,15 +162,12 @@ public class GoogleCloudStorage implements FileStorage {
         AclWrapper oAcl = getAcl(acl);
         if (oAcl == null) return false;
         BlobInfo.Builder builder = BlobInfo.newBuilder(bucketName,getFileKey(fileInfo));
-        List<Acl> oldList = getClient().listAcls(BlobId.of(bucketName,getFileKey(fileInfo)));
         if (oAcl.getAclList() != null) {
             builder.setAcl(oAcl.getAclList());
             getClient().update(builder.build());
-            List<Acl> newList = getClient().listAcls(BlobId.of(bucketName,getFileKey(fileInfo)));
             return true;
         } else if (oAcl.getPredefinedAcl() != null) {
             getClient().update(builder.build(),Storage.BlobTargetOption.predefinedAcl(oAcl.getPredefinedAcl()));
-            List<Acl> newList = getClient().listAcls(BlobId.of(bucketName,getFileKey(fileInfo)));
             return true;
         }
         return false;

@@ -3,6 +3,7 @@ package cn.xuyanwu.spring.file.storage.platform;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.FileStorageProperties.UpyunUssConfig;
 import cn.xuyanwu.spring.file.storage.ProgressInputStream;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
@@ -10,6 +11,7 @@ import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.upyun.RestManager;
 import com.upyun.UpException;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
@@ -26,34 +28,29 @@ import java.util.function.Consumer;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class UpyunUssFileStorage implements FileStorage {
-
-    /* 存储平台 */
     private String platform;
-    private String username;
-    private String password;
-    private String bucketName;
     private String domain;
     private String basePath;
-    private volatile RestManager client;
+    private FileStorageClientFactory<RestManager> clientFactory;
 
-    public RestManager getClient() {
-        if (client == null) {
-            synchronized (this) {
-                if (client == null) {
-                    client = new RestManager(bucketName,username,password);
-                }
-            }
-        }
-        return client;
+
+    public UpyunUssFileStorage(UpyunUssConfig config,FileStorageClientFactory<RestManager> clientFactory) {
+        platform = config.getPlatform();
+        domain = config.getDomain();
+        basePath = config.getBasePath();
+        this.clientFactory = clientFactory;
     }
 
-    /**
-     * 仅在移除这个存储平台时调用
-     */
+    public RestManager getClient() {
+        return clientFactory.getClient();
+    }
+
+
     @Override
     public void close() {
-        client = null;
+        clientFactory.close();
     }
 
 

@@ -1,23 +1,22 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.hutool.core.io.IORuntimeException;
-import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.ftp.Ftp;
-import cn.hutool.extra.ftp.FtpConfig;
-import cn.hutool.extra.ftp.FtpMode;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.FileStorageProperties.FtpConfig;
 import cn.xuyanwu.spring.file.storage.ProgressInputStream;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.apache.commons.net.ftp.FTPClient;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.util.function.Consumer;
 
 /**
@@ -25,50 +24,39 @@ import java.util.function.Consumer;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class FtpFileStorage implements FileStorage {
-
-    /* 主机 */
-    private String host;
-    /* 端口，默认21 */
-    private int port;
-    /* 用户名，默认 anonymous（匿名） */
-    private String user;
-    /* 密码，默认空 */
-    private String password;
-    /* 编码，默认UTF-8 */
-    private Charset charset;
-    /* 连接超时时长，单位毫秒，默认10秒 {@link org.apache.commons.net.SocketClient#setConnectTimeout(int)} */
-    private long connectionTimeout;
-    /* Socket连接超时时长，单位毫秒，默认10秒 {@link org.apache.commons.net.SocketClient#setSoTimeout(int)} */
-    private long soTimeout;
-    /* 设置服务器语言，默认空，{@link org.apache.commons.net.ftp.FTPClientConfig#setServerLanguageCode(String)} */
-    private String serverLanguageCode;
-    /**
-     * 服务器标识，默认空，{@link org.apache.commons.net.ftp.FTPClientConfig#FTPClientConfig(String)}
-     * 例如：org.apache.commons.net.ftp.FTPClientConfig.SYST_NT
-     */
-    private String systemKey;
-    /* 是否主动模式，默认被动模式 */
-    private Boolean isActive = false;
-    /* 存储平台 */
     private String platform;
     private String domain;
     private String basePath;
     private String storagePath;
+    private FileStorageClientFactory<Ftp> clientFactory;
 
-    /**
-     * 不支持单例模式运行，每次使用完了需要销毁
-     */
-    public Ftp getClient() {
-        FtpConfig config = FtpConfig.create().setHost(host).setPort(port).setUser(user).setPassword(password).setCharset(charset)
-                .setConnectionTimeout(connectionTimeout).setSoTimeout(soTimeout).setServerLanguageCode(serverLanguageCode)
-                .setSystemKey(systemKey);
-        return new Ftp(config,isActive ? FtpMode.Active : FtpMode.Passive);
+    public FtpFileStorage(FtpConfig config,FileStorageClientFactory<Ftp> clientFactory) {
+        platform = config.getPlatform();
+        domain = config.getDomain();
+        basePath = config.getBasePath();
+        storagePath = config.getStoragePath();
+        this.clientFactory = clientFactory;
     }
 
+    /**
+     * 获取 Client ，使用完后需要归还
+     */
+    public Ftp getClient() {
+        return clientFactory.getClient();
+    }
+
+    /**
+     * 归还 Client
+     */
+    public void returnClient(Ftp client) {
+        clientFactory.returnClient(client);
+    }
 
     @Override
     public void close() {
+        clientFactory.close();
     }
 
     public String getFileKey(FileInfo fileInfo) {
@@ -118,45 +106,58 @@ public class FtpFileStorage implements FileStorage {
             }
             throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
         } finally {
-            IoUtil.close(client);
+            returnClient(client);
         }
     }
 
     @Override
     public boolean delete(FileInfo fileInfo) {
-        try (Ftp client = getClient()) {
+        Ftp client = getClient();
+        try {
             if (fileInfo.getThFilename() != null) {   //删除缩略图
                 client.delFile(getAbsolutePath(getThFileKey(fileInfo)));
             }
             client.delFile(getAbsolutePath(getFileKey(fileInfo)));
             return true;
-        } catch (IOException | IORuntimeException e) {
+        } catch (IORuntimeException e) {
             throw new FileStorageRuntimeException("文件删除失败！fileInfo：" + fileInfo,e);
+        } finally {
+            returnClient(client);
         }
     }
 
 
     @Override
     public boolean exists(FileInfo fileInfo) {
-        try (Ftp client = getClient()) {
-            return client.existFile(getAbsolutePath(getFileKey(fileInfo)));
-        } catch (IOException | IORuntimeException e) {
+        Ftp client = getClient();
+        try {
+            client.cd(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath()));
+            return client.existFile(fileInfo.getFilename());
+        } catch (IORuntimeException e) {
             throw new FileStorageRuntimeException("查询文件是否存在失败！fileInfo：" + fileInfo,e);
+        } finally {
+            returnClient(client);
         }
     }
 
     @Override
     public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
-        try (Ftp client = getClient()) {
+        Ftp client = getClient();
+        try {
             client.cd(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath()));
-            try (InputStream in = client.getClient().retrieveFileStream(fileInfo.getFilename())) {
+            FTPClient ftpClient = client.getClient();
+            ftpClient.setFileType(FTPClient.BINARY_FILE_TYPE);
+            try (InputStream in = ftpClient.retrieveFileStream(fileInfo.getFilename())) {
                 if (in == null) {
-                    throw new FileStorageRuntimeException("文件下载失败，文件不存在！platform：" + fileInfo);
+                    throw new FileStorageRuntimeException("文件下载失败，文件不存在！fileInfo：" + fileInfo);
                 }
                 consumer.accept(in);
+                ftpClient.completePendingCommand();
             }
         } catch (IOException | IORuntimeException e) {
-            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
+        } finally {
+            returnClient(client);
         }
     }
 
@@ -165,17 +166,22 @@ public class FtpFileStorage implements FileStorage {
         if (StrUtil.isBlank(fileInfo.getThFilename())) {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
-
-        try (Ftp client = getClient()) {
+        Ftp client = getClient();
+        try {
             client.cd(getAbsolutePath(fileInfo.getBasePath() + fileInfo.getPath()));
-            try (InputStream in = client.getClient().retrieveFileStream(fileInfo.getThFilename())) {
+            FTPClient ftpClient = client.getClient();
+            ftpClient.setFileType(FTPClient.BINARY_FILE_TYPE);
+            try (InputStream in = ftpClient.retrieveFileStream(fileInfo.getThFilename())) {
                 if (in == null) {
-                    throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！platform：" + fileInfo);
+                    throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
                 }
                 consumer.accept(in);
+                ftpClient.completePendingCommand();
             }
         } catch (IOException | IORuntimeException e) {
             throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        } finally {
+            returnClient(client);
         }
     }
 }

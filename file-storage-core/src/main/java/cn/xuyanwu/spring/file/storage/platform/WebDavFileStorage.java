@@ -2,19 +2,18 @@ package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.core.util.URLUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.FileStorageProperties.WebDavConfig;
 import cn.xuyanwu.spring.file.storage.ProgressInputStream;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import cn.xuyanwu.spring.file.storage.util.Tools;
 import com.github.sardine.Sardine;
-import com.github.sardine.SardineFactory;
 import com.github.sardine.impl.SardineException;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.SneakyThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,39 +24,31 @@ import java.util.function.Consumer;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class WebDavFileStorage implements FileStorage {
-
-    private String server;
-    private String user;
-    private String password;
     private String platform;
+    private String server;
     private String domain;
     private String basePath;
     private String storagePath;
-    private volatile Sardine client;
+    private FileStorageClientFactory<Sardine> clientFactory;
 
-    public Sardine getClient() {
-        if (client == null) {
-            synchronized (this) {
-                if (client == null) {
-                    client = SardineFactory.begin(user,password);
-                    client.enablePreemptiveAuthentication(URLUtil.url(server));
-                }
-            }
-        }
-        return client;
+    public WebDavFileStorage(WebDavConfig config,FileStorageClientFactory<Sardine> clientFactory) {
+        platform = config.getPlatform();
+        server = config.getServer();
+        domain = config.getDomain();
+        basePath = config.getBasePath();
+        storagePath = config.getStoragePath();
+        this.clientFactory = clientFactory;
     }
 
-    /**
-     * 仅在移除这个存储平台时调用
-     */
-    @SneakyThrows
+    public Sardine getClient() {
+        return clientFactory.getClient();
+    }
+
     @Override
     public void close() {
-        if (client != null) {
-            client.shutdown();
-            client = null;
-        }
+        clientFactory.close();
     }
 
     public String getFileKey(FileInfo fileInfo) {
@@ -167,7 +158,7 @@ public class WebDavFileStorage implements FileStorage {
         try (InputStream in = getClient().get(getUrl(getFileKey(fileInfo)))) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
         }
     }
 

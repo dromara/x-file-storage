@@ -2,6 +2,7 @@ package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.FileStorageProperties.MinioConfig;
 import cn.xuyanwu.spring.file.storage.ProgressInputStream;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
@@ -10,6 +11,7 @@ import io.minio.*;
 import io.minio.errors.*;
 import io.minio.http.Method;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
@@ -25,41 +27,33 @@ import java.util.function.Consumer;
  */
 @Getter
 @Setter
-public class MinIOFileStorage implements FileStorage {
-
-    /* 存储平台 */
+@NoArgsConstructor
+public class MinioFileStorage implements FileStorage {
     private String platform;
-    private String accessKey;
-    private String secretKey;
-    private String endPoint;
     private String bucketName;
     private String domain;
     private String basePath;
-    private volatile MinioClient client;
+    private FileStorageClientFactory<MinioClient> clientFactory;
 
-    /**
-     * 单例模式运行，不需要每次使用完再销毁了
-     */
-    public MinioClient getClient() {
-        if (client == null) {
-            synchronized (this) {
-                if (client == null) {
-                    client = new MinioClient.Builder().credentials(accessKey,secretKey).endpoint(endPoint).build();
-                }
-            }
-        }
-        return client;
+
+    public MinioFileStorage(MinioConfig config,FileStorageClientFactory<MinioClient> clientFactory) {
+        platform = config.getPlatform();
+        bucketName = config.getBucketName();
+        domain = config.getDomain();
+        basePath = config.getBasePath();
+        this.clientFactory = clientFactory;
     }
 
-    /**
-     * 仅在移除这个存储平台时调用
-     */
+    public MinioClient getClient() {
+        return clientFactory.getClient();
+    }
+
     @Override
     public void close() {
-        client = null;
+        clientFactory.close();
     }
 
-   public String getFileKey(FileInfo fileInfo) {
+    public String getFileKey(FileInfo fileInfo) {
         return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
     }
 
@@ -192,7 +186,7 @@ public class MinIOFileStorage implements FileStorage {
         } catch (ErrorResponseException | InsufficientDataException | InternalException | ServerException |
                  InvalidKeyException | InvalidResponseException | IOException | NoSuchAlgorithmException |
                  XmlParserException e) {
-            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
         }
     }
 

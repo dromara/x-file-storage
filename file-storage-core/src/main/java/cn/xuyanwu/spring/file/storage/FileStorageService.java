@@ -33,7 +33,8 @@ public class FileStorageService {
     private FileStorageService self;
     private FileRecorder fileRecorder;
     private CopyOnWriteArrayList<FileStorage> fileStorageList;
-    private FileStorageProperties properties;
+    private String defaultPlatform;
+    private String thumbnailSuffix;
     private CopyOnWriteArrayList<FileStorageAspect> aspectList;
     private CopyOnWriteArrayList<FileWrapperAdapter> fileWrapperAdapterList;
     private ContentTypeDetect contentTypeDetect;
@@ -43,7 +44,7 @@ public class FileStorageService {
      * 获取默认的存储平台
      */
     public <T extends FileStorage> T getFileStorage() {
-        return self.getFileStorage(properties.getDefaultPlatform());
+        return self.getFileStorage(defaultPlatform);
     }
 
     /**
@@ -306,8 +307,8 @@ public class FileStorageService {
     public UploadPretreatment of() {
         UploadPretreatment pre = new UploadPretreatment();
         pre.setFileStorageService(self);
-        pre.setPlatform(properties.getDefaultPlatform());
-        pre.setThumbnailSuffix(properties.getThumbnailSuffix());
+        pre.setPlatform(defaultPlatform);
+        pre.setThumbnailSuffix(thumbnailSuffix);
         return pre;
     }
 

@@ -3,16 +3,15 @@ package cn.xuyanwu.spring.file.storage.platform;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.FileStorageProperties.BaiduBosConfig;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.baidubce.BceServiceException;
-import com.baidubce.Protocol;
-import com.baidubce.auth.DefaultBceCredentials;
 import com.baidubce.services.bos.BosClient;
-import com.baidubce.services.bos.BosClientConfiguration;
 import com.baidubce.services.bos.model.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
@@ -23,68 +22,42 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * 百度云 BOS 存储
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class BaiduBosFileStorage implements FileStorage {
-
-    /* 存储平台 */
     private String platform;
-    private String accessKey;
-    private String secretKey;
-    private String endPoint;
     private String bucketName;
     private String domain;
     private String basePath;
-    private volatile BosClient client;
     private String defaultAcl;
     private int multipartThreshold;
     private int multipartPartSize;
-    private BosClientConfiguration clientConfiguration;
-    private Supplier<BosClientConfiguration> clientConfigurationSupplier;
+    private FileStorageClientFactory<BosClient> clientFactory;
 
-    /**
-     * 单例模式运行，不需要每次使用完再销毁了
-     */
-    public BosClient getClient() {
-        if (client == null) {
-            synchronized (this) {
-                if (client == null) {
-                    if (clientConfiguration == null) {
-                        if (clientConfigurationSupplier != null) {
-                            clientConfiguration = clientConfigurationSupplier.get();
-                        }
-                        if (clientConfiguration == null) {
-                            clientConfiguration = new BosClientConfiguration();
-                            clientConfiguration.setProtocol(Protocol.HTTPS);
-                        }
-                    }
-                    if (StrUtil.isNotBlank(accessKey)) {
-                        clientConfiguration.setCredentials(new DefaultBceCredentials(accessKey,secretKey));
-                    }
-                    if (StrUtil.isNotBlank(endPoint)) {
-                        clientConfiguration.setEndpoint(endPoint);
-                    }
-                    client = new BosClient(clientConfiguration);
-                }
-            }
-        }
-        return client;
+    public BaiduBosFileStorage(BaiduBosConfig config,FileStorageClientFactory<BosClient> clientFactory) {
+        platform = config.getPlatform();
+        bucketName = config.getBucketName();
+        domain = config.getDomain();
+        basePath = config.getBasePath();
+        defaultAcl = config.getDefaultAcl();
+        multipartThreshold = config.getMultipartThreshold();
+        multipartPartSize = config.getMultipartPartSize();
+        this.clientFactory = clientFactory;
     }
 
-    /**
-     * 仅在移除这个存储平台时调用
-     */
+    public BosClient getClient() {
+        return clientFactory.getClient();
+    }
+
+
     @Override
     public void close() {
-        if (client != null) {
-            client.shutdown();
-            client = null;
-        }
+        clientFactory.close();
     }
 
     public String getFileKey(FileInfo fileInfo) {
@@ -129,7 +102,7 @@ public class BaiduBosFileStorage implements FileStorage {
                     part.setUploadId(uploadId);
                     part.setInputStream(new ByteArrayInputStream(bytes));
                     part.setPartSize(bytes.length); // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为100 KB。
-                    part.setPartNumber(++i); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，OSS将返回InvalidArgument错误码。
+                    part.setPartNumber(++i); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，BosClient将返回InvalidArgument错误码。
                     if (listener != null) {
                         part.setProgressCallback(new BosProgressCallback<Object>() {
                             @Override
@@ -271,7 +244,7 @@ public class BaiduBosFileStorage implements FileStorage {
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
         }
     }
 

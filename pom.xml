@@ -123,7 +123,7 @@
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
-            <!-- AWS S3 -->
+            <!-- Amazon S3 -->
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk-s3</artifactId>

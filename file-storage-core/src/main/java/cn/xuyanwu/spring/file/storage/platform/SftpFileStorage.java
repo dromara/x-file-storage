@@ -1,27 +1,22 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
-import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.core.util.URLUtil;
 import cn.hutool.extra.ssh.JschRuntimeException;
-import cn.hutool.extra.ssh.JschUtil;
 import cn.hutool.extra.ssh.Sftp;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.FileStorageProperties.SftpConfig;
 import cn.xuyanwu.spring.file.storage.ProgressInputStream;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 
 import static com.jcraft.jsch.ChannelSftp.SSH_FX_NO_SUCH_FILE;
@@ -31,14 +26,21 @@ import static com.jcraft.jsch.ChannelSftp.SSH_FX_NO_SUCH_FILE;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class SftpFileStorage implements FileStorage {
-
-    /* 存储平台 */
     private String platform;
     private String domain;
     private String basePath;
     private String storagePath;
     private FileStorageClientFactory<Sftp> clientFactory;
+
+    public SftpFileStorage(SftpConfig config,FileStorageClientFactory<Sftp> clientFactory) {
+        platform = config.getPlatform();
+        domain = config.getDomain();
+        basePath = config.getBasePath();
+        storagePath = config.getStoragePath();
+        this.clientFactory = clientFactory;
+    }
 
     /**
      * 获取 Client ，使用完后需要归还
@@ -157,7 +159,7 @@ public class SftpFileStorage implements FileStorage {
         try (InputStream in = client.getClient().get(getAbsolutePath(getFileKey(fileInfo)))) {
             consumer.accept(in);
         } catch (IOException | JschRuntimeException | SftpException e) {
-            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
         } finally {
             returnClient(client);
         }

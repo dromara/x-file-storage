@@ -4,14 +4,15 @@ import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.FileStorageProperties.HuaweiObsConfig;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.obs.services.ObsClient;
-import com.obs.services.ObsConfiguration;
 import com.obs.services.internal.IConvertor;
 import com.obs.services.model.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
@@ -22,64 +23,45 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * 华为云 OBS 存储
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class HuaweiObsFileStorage implements FileStorage {
-
-    /* 存储平台 */
     private String platform;
-    private String accessKey;
-    private String secretKey;
-    private String endPoint;
     private String bucketName;
     private String domain;
     private String basePath;
-    private volatile ObsClient client;
     private String defaultAcl;
     private int multipartThreshold;
     private int multipartPartSize;
-    private ObsConfiguration clientConfiguration;
-    private Supplier<ObsConfiguration> clientConfigurationSupplier;
+    private FileStorageClientFactory<ObsClient> clientFactory;
 
-    /**
-     * 单例模式运行，不需要每次使用完再销毁了
-     */
-    public ObsClient getClient() {
-        if (client == null) {
-            synchronized (this) {
-                if (client == null) {
-                    if (clientConfiguration == null) {
-                        if (clientConfigurationSupplier != null) {
-                            clientConfiguration = clientConfigurationSupplier.get();
-                        }
-                        if (clientConfiguration == null) {
-                            clientConfiguration = new ObsConfiguration();
-                        }
-                    }
-                    if (StrUtil.isNotBlank(endPoint)) {
-                        clientConfiguration.setEndPoint(endPoint);
-                    }
-                    client = new ObsClient(accessKey,secretKey,null,clientConfiguration);
-                }
-            }
-        }
-        return client;
+    public HuaweiObsFileStorage(HuaweiObsConfig config,FileStorageClientFactory<ObsClient> clientFactory) {
+        platform = config.getPlatform();
+        bucketName = config.getBucketName();
+        domain = config.getDomain();
+        basePath = config.getBasePath();
+        defaultAcl = config.getDefaultAcl();
+        multipartThreshold = config.getMultipartThreshold();
+        multipartPartSize = config.getMultipartPartSize();
+        this.clientFactory = clientFactory;
     }
 
-    /**
-     * 仅在移除这个存储平台时调用
-     */
+    public ObsClient getClient() {
+        return clientFactory.getClient();
+    }
+
+
     @Override
     public void close() {
-        IoUtil.close(client);
+        clientFactory.close();
     }
 
-   public String getFileKey(FileInfo fileInfo) {
+    public String getFileKey(FileInfo fileInfo) {
         return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
     }
 
@@ -120,7 +102,7 @@ public class HuaweiObsFileStorage implements FileStorage {
                     part.setUploadId(uploadId);
                     part.setInput(new ByteArrayInputStream(bytes));
                     part.setPartSize((long) bytes.length); // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为100 KB。
-                    part.setPartNumber(++i); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，OSS将返回InvalidArgument错误码。
+                    part.setPartNumber(++i); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，ObsClient将返回InvalidArgument错误码。
                     if (listener != null) {
                         part.setProgressListener(e -> listener.progress(progressSize.addAndGet(e.getTransferredBytes()),fileInfo.getSize()));
                     }
@@ -252,7 +234,7 @@ public class HuaweiObsFileStorage implements FileStorage {
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！platform：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
         }
     }
 
