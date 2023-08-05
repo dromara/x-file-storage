@@ -6,12 +6,10 @@ import com.obs.services.ObsClient;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 华为云 ObsClient 存储平台的 Client 工厂
  */
-@Slf4j
 @Getter
 @Setter
 @NoArgsConstructor
@@ -44,5 +42,6 @@ public class HuaweiObsFileStorageClientFactory implements FileStorageClientFacto
     @Override
     public void close() {
         IoUtil.close(client);
+        client = null;
     }
 }

@@ -39,16 +39,6 @@ public class ByteFileWrapper implements FileWrapper {
     }
 
     @Override
-    public void transferTo(File dest) {
-        throw new FileStorageRuntimeException("ByteFile 不支持 transferTo 方法");
-    }
-
-    @Override
-    public boolean supportTransfer() {
-        return false;
-    }
-
-    @Override
     public void close() throws Exception {
         if (inputStream != null) {
             inputStream.close();

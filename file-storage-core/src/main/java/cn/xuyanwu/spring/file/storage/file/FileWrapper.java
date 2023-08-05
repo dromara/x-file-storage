@@ -3,6 +3,7 @@ package cn.xuyanwu.spring.file.storage.file;
 
 import cn.xuyanwu.spring.file.storage.IOExceptionConsumer;
 import cn.xuyanwu.spring.file.storage.IOExceptionFunction;
+import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 
 import java.io.File;
 import java.io.IOException;
@@ -74,11 +75,14 @@ public interface FileWrapper extends AutoCloseable {
     /**
      * 移动文件
      */
-    void transferTo(File dest);
-
+    default void transferTo(File dest){
+        throw new FileStorageRuntimeException("当前 FileWrapper 不支持 transferTo 方法");
+    }
     /**
      * 是否支持移动文件
      */
-    boolean supportTransfer();
+    default boolean supportTransfer(){
+        return false;
+    }
 
 }

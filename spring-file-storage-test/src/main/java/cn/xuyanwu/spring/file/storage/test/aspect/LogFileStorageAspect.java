@@ -73,6 +73,9 @@ public class LogFileStorageAspect implements FileStorageAspect {
         log.info("下载缩略图文件 after -> {}",fileInfo);
     }
 
+    /**
+     * 是否支持对文件生成可以签名访问的 URL
+     */
     @Override
     public boolean isSupportPresignedUrlAround(IsSupportPresignedUrlAspectChain chain,FileStorage fileStorage) {
         log.info("是否支持对文件生成可以签名访问的 URL before -> {}",fileStorage.getPlatform());
@@ -103,6 +106,9 @@ public class LogFileStorageAspect implements FileStorageAspect {
         return res;
     }
 
+    /**
+     * 是否支持文件的访问控制列表，一般情况下只有对象存储支持该功能
+     */
     @Override
     public boolean isSupportAclAround(IsSupportAclAspectChain chain,FileStorage fileStorage) {
         log.info("是否支持文件的访问控制列表 before -> {}",fileStorage.getPlatform());

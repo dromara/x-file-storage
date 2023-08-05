@@ -14,24 +14,27 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 
 /**
- * URL文件包装适配器，兼容Spring的ClassPath路径、文件路径、HTTP路径等
+ * URI文件包装适配器，兼容Spring的ClassPath路径、文件路径、HTTP路径等
  */
 @Slf4j
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class URLFileWrapperAdapter implements FileWrapperAdapter {
+public class UriFileWrapperAdapter implements FileWrapperAdapter {
     private ContentTypeDetect contentTypeDetect;
 
     @Override
     public boolean isSupport(Object source) {
-        if (source instanceof URLFileWrapper) return true;
+        if (source instanceof UriFileWrapper) return true;
+        if (source instanceof URL) return true;
+        if (source instanceof URI) return true;
         if (source instanceof String) {
             try {
                 URLUtil.url((String) source);
@@ -44,24 +47,31 @@ public class URLFileWrapperAdapter implements FileWrapperAdapter {
 
     @Override
     public FileWrapper getFileWrapper(Object source,String name,String contentType,Long size) throws IOException {
-        if (source instanceof URLFileWrapper) {
-            return updateFileWrapper((URLFileWrapper) source,name,contentType,size);
-        } else {
-            URL url = URLUtil.url((String) source);
-            URLConnection conn = url.openConnection();
-            InputStream inputStream = IoUtil.toMarkSupportStream(conn.getInputStream());
-
-            if (name == null) name = getName(conn,url);
-            if (size == null) {
-                size = conn.getContentLengthLong();
-                if (size < 0) size = null;
-            }
-            URLFileWrapper wrapper = new URLFileWrapper(inputStream,name,contentType,size);
-            if (contentType == null) {
-                wrapper.getInputStreamMaskReset(in -> wrapper.setContentType(contentTypeDetect.detect(in,wrapper.getName())));
-            }
-            return handleSize(wrapper);
+        if (source instanceof UriFileWrapper) {
+            return updateFileWrapper((UriFileWrapper) source,name,contentType,size);
         }
+        URL url;
+        if (source instanceof URI) {
+            url = ((URI) source).toURL();
+        } else if (source instanceof String) {
+            url = URLUtil.url((String) source);
+        } else {
+            url = (URL) source;
+        }
+
+        URLConnection conn = url.openConnection();
+        InputStream inputStream = IoUtil.toMarkSupportStream(conn.getInputStream());
+
+        if (name == null) name = getName(conn,url);
+        if (size == null) {
+            size = conn.getContentLengthLong();
+            if (size < 0) size = null;
+        }
+        UriFileWrapper wrapper = new UriFileWrapper(inputStream,name,contentType,size);
+        if (contentType == null) {
+            wrapper.getInputStreamMaskReset(in -> wrapper.setContentType(contentTypeDetect.detect(in,wrapper.getName())));
+        }
+        return handleSize(wrapper);
     }
 
     public String getName(URLConnection conn,URL url) {

@@ -127,10 +127,5 @@ public class FileInfo implements Serializable {
      */
     private Date createTime;
 
-    /**
-     * 分片上传ID
-     */
-    private String uploadId;
-
     private static final long serialVersionUID = 1L;
 }

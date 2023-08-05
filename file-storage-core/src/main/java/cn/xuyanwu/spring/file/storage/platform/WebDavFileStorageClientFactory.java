@@ -8,14 +8,12 @@ import com.github.sardine.SardineFactory;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 
 /**
  * WebDAV 存储平台的 Client 工厂
  */
-@Slf4j
 @Getter
 @Setter
 @NoArgsConstructor

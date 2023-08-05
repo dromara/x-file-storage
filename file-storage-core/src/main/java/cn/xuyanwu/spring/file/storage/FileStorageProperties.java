@@ -28,64 +28,64 @@ public class FileStorageProperties {
     /**
      * 本地存储
      */
-    private List<LocalConfig> local = new ArrayList<>();
+    private List<? extends LocalConfig> local = new ArrayList<>();
     /**
      * 本地存储
      */
-    private List<LocalPlusConfig> localPlus = new ArrayList<>();
+    private List<? extends LocalPlusConfig> localPlus = new ArrayList<>();
     /**
      * 华为云 OBS
      */
-    private List<HuaweiObsConfig> huaweiObs = new ArrayList<>();
+    private List<? extends HuaweiObsConfig> huaweiObs = new ArrayList<>();
     /**
      * 阿里云 OSS
      */
-    private List<AliyunOssConfig> aliyunOss = new ArrayList<>();
+    private List<? extends AliyunOssConfig> aliyunOss = new ArrayList<>();
     /**
      * 七牛云 Kodo
      */
-    private List<QiniuKodoConfig> qiniuKodo = new ArrayList<>();
+    private List<? extends QiniuKodoConfig> qiniuKodo = new ArrayList<>();
     /**
      * 腾讯云 COS
      */
-    private List<TencentCosConfig> tencentCos = new ArrayList<>();
+    private List<? extends TencentCosConfig> tencentCos = new ArrayList<>();
     /**
      * 百度云 BOS
      */
-    private List<BaiduBosConfig> baiduBos = new ArrayList<>();
+    private List<? extends BaiduBosConfig> baiduBos = new ArrayList<>();
     /**
      * 又拍云 USS
      */
-    private List<UpyunUssConfig> upyunUSS = new ArrayList<>();
+    private List<? extends UpyunUssConfig> upyunUss = new ArrayList<>();
     /**
      * MinIO USS
      */
-    private List<MinioConfig> minio = new ArrayList<>();
+    private List<? extends MinioConfig> minio = new ArrayList<>();
 
     /**
      * Amazon S3
      */
-    private List<AmazonS3Config> amazonS3 = new ArrayList<>();
+    private List<? extends AmazonS3Config> amazonS3 = new ArrayList<>();
 
     /**
      * FTP
      */
-    private List<FtpConfig> ftp = new ArrayList<>();
+    private List<? extends FtpConfig> ftp = new ArrayList<>();
 
     /**
      * FTP
      */
-    private List<SftpConfig> sftp = new ArrayList<>();
+    private List<? extends SftpConfig> sftp = new ArrayList<>();
 
     /**
      * WebDAV
      */
-    private List<WebDavConfig> WebDav = new ArrayList<>();
+    private List<? extends WebDavConfig> WebDav = new ArrayList<>();
 
     /**
      * 谷歌云存储
      */
-    private List<GoogleCloudStorageConfig> googleCloud = new ArrayList<>();
+    private List<? extends GoogleCloudStorageConfig> googleCloudStorage = new ArrayList<>();
 
     /**
      * 基本的存储平台配置

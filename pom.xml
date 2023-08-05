@@ -50,7 +50,7 @@
 
     <properties>
         <java.version>1.8</java.version>
-        <hutool.version>5.8.16</hutool.version>
+        <hutool.version>5.8.21</hutool.version>
         <lombok.version>1.18.16</lombok.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
@@ -83,7 +83,7 @@
             <dependency>
                 <groupId>net.coobird</groupId>
                 <artifactId>thumbnailator</artifactId>
-                <version>0.4.19</version>
+                <version>0.4.20</version>
             </dependency>
             <!--糊涂工具类核心-->
             <dependency>
@@ -174,7 +174,7 @@
             <dependency>
                 <groupId>commons-net</groupId>
                 <artifactId>commons-net</artifactId>
-                <version>3.8.0</version>
+                <version>3.9.0</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>

@@ -38,7 +38,8 @@ public class FtpFileStorageClientFactory implements FileStorageClientFactory<Ftp
     private String serverLanguageCode;
     private String systemKey;
     private Boolean isActive;
-    private GenericObjectPool<Ftp> pool;
+    private GenericObjectPoolConfig<Ftp> poolConfig;
+    private volatile GenericObjectPool<Ftp> pool;
 
     public FtpFileStorageClientFactory(FtpConfig config) {
         platform = config.getPlatform();
@@ -52,13 +53,19 @@ public class FtpFileStorageClientFactory implements FileStorageClientFactory<Ftp
         serverLanguageCode = config.getServerLanguageCode();
         systemKey = config.getSystemKey();
         isActive = config.getIsActive();
-        GenericObjectPoolConfig<Ftp> poolConfig = config.getPool().toGenericObjectPoolConfig();
-        pool = new GenericObjectPool<>(new FtpPooledObjectFactory(this),poolConfig);
+        poolConfig = config.getPool().toGenericObjectPoolConfig();
     }
 
     @Override
     public Ftp getClient() {
         try {
+            if (pool == null) {
+                synchronized (this) {
+                    if (pool == null) {
+                        pool = new GenericObjectPool<>(new FtpPooledObjectFactory(this),poolConfig);
+                    }
+                }
+            }
             return pool.borrowObject();
         } catch (Exception e) {
             throw new FileStorageRuntimeException("获取 FTP Client 失败！",e);
@@ -76,7 +83,10 @@ public class FtpFileStorageClientFactory implements FileStorageClientFactory<Ftp
 
     @Override
     public void close() {
-        pool.close();
+        if (pool != null) {
+            pool.close();
+            pool = null;
+        }
     }
 
 

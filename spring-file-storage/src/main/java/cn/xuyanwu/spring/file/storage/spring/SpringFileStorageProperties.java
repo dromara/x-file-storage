@@ -1,5 +1,6 @@
 package cn.xuyanwu.spring.file.storage.spring;
 
+import cn.xuyanwu.spring.file.storage.FileStorageProperties;
 import cn.xuyanwu.spring.file.storage.FileStorageProperties.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 @Component
@@ -25,66 +27,110 @@ public class SpringFileStorageProperties {
      */
     private String thumbnailSuffix = ".min.jpg";
     /**
-     * 本地存储
+     * 启用 byte[] 文件包装适配器
      */
-    private List<SpringLocalConfig> local = new ArrayList<>();
+    private Boolean enableByteFileWrapper = true;
+    /**
+     * 启用 URI 文件包装适配器，包含 URL 和 String
+     */
+    private Boolean enableUriFileWrapper = true;
+    /**
+     * 启用 InputStream 文件包装适配器
+     */
+    private Boolean enableInputStreamFileWrapper = true;
+    /**
+     * 启用本地文件包装适配器
+     */
+    private Boolean enableLocalFileWrapper = true;
+    /**
+     * 启用 Multipart 文件包装适配器
+     */
+    private Boolean enableMultipartFileWrapper = true;
     /**
      * 本地存储
      */
-    private List<SpringLocalPlusConfigConfig> localPlus = new ArrayList<>();
+    private List<? extends SpringLocalConfig> local = new ArrayList<>();
+    /**
+     * 本地存储
+     */
+    private List<? extends SpringLocalPlusConfig> localPlus = new ArrayList<>();
     /**
      * 华为云 OBS
      */
-    private List<SpringHuaweiObsConfigConfig> huaweiObs = new ArrayList<>();
+    private List<? extends SpringHuaweiObsConfig> huaweiObs = new ArrayList<>();
     /**
      * 阿里云 OSS
      */
-    private List<SpringAliyunOssConfig> aliyunOss = new ArrayList<>();
+    private List<? extends SpringAliyunOssConfig> aliyunOss = new ArrayList<>();
     /**
      * 七牛云 Kodo
      */
-    private List<SpringQiniuKodoConfig> qiniuKodo = new ArrayList<>();
+    private List<? extends SpringQiniuKodoConfig> qiniuKodo = new ArrayList<>();
     /**
      * 腾讯云 COS
      */
-    private List<SpringTencentCosConfig> tencentCos = new ArrayList<>();
+    private List<? extends SpringTencentCosConfig> tencentCos = new ArrayList<>();
     /**
      * 百度云 BOS
      */
-    private List<SpringBaiduBosConfig> baiduBos = new ArrayList<>();
+    private List<? extends SpringBaiduBosConfig> baiduBos = new ArrayList<>();
     /**
      * 又拍云 USS
      */
-    private List<SpringUpyunUssConfig> upyunUss = new ArrayList<>();
+    private List<? extends SpringUpyunUssConfig> upyunUss = new ArrayList<>();
     /**
      * MinIO USS
      */
-    private List<SpringMinioConfig> minio = new ArrayList<>();
+    private List<? extends SpringMinioConfig> minio = new ArrayList<>();
 
     /**
      * Amazon S3
      */
-    private List<SpringAmazonS3Config> amazonS3 = new ArrayList<>();
+    private List<? extends SpringAmazonS3Config> amazonS3 = new ArrayList<>();
 
     /**
      * FTP
      */
-    private List<SpringFtpConfig> ftp = new ArrayList<>();
+    private List<? extends SpringFtpConfig> ftp = new ArrayList<>();
 
     /**
      * FTP
      */
-    private List<SpringSftpConfig> sftp = new ArrayList<>();
+    private List<? extends SpringSftpConfig> sftp = new ArrayList<>();
 
     /**
      * WebDAV
      */
-    private List<SpringWebDavConfig> WebDav = new ArrayList<>();
+    private List<? extends SpringWebDavConfig> WebDav = new ArrayList<>();
 
     /**
      * Google Cloud Storage
      */
-    private List<SpringGoogleCloudStorageConfig> googleCloudStorage = new ArrayList<>();
+    private List<? extends SpringGoogleCloudStorageConfig> googleCloudStorage = new ArrayList<>();
+
+
+    /**
+     * 转换成 FileStorageProperties ，并过滤掉没有启用的存储平台
+     */
+    public FileStorageProperties toFileStorageProperties() {
+        FileStorageProperties properties = new FileStorageProperties();
+        properties.setDefaultPlatform(defaultPlatform);
+        properties.setThumbnailSuffix(thumbnailSuffix);
+        properties.setLocal(local.stream().filter(SpringLocalConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setLocalPlus(localPlus.stream().filter(SpringLocalPlusConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setAliyunOss(aliyunOss.stream().filter(SpringAliyunOssConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setQiniuKodo(qiniuKodo.stream().filter(SpringQiniuKodoConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setTencentCos(tencentCos.stream().filter(SpringTencentCosConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setBaiduBos(baiduBos.stream().filter(SpringBaiduBosConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setUpyunUss(upyunUss.stream().filter(SpringUpyunUssConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setMinio(minio.stream().filter(SpringMinioConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setAmazonS3(amazonS3.stream().filter(SpringAmazonS3Config::getEnableStorage).collect(Collectors.toList()));
+        properties.setFtp(ftp.stream().filter(SpringFtpConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setSftp(sftp.stream().filter(SpringSftpConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setWebDav(WebDav.stream().filter(SpringWebDavConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setGoogleCloudStorage(googleCloudStorage.stream().filter(SpringGoogleCloudStorageConfig::getEnableStorage).collect(Collectors.toList()));
+        return properties;
+    }
 
     /**
      * 本地存储
@@ -111,7 +157,7 @@ public class SpringFileStorageProperties {
      */
     @Data
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringLocalPlusConfigConfig extends LocalPlusConfig {
+    public static class SpringLocalPlusConfig extends LocalPlusConfig {
         /**
          * 本地存储访问路径
          */
@@ -131,7 +177,7 @@ public class SpringFileStorageProperties {
      */
     @Data
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringHuaweiObsConfigConfig extends HuaweiObsConfig {
+    public static class SpringHuaweiObsConfig extends HuaweiObsConfig {
         /**
          * 启用存储
          */

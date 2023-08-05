@@ -9,12 +9,10 @@ import com.qcloud.cos.region.Region;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 腾讯云 COS 存储平台的 Client 工厂
  */
-@Slf4j
 @Getter
 @Setter
 @NoArgsConstructor

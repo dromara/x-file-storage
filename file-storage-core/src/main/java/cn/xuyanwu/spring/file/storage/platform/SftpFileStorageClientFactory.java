@@ -40,7 +40,8 @@ public class SftpFileStorageClientFactory implements FileStorageClientFactory<Sf
     private String privateKeyPath;
     private Charset charset;
     private Integer connectionTimeout;
-    private GenericObjectPool<Sftp> pool;
+    private GenericObjectPoolConfig<Sftp> poolConfig;
+    private volatile GenericObjectPool<Sftp> pool;
 
     public SftpFileStorageClientFactory(SftpConfig config) {
         platform = config.getPlatform();
@@ -51,13 +52,19 @@ public class SftpFileStorageClientFactory implements FileStorageClientFactory<Sf
         privateKeyPath = config.getPrivateKeyPath();
         charset = config.getCharset();
         connectionTimeout = config.getConnectionTimeout();
-        GenericObjectPoolConfig<Sftp> poolConfig = config.getPool().toGenericObjectPoolConfig();
-        pool = new GenericObjectPool<>(new SftpPooledObjectFactory(this),poolConfig);
+        poolConfig = config.getPool().toGenericObjectPoolConfig();
     }
 
     @Override
     public Sftp getClient() {
         try {
+            if (pool == null) {
+                synchronized (this) {
+                    if (pool == null) {
+                        pool = new GenericObjectPool<>(new SftpPooledObjectFactory(this),poolConfig);
+                    }
+                }
+            }
             return pool.borrowObject();
         } catch (Exception e) {
             throw new FileStorageRuntimeException("获取 SFTP Client 失败！",e);
@@ -75,7 +82,10 @@ public class SftpFileStorageClientFactory implements FileStorageClientFactory<Sf
 
     @Override
     public void close() {
-        pool.close();
+        if (pool != null) {
+            pool.close();
+            pool = null;
+        }
     }
 
 
