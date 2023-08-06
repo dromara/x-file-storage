@@ -32,7 +32,7 @@ Amazon S3、GoogleCloud Storage、金山云 KS3、美团云 MSS、京东云 OSS�
 
 后续即将支持 Samba、NFS
 
-最新版 `0.0.8` 包含了大量功能更新与问题修复，例如解决了内存占用过大问题，支持大文件上传、  [脱离 SpringBoot 单独使用](https://spring-file-storage.xuyanwu.cn/#/脱离SpringBoot单独使用) 等，AmazonS3 和 GoogleCloudStorage 存储平台配置名称与之前版本不兼容，查看 [更新记录](https://spring-file-storage.xuyanwu.cn/#/更新记录?id=0.8.0)
+最新版 `0.0.8` 包含了大量功能更新与问题修复，例如解决了内存占用过大问题，支持大文件上传、  [脱离 SpringBoot 单独使用](https://spring-file-storage.xuyanwu.cn/#/脱离SpringBoot单独使用) 等，AmazonS3 和 GoogleCloudStorage 存储平台配置名称与之前版本不兼容，查看 [更新记录](https://spring-file-storage.xuyanwu.cn/#/更新记录?id=1.0.0)
 
 > 通过 WebDAV 连接到 Alist 后，可以使用百度网盘、天翼云盘、阿里云盘、迅雷网盘等常见存储服务，查看 [Alist 支持的存储平台](https://alist-doc.nn.ci/docs/webdav)
 
