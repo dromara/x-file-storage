@@ -47,9 +47,7 @@ Gitee：https://gitee.com/XYW1171736840/spring-file-storage
 # 捐赠
 如果你觉得这个项目不错，可以点个 Star 或捐赠请作者吃包辣条~，不想打赏的话用支付宝扫最后一个码可以领取个红包，在此表示感谢^_^。
 
-<img src="https://spring-file-storage.xuyanwu.cn/assets/wx.png" style="height: 350px;margin-right: 20px" alt="微信">
-<img src="https://spring-file-storage.xuyanwu.cn/assets/zfb.jpg" style="height: 350px;margin-right: 20px" alt="支付宝">
-<img src="https://spring-file-storage.xuyanwu.cn/assets/zfb2.jpg" style="height: 350px" alt="支付宝2">
+<img src="https://spring-file-storage.xuyanwu.cn/assets/wx.png" height="300px" alt="微信"> <img src="https://spring-file-storage.xuyanwu.cn/assets/zfb.jpg" height="300px" alt="支付宝"> <img src="https://spring-file-storage.xuyanwu.cn/assets/zfb2.jpg" height="300px" alt="支付宝2">
 
 或者点击以下链接，将页面拉到最下方点击“捐赠”即可。
 
