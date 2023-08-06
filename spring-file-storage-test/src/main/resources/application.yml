@@ -80,7 +80,7 @@ spring:
         bucket-name: ??
         domain: ?? # 访问域名，注意“/”结尾，例如：http://abc.test.upcdn.net/
         base-path: hy/ # 基础路径
-    minio: # MinIO，由于 MinIO SDK 支持 AWS S3，其它兼容 AWS S3 协议的存储平台也都可配置在这里
+    minio: # MinIO，由于 MinIO SDK 支持 Amazon S3，其它兼容 Amazon S3 协议的存储平台也都可配置在这里
       - platform: minio-1 # 存储平台标识
         enable-storage: true  # 启用存储
         access-key: ??
@@ -89,8 +89,8 @@ spring:
         bucket-name: ??
         domain: ?? # 访问域名，注意“/”结尾，例如：http://minio.abc.com/abc/
         base-path: hy/ # 基础路径
-    aws-s3: # AWS S3，其它兼容 AWS S3 协议的存储平台也都可配置在这里
-      - platform: aws-s3-1 # 存储平台标识
+    amazon-s3: # Amazon S3，其它兼容 Amazon S3 协议的存储平台也都可配置在这里
+      - platform: amazon-s3-1 # 存储平台标识
         enable-storage: true  # 启用存储
         access-key: ??
         secret-key: ??
@@ -129,7 +129,7 @@ spring:
         domain: ?? # 访问域名，注意“/”结尾，例如：https://file.abc.com/
         base-path: webdav/ # 基础路径
         storage-path: / # 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
-    google-cloud: # 谷歌云存储
+    google-cloud-storage: # 谷歌云存储
       - platform: google-1 # 存储平台标识
         enable-storage: true  # 启用存储
         project-id: ?? # 项目 id

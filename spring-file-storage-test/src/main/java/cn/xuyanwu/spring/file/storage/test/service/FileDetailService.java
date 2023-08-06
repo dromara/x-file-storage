@@ -3,16 +3,15 @@ package cn.xuyanwu.spring.file.storage.test.service;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.Dict;
 import cn.hutool.core.util.StrUtil;
+import cn.xuyanwu.spring.file.storage.FileInfo;
+import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
+import cn.xuyanwu.spring.file.storage.test.mapper.FileDetailMapper;
+import cn.xuyanwu.spring.file.storage.test.model.FileDetail;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
-
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import cn.xuyanwu.spring.file.storage.test.mapper.FileDetailMapper;
-import cn.xuyanwu.spring.file.storage.test.model.FileDetail;
-import cn.xuyanwu.spring.file.storage.FileInfo;
-import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
 
 /**
  * 用来将文件上传记录保存到数据库，这里使用了 MyBatis-Plus 和 Hutool 工具类
@@ -26,7 +25,7 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper,FileDetail> 
      */
     @SneakyThrows
     @Override
-    public boolean record(FileInfo info) {
+    public boolean save(FileInfo info) {
         FileDetail detail = BeanUtil.copyProperties(info,FileDetail.class,"attr");
 
         //这是手动获 取附加属性字典 并转成 json 字符串，方便存储在数据库中
