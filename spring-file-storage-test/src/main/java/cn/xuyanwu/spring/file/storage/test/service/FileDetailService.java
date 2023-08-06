@@ -25,7 +25,7 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper,FileDetail> 
      */
     @SneakyThrows
     @Override
-    public boolean record(FileInfo info) {
+    public boolean save(FileInfo info) {
         FileDetail detail = BeanUtil.copyProperties(info,FileDetail.class,"attr");
 
         //这是手动获 取附加属性字典 并转成 json 字符串，方便存储在数据库中

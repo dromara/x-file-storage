@@ -1,6 +1,5 @@
 package cn.xuyanwu.spring.file.storage.file;
 
-import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -40,10 +39,4 @@ public class LocalFileWrapper implements FileWrapper {
         return inputStream;
     }
 
-    @Override
-    public void close() throws Exception {
-        if (inputStream != null) {
-            inputStream.close();
-        }
-    }
 }

@@ -24,32 +24,34 @@
 
 ### 简介
 在 SpringBoot 中通过简单的方式将文件存储到
-本地、FTP、SFTP、WebDAV、谷歌云存储、阿里云OSS、华为云OBS、七牛云Kodo、腾讯云COS、百度云 BOS、又拍云USS、MinIO、
-Amazon S3、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动云 EOS、沃云 OSS、
+本地、FTP、SFTP、WebDAV、阿里云 OSS、华为云 OBS、七牛云 Kodo、腾讯云 COS、百度云 BOS、又拍云 USS、MinIO、
+Amazon S3、GoogleCloud Storage、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动 云EOS、沃云 OSS、
 网易数帆 NOS、Ucloud US3、青云 QingStor、平安云 OBS、首云 OSS、IBM COS、其它兼容 S3 协议的平台
 
 查看 [所有支持的存储平台](https://spring-file-storage.xuyanwu.cn/#/存储平台)
 
 后续即将支持 Samba、NFS
 
-> 通过 WebDAV 连接到 Alist 后，可以使用百度网盘、天翼云盘、阿里云盘、迅雷网盘等常见存储服务，[查看 Alist 支持的存储平台](https://alist-doc.nn.ci/docs/webdav)
+最新版 `0.0.8` 包含了大量功能更新与问题修复，例如解决了内存占用过大问题，支持大文件上传、  [脱离 SpringBoot 单独使用](https://spring-file-storage.xuyanwu.cn/#/脱离SpringBoot单独使用) 等，AmazonS3 和 GoogleCloudStorage 存储平台配置名称与之前版本不兼容，查看 [更新记录](https://spring-file-storage.xuyanwu.cn/#/更新记录?id=0.8.0)
 
-`spring-file-storage` 模块是本体。
-
-`spring-file-storage-test` 模块是测试+使用演示，不需要的情况下可以直接删除。
+> 通过 WebDAV 连接到 Alist 后，可以使用百度网盘、天翼云盘、阿里云盘、迅雷网盘等常见存储服务，查看 [Alist 支持的存储平台](https://alist-doc.nn.ci/docs/webdav)
 
 GitHub：https://github.com/1171736840/spring-file-storage 
 <br />
 Gitee：https://gitee.com/XYW1171736840/spring-file-storage
 
+# 使用
 
-### 文档
-阅读 [文档](https://spring-file-storage.xuyanwu.cn) 开始使用！
+阅读 [快速入门](https://spring-file-storage.xuyanwu.cn/#/快速入门) 开始使用吧！
 
-### 捐赠
-如果你觉得这个项目不错，可以在右上角点个 Star 或捐赠请作者吃包辣条~，在此表示感谢^_^。
+# 捐赠
+如果你觉得这个项目不错，可以点个 Star 或捐赠请作者吃包辣条~，不想打赏的话用支付宝扫最后一个码可以领取个红包，在此表示感谢^_^。
 
-点击以下链接，将页面拉到最下方点击“捐赠”即可。
+<img src="https://spring-file-storage.xuyanwu.cn/assets/wx.png" style="height: 350px;margin-right: 20px" alt="微信">
+<img src="https://spring-file-storage.xuyanwu.cn/assets/zfb.jpg" style="height: 350px;margin-right: 20px" alt="支付宝">
+<img src="https://spring-file-storage.xuyanwu.cn/assets/zfb2.jpg" style="height: 350px" alt="支付宝2">
+
+或者点击以下链接，将页面拉到最下方点击“捐赠”即可。
 
 [Gitee上捐赠](https://gitee.com/XYW1171736840/spring-file-storage)
 

@@ -8,7 +8,7 @@ import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
  */
 public class DefaultFileRecorder implements FileRecorder {
     @Override
-    public boolean record(FileInfo fileInfo) {
+    public boolean save(FileInfo fileInfo) {
         return true;
     }
 

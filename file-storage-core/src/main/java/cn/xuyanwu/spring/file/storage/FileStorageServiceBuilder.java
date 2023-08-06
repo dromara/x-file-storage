@@ -376,13 +376,13 @@ public class FileStorageServiceBuilder {
     }
 
     /**
-     * 根据配置文件创建又 AmazonS3 存储平台
+     * 根据配置文件创建又 Amazon S3 存储平台
      */
     public static List<AmazonS3FileStorage> buildAmazonS3FileStorage(List<? extends AmazonS3Config> list,List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list," AmazonS3 ","com.amazonaws.services.s3.AmazonS3");
+        buildFileStorageDetect(list," Amazon S3 ","com.amazonaws.services.s3.AmazonS3");
         return list.stream().map(config -> {
-            log.info("加载 AmazonS3 存储平台：{}",config.getPlatform());
+            log.info("加载 Amazon S3 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<AmazonS3> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new AmazonS3FileStorageClientFactory(config));
             return new AmazonS3FileStorage(config,clientFactory);
         }).collect(Collectors.toList());
@@ -428,13 +428,13 @@ public class FileStorageServiceBuilder {
     }
 
     /**
-     * 根据配置文件创建 Google Cloud Storage 存储平台
+     * 根据配置文件创建 GoogleCloud Storage 存储平台
      */
     public static List<GoogleCloudStorageFileStorage> buildGoogleCloudStorageFileStorage(List<? extends GoogleCloudStorageConfig> list,List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list,"Google Cloud Storage ","com.google.cloud.storage.Storage");
+        buildFileStorageDetect(list,"GoogleCloud Storage ","com.google.cloud.storage.Storage");
         return list.stream().map(config -> {
-            log.info("加载 Google Cloud Storage 存储平台：{}",config.getPlatform());
+            log.info("加载 GoogleCloud Storage 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<Storage> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new GoogleCloudStorageFileStorageClientFactory(config));
             return new GoogleCloudStorageFileStorage(config,clientFactory);
         }).collect(Collectors.toList());

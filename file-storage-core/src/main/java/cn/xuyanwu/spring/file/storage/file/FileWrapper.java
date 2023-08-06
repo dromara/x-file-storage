@@ -12,7 +12,7 @@ import java.io.InputStream;
 /**
  * 文件包装接口
  */
-public interface FileWrapper extends AutoCloseable {
+public interface FileWrapper {
     /**
      * 获取文件名称
      */
@@ -75,13 +75,14 @@ public interface FileWrapper extends AutoCloseable {
     /**
      * 移动文件
      */
-    default void transferTo(File dest){
+    default void transferTo(File dest) {
         throw new FileStorageRuntimeException("当前 FileWrapper 不支持 transferTo 方法");
     }
+
     /**
      * 是否支持移动文件
      */
-    default boolean supportTransfer(){
+    default boolean supportTransfer() {
         return false;
     }
 

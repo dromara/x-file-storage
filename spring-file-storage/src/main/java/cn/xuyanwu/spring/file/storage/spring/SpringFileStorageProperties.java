@@ -104,7 +104,7 @@ public class SpringFileStorageProperties {
     private List<? extends SpringWebDavConfig> WebDav = new ArrayList<>();
 
     /**
-     * Google Cloud Storage
+     * GoogleCloud Storage
      */
     private List<? extends SpringGoogleCloudStorageConfig> googleCloudStorage = new ArrayList<>();
 
@@ -305,7 +305,7 @@ public class SpringFileStorageProperties {
     }
 
     /**
-     * Google Cloud Storage
+     * GoogleCloud Storage
      */
     @Data
     @EqualsAndHashCode(callSuper = true)

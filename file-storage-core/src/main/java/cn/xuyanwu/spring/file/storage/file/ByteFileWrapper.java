@@ -1,12 +1,10 @@
 package cn.xuyanwu.spring.file.storage.file;
 
-import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.InputStream;
 
 /**
@@ -36,12 +34,5 @@ public class ByteFileWrapper implements FileWrapper {
             inputStream = new ByteArrayInputStream(bytes);
         }
         return inputStream;
-    }
-
-    @Override
-    public void close() throws Exception {
-        if (inputStream != null) {
-            inputStream.close();
-        }
     }
 }

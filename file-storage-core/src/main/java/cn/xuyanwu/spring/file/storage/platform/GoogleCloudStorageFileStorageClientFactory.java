@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Google Cloud Storage 存储平台的 Client 工厂
+ * GoogleCloud Storage 存储平台的 Client 工厂
  */
 @Getter
 @Setter
@@ -42,7 +42,7 @@ public class GoogleCloudStorageFileStorageClientFactory implements FileStorageCl
                     try (InputStream in = URLUtil.url(credentialsPath).openStream()) {
                         credentialsFromStream = ServiceAccountCredentials.fromStream(in);
                     } catch (IOException e) {
-                        throw new FileStorageRuntimeException("Google Cloud Storage Platform 授权 key 文件获取失败！credentialsPath：" + credentialsPath);
+                        throw new FileStorageRuntimeException("GoogleCloud Storage Platform 授权 key 文件获取失败！credentialsPath：" + credentialsPath);
                     }
                     List<String> scopes = Collections.singletonList("https://www.googleapis.com/auth/cloud-platform");
                     ServiceAccountCredentials credentials = credentialsFromStream.toBuilder().setScopes(scopes).build();
@@ -60,7 +60,7 @@ public class GoogleCloudStorageFileStorageClientFactory implements FileStorageCl
             try {
                 client.close();
             } catch (Exception e) {
-                throw new FileStorageRuntimeException("关闭 Google Cloud Storage Client 失败！",e);
+                throw new FileStorageRuntimeException("关闭 GoogleCloud Storage Client 失败！",e);
             }
             client = null;
         }

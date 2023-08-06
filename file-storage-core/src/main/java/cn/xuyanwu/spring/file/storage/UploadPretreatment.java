@@ -1,9 +1,9 @@
 package cn.xuyanwu.spring.file.storage;
 
+import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.lang.Dict;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
-import cn.xuyanwu.spring.file.storage.file.ByteFileWrapperAdapter;
 import cn.xuyanwu.spring.file.storage.file.FileWrapper;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,7 +25,6 @@ import java.util.function.Consumer;
 @Accessors(chain = true)
 public class UploadPretreatment {
     private FileStorageService fileStorageService;
-    private ByteFileWrapperAdapter byteFileWrapperAdapter;
     /**
      * 要上传到的平台
      */
@@ -82,16 +81,6 @@ public class UploadPretreatment {
      * 上传进度监听
      */
     private ProgressListener progressListener;
-
-    /**
-     * 是否为分片上传
-     */
-    private boolean isPart = false;
-
-    /**
-     * 分片号
-     */
-    private Integer partNum;
 
     /**
      * 文件的访问控制列表，一般情况下只有对象存储支持该功能
@@ -312,7 +301,7 @@ public class UploadPretreatment {
             consumer.accept(builder);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             builder.toOutputStream(out);
-            fileWrapper = byteFileWrapperAdapter.getFileWrapper(out.toByteArray(),fileWrapper.getName(),null,null);
+            fileWrapper = fileStorageService.wrapper(out.toByteArray(),fileWrapper.getName());
             return this;
         } catch (IOException e) {
             throw new FileStorageRuntimeException("图片处理失败！",e);
@@ -363,6 +352,52 @@ public class UploadPretreatment {
     public UploadPretreatment clearThumbnail() {
         thumbnailBytes = null;
         return this;
+    }
+
+
+    /**
+     * 通过指定 file 生成缩略图，
+     * 如果 file 是 InputStream、FileWrapper 等可以自动关闭的对象，操作完成后会自动关闭
+     */
+    public UploadPretreatment thumbnailOf(boolean flag,Object file) {
+        if (flag) thumbnailOf(file);
+        return this;
+    }
+
+    /**
+     * 通过指定 file 生成缩略图，
+     * 如果 file 是 InputStream、FileWrapper 等可以自动关闭的对象，操作完成后会自动关闭
+     */
+    public UploadPretreatment thumbnailOf(Object file) {
+        try {
+            thumbnailBytes = IoUtil.readBytes(fileStorageService.wrapper(file).getInputStream());
+            return this;
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("生成缩略图失败！",e);
+        }
+    }
+
+    /**
+     * 通过指定 file 生成缩略图并进行图片处理，
+     * 可以进行裁剪、旋转、缩放、水印等操作，默认输出图片格式通过 thumbnailSuffix 获取，
+     * 如果 file 是 InputStream、FileWrapper 等可以自动关闭的对象，操作完成后会自动关闭
+     */
+    public UploadPretreatment thumbnailOf(boolean flag,Object file,Consumer<Thumbnails.Builder<? extends InputStream>> consumer) {
+        if (flag) thumbnailOf(file,consumer);
+        return this;
+    }
+
+    /**
+     * 通过指定 file 生成缩略图并进行图片处理，
+     * 可以进行裁剪、旋转、缩放、水印等操作，默认输出图片格式通过 thumbnailSuffix 获取，
+     * 如果 file 是 InputStream、FileWrapper 等可以自动关闭的对象，操作完成后会自动关闭
+     */
+    public UploadPretreatment thumbnailOf(Object file,Consumer<Thumbnails.Builder<? extends InputStream>> consumer) {
+        try {
+            return thumbnail(consumer,fileStorageService.wrapper(file).getInputStream());
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("生成缩略图失败！",e);
+        }
     }
 
     /**
@@ -438,24 +473,6 @@ public class UploadPretreatment {
     public UploadPretreatment thumbnail() {
         return thumbnail(200,200);
     }
-
-    /**
-     * 转换为分片上传
-     */
-    public UploadPretreatment part(boolean flag,Integer partNum) {
-        if (flag) part(partNum);
-        return this;
-    }
-
-    /**
-     * 转换为分片上传
-     */
-    public UploadPretreatment part(Integer partNum) {
-        isPart = true;
-        this.partNum = partNum;
-        return this;
-    }
-
 
     /**
      * 设置上传进度监听器

@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
- * Google Cloud Storage 存储
+ * GoogleCloud Storage 存储
  * @author Kytrun Xuyanwu
  * @version 1.0
  * {@code @date} 2022/11/4 9:56

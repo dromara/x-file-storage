@@ -10,7 +10,7 @@ public interface FileRecorder {
     /**
      * 保存文件记录
      */
-    boolean record(FileInfo fileInfo);
+    boolean save(FileInfo fileInfo);
 
     /**
      * 根据 url 获取文件记录

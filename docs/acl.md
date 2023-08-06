@@ -1,6 +1,6 @@
 # ACL 访问控制列表
 
-也叫预定义访问策略，目前仅 华为云 OBS、阿里云 OSS、腾讯云 COS、百度云 BOS、Amazon S3、Google Cloud Storage 平台支持
+也叫预定义访问策略，目前仅 华为云 OBS、阿里云 OSS、腾讯云 COS、百度云 BOS、Amazon S3、GoogleCloud Storage 平台支持
 
 ## 设置 ACL
 
@@ -92,7 +92,7 @@ fileStorageService.of(file).setFileAcl(CannedAccessControlList.Private).upload()
 fileStorageService.of(file).setFileAcl(CannedAccessControlList.Private).upload();
 ```
 
-#### **Google Cloud Storage**
+#### **GoogleCloud Storage**
 
 ```java
 //第一种：使用官方 SDK 中定义好的

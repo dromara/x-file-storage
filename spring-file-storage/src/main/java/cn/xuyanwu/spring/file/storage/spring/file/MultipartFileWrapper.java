@@ -63,11 +63,4 @@ public class MultipartFileWrapper implements FileWrapper {
         return true;
     }
 
-
-    @Override
-    public void close() throws Exception {
-        if (inputStream != null) {
-            inputStream.close();
-        }
-    }
 }

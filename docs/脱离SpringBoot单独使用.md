@@ -1,6 +1,18 @@
 # 脱离 SpringBoot 单独使用
 
-从 `0.8.0` 版本开始支持脱离 SpringBoot 单独使用
+从 `0.8.0` 版本开始支持脱离 `SpringBoot` 单独使用
+
+先引入本项目，注意这里是 `file-storage-core`，之后再参考 [快速入门](快速入门) 引入对应平台的依赖
+
+```xml
+<dependency>
+    <groupId>cn.xuyanwu</groupId>
+    <artifactId>file-storage-core</artifactId>
+    <version>0.8.0</version>
+</dependency>
+```
+
+最后手动初始化即可
 
 ```java
 //配置文件定义存储平台
