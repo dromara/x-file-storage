@@ -1,10 +1,9 @@
 package cn.xuyanwu.spring.file.storage.test;
 
-import cn.xuyanwu.spring.file.storage.EnableFileStorage;
+import cn.xuyanwu.spring.file.storage.spring.EnableFileStorage;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
 @EnableFileStorage
