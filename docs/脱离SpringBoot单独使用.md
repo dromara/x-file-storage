@@ -1,6 +1,6 @@
 # 脱离 SpringBoot 单独使用
 
-从 `0.8.0` 版本开始支持脱离 `SpringBoot` 单独使用
+从 `1.0.0` 版本开始支持脱离 `SpringBoot` 单独使用
 
 先引入本项目，注意这里是 `file-storage-core`，之后再参考 [快速入门](快速入门) 引入对应平台的依赖
 
@@ -8,7 +8,7 @@
 <dependency>
     <groupId>cn.xuyanwu</groupId>
     <artifactId>file-storage-core</artifactId>
-    <version>0.8.0</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 

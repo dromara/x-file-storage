@@ -32,7 +32,7 @@ Amazon S3、GoogleCloud Storage、金山云 KS3、美团云 MSS、京东云 OSS�
 
 后续即将支持 Samba、NFS
 
-最新版 `0.0.8` 包含了大量功能更新与问题修复，例如解决了内存占用过大问题，支持大文件上传、  [脱离 SpringBoot 单独使用](https://spring-file-storage.xuyanwu.cn/#/脱离SpringBoot单独使用) 等，AmazonS3 和 GoogleCloudStorage 存储平台配置名称与之前版本不兼容，查看 [更新记录](https://spring-file-storage.xuyanwu.cn/#/更新记录?id=0.8.0)
+最新版 `0.0.8` 包含了大量功能更新与问题修复，例如解决了内存占用过大问题，支持大文件上传、  [脱离 SpringBoot 单独使用](https://spring-file-storage.xuyanwu.cn/#/脱离SpringBoot单独使用) 等，AmazonS3 和 GoogleCloudStorage 存储平台配置名称与之前版本不兼容，查看 [更新记录](https://spring-file-storage.xuyanwu.cn/#/更新记录?id=1.0.0)
 
 > 通过 WebDAV 连接到 Alist 后，可以使用百度网盘、天翼云盘、阿里云盘、迅雷网盘等常见存储服务，查看 [Alist 支持的存储平台](https://alist-doc.nn.ci/docs/webdav)
 
@@ -47,9 +47,7 @@ Gitee：https://gitee.com/XYW1171736840/spring-file-storage
 # 捐赠
 如果你觉得这个项目不错，可以点个 Star 或捐赠请作者吃包辣条~，不想打赏的话用支付宝扫最后一个码可以领取个红包，在此表示感谢^_^。
 
-<img src="https://spring-file-storage.xuyanwu.cn/assets/wx.png" style="height: 350px;margin-right: 20px" alt="微信">
-<img src="https://spring-file-storage.xuyanwu.cn/assets/zfb.jpg" style="height: 350px;margin-right: 20px" alt="支付宝">
-<img src="https://spring-file-storage.xuyanwu.cn/assets/zfb2.jpg" style="height: 350px" alt="支付宝2">
+<img src="https://spring-file-storage.xuyanwu.cn/assets/wx.png" height="300px" alt="微信"> <img src="https://spring-file-storage.xuyanwu.cn/assets/zfb.jpg" height="300px" alt="支付宝"> <img src="https://spring-file-storage.xuyanwu.cn/assets/zfb2.jpg" height="300px" alt="支付宝2">
 
 或者点击以下链接，将页面拉到最下方点击“捐赠”即可。
 

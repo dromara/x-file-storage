@@ -124,7 +124,7 @@ public class FileStorageService {
         return new UploadAspectChain(aspectList,(_fileInfo,_pre,_fileStorage,_fileRecorder) -> {
             //真正开始保存
             if (_fileStorage.save(_fileInfo,_pre)) {
-                if (_fileRecorder.record(_fileInfo)) {
+                if (_fileRecorder.save(_fileInfo)) {
                     return _fileInfo;
                 }
             }
