@@ -366,6 +366,7 @@ public class FileStorageProperties {
         private String secretKey;
         private String region;
         private String endPoint;
+        private String protocol = "https";
         private String bucketName;
         /**
          * 访问域名

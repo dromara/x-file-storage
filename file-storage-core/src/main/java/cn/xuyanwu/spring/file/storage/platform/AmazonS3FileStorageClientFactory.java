@@ -2,6 +2,8 @@ package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileStorageProperties.AmazonS3Config;
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
@@ -23,6 +25,7 @@ public class AmazonS3FileStorageClientFactory implements FileStorageClientFactor
     private String secretKey;
     private String region;
     private String endPoint;
+    private Protocol protocol;
     private volatile AmazonS3 client;
 
     public AmazonS3FileStorageClientFactory(AmazonS3Config config) {
@@ -31,6 +34,7 @@ public class AmazonS3FileStorageClientFactory implements FileStorageClientFactor
         secretKey = config.getSecretKey();
         region = config.getRegion();
         endPoint = config.getEndPoint();
+        protocol = Protocol.valueOf(config.getProtocol().toUpperCase());
     }
 
     @Override
@@ -39,7 +43,8 @@ public class AmazonS3FileStorageClientFactory implements FileStorageClientFactor
             synchronized (this) {
                 if (client == null) {
                     AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
-                            .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey,secretKey)));
+                            .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey,secretKey)))
+                            .withClientConfiguration(new ClientConfiguration().withProtocol(protocol));
                     if (StrUtil.isNotBlank(endPoint)) {
                         builder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endPoint,region));
                     } else if (StrUtil.isNotBlank(region)) {
