@@ -26,7 +26,7 @@ public class MultipartFileWrapperAdapter implements FileWrapperAdapter {
             return updateFileWrapper((MultipartFileWrapper) source,name,contentType,size);
         } else {
             MultipartFile file = (MultipartFile) source;
-            if (name == null) name = file.getName();
+            if (name == null) name = file.getOriginalFilename();
             if (contentType == null) contentType = file.getContentType();
             if (size == null) size = file.getSize();
             return new MultipartFileWrapper(file,name,contentType,size);
