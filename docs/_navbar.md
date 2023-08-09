@@ -1,4 +1,5 @@
-* 文档版本 1.0.1
+* 文档版本 1.0.2
+  * [1.0.2](https://spring-file-storage.xuyanwu.cn/1.0.2/)
   * [1.0.1](https://spring-file-storage.xuyanwu.cn/1.0.1/)
   * [1.0.0](https://spring-file-storage.xuyanwu.cn/1.0.0/)
   * [0.7.0](https://spring-file-storage.xuyanwu.cn/0.7.0/)
