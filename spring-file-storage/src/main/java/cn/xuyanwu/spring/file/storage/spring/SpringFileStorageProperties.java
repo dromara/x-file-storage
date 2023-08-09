@@ -118,6 +118,7 @@ public class SpringFileStorageProperties {
         properties.setThumbnailSuffix(thumbnailSuffix);
         properties.setLocal(local.stream().filter(SpringLocalConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setLocalPlus(localPlus.stream().filter(SpringLocalPlusConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setHuaweiObs(huaweiObs.stream().filter(SpringHuaweiObsConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setAliyunOss(aliyunOss.stream().filter(SpringAliyunOssConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setQiniuKodo(qiniuKodo.stream().filter(SpringQiniuKodoConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setTencentCos(tencentCos.stream().filter(SpringTencentCosConfig::getEnableStorage).collect(Collectors.toList()));
