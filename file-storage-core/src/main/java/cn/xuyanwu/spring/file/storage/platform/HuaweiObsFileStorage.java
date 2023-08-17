@@ -1,7 +1,6 @@
 package cn.xuyanwu.spring.file.storage.platform;
 
 import cn.hutool.core.io.IoUtil;
-import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.FileStorageProperties.HuaweiObsConfig;
@@ -9,7 +8,7 @@ import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import com.obs.services.ObsClient;
-import com.obs.services.internal.IConvertor;
+import com.obs.services.internal.ObsConvertor;
 import com.obs.services.model.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -158,8 +157,8 @@ public class HuaweiObsFileStorage implements FileStorage {
         } else if (acl instanceof String || acl == null) {
             String sAcl = (String) acl;
             if (StrUtil.isEmpty(sAcl)) sAcl = defaultAcl;
-            IConvertor convertor = ReflectUtil.invoke(getClient(),"getIConvertor",bucketName);
-            return convertor.transCannedAcl(sAcl);
+            if (sAcl == null) return null;
+            return ObsConvertor.getInstance().transCannedAcl(sAcl);
         } else {
             throw new FileStorageRuntimeException("不支持的ACL：" + acl);
         }

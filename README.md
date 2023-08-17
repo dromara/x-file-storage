@@ -32,6 +32,8 @@ Amazon S3、GoogleCloud Storage、金山云 KS3、美团云 MSS、京东云 OSS�
 
 后续即将支持 Samba、NFS
 
+`1.0.3` 修复了 FileStorageClientFactory 未自动加载等问题，查看 [更新记录](https://spring-file-storage.xuyanwu.cn/#/更新记录?id=103)
+<br />
 `1.0.2` 修复了华为云 OBS 未加载的问题，查看 [更新记录](https://spring-file-storage.xuyanwu.cn/#/更新记录?id=102)
 <br />
 `1.0.1` 修复了 MultipartFile 无法正确获取文件名等问题，查看 [更新记录](https://spring-file-storage.xuyanwu.cn/#/更新记录?id=101)
