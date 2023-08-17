@@ -5,6 +5,7 @@ import cn.xuyanwu.spring.file.storage.FileStorageServiceBuilder;
 import cn.xuyanwu.spring.file.storage.aspect.FileStorageAspect;
 import cn.xuyanwu.spring.file.storage.file.FileWrapperAdapter;
 import cn.xuyanwu.spring.file.storage.platform.FileStorage;
+import cn.xuyanwu.spring.file.storage.platform.FileStorageClientFactory;
 import cn.xuyanwu.spring.file.storage.recorder.DefaultFileRecorder;
 import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
 import cn.xuyanwu.spring.file.storage.spring.file.MultipartFileWrapperAdapter;
@@ -93,13 +94,15 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
                                                  List<List<? extends FileStorage>> fileStorageLists,
                                                  List<FileStorageAspect> aspectList,
                                                  List<FileWrapperAdapter> fileWrapperAdapterList,
-                                                 ContentTypeDetect contentTypeDetect) {
+                                                 ContentTypeDetect contentTypeDetect,
+                                                 List<List<FileStorageClientFactory<?>>> clientFactoryList) {
 
         FileStorageServiceBuilder builder = FileStorageServiceBuilder.create(properties.toFileStorageProperties())
                 .setFileRecorder(fileRecorder)
                 .setAspectList(aspectList)
                 .setContentTypeDetect(contentTypeDetect)
-                .setFileWrapperAdapterList(fileWrapperAdapterList);
+                .setFileWrapperAdapterList(fileWrapperAdapterList)
+                .setClientFactoryList(clientFactoryList);
 
         fileStorageLists.forEach(builder::addFileStorage);
 

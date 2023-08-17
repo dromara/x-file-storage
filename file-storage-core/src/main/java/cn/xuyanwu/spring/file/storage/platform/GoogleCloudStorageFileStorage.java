@@ -130,8 +130,10 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
         } else if (acl instanceof String || acl == null) {
             String sAcl = (String) acl;
             if (StrUtil.isEmpty(sAcl)) sAcl = defaultAcl;
+            if (StrUtil.isEmpty(sAcl)) return null;
+            sAcl = sAcl.replace("-","_");
             for (PredefinedAcl item : PredefinedAcl.values()) {
-                if (item.toString().equalsIgnoreCase(sAcl.replace("-","_"))) {
+                if (item.toString().equalsIgnoreCase(sAcl)) {
                     return new AclWrapper(item);
                 }
             }
