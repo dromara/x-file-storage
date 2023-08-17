@@ -7,7 +7,7 @@
     <groupId>cn.xuyanwu</groupId>
     <artifactId>spring-file-storage-parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
 
     <name>spring-file-storage-parent</name>
     <description>A File Storage Service</description>
@@ -63,7 +63,7 @@
             <dependency>
                 <groupId>cn.xuyanwu</groupId>
                 <artifactId>file-storage-core</artifactId>
-                <version>1.0.2</version>
+                <version>1.0.3</version>
             </dependency>
             <!-- Apache commons-pool2 -->
             <dependency>
