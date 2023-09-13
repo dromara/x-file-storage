@@ -7,6 +7,7 @@ import cn.xuyanwu.spring.file.storage.FileStorageProperties;
 import cn.xuyanwu.spring.file.storage.ProgressListener;
 import cn.xuyanwu.spring.file.storage.UploadPretreatment;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
+import com.amazonaws.RequestClientOptions;
 import com.amazonaws.event.ProgressEventType;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
@@ -14,6 +15,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -113,7 +115,8 @@ public class AmazonS3FileStorage implements FileStorage {
                 if (fileAcl != null) client.setObjectAcl(bucketName,newFileKey,fileAcl);
                 if (listener != null) listener.finish();
             } else {
-                PutObjectRequest request = new PutObjectRequest(bucketName,newFileKey,in,metadata);
+                BufferedInputStream bin = new BufferedInputStream(in,RequestClientOptions.DEFAULT_STREAM_BUFFER_SIZE);
+                PutObjectRequest request = new PutObjectRequest(bucketName,newFileKey,bin,metadata);
                 request.setCannedAcl(fileAcl);
                 if (listener != null) {
                     AtomicLong progressSize = new AtomicLong();
