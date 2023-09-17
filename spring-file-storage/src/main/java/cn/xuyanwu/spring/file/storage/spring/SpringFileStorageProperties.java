@@ -43,6 +43,10 @@ public class SpringFileStorageProperties {
      */
     private Boolean enableLocalFileWrapper = true;
     /**
+     * 启用 HttpServletRequest 文件包装适配器
+     */
+    private Boolean enableHttpServletRequestFileWrapper = true;
+    /**
      * 启用 Multipart 文件包装适配器
      */
     private Boolean enableMultipartFileWrapper = true;

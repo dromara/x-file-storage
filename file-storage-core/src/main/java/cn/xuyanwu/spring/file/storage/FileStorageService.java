@@ -8,6 +8,8 @@ import cn.xuyanwu.spring.file.storage.aspect.*;
 import cn.xuyanwu.spring.file.storage.exception.FileStorageRuntimeException;
 import cn.xuyanwu.spring.file.storage.file.FileWrapper;
 import cn.xuyanwu.spring.file.storage.file.FileWrapperAdapter;
+import cn.xuyanwu.spring.file.storage.file.HttpServletRequestFileWrapper;
+import cn.xuyanwu.spring.file.storage.file.MultipartFormDataReader;
 import cn.xuyanwu.spring.file.storage.platform.FileStorage;
 import cn.xuyanwu.spring.file.storage.recorder.FileRecorder;
 import cn.xuyanwu.spring.file.storage.tika.ContentTypeDetect;
@@ -339,7 +341,7 @@ public class FileStorageService {
      * @param contentType 文件的 MIME 类型
      */
     public UploadPretreatment of(Object source,String name,String contentType) {
-        return self.of().setFileWrapper(self.wrapper(source,name,contentType));
+        return self.of(source,name,contentType,null);
     }
 
     /**
@@ -351,7 +353,17 @@ public class FileStorageService {
      * @param size        文件大小
      */
     public UploadPretreatment of(Object source,String name,String contentType,Long size) {
-        return self.of().setFileWrapper(self.wrapper(source,name,contentType,size));
+        FileWrapper wrapper = self.wrapper(source,name,contentType,size);
+        UploadPretreatment up = self.of().setFileWrapper(wrapper);
+        //这里针对 HttpServletRequestFileWrapper 特殊处理，加载读取到的缩略图文件
+        if (wrapper instanceof HttpServletRequestFileWrapper) {
+            MultipartFormDataReader.MultipartFormData data = ((HttpServletRequestFileWrapper) wrapper).getMultipartFormData();
+            if (data.getThFileBytes() != null) {
+                FileWrapper thWrapper = self.wrapper(data.getThFileBytes(),data.getThFileOriginalFilename(),data.getThFileContentType());
+                up.thumbnailOf(thWrapper);
+            }
+        }
+        return up;
     }
 
     /**

@@ -141,6 +141,11 @@
             <artifactId>hutool-core</artifactId>
             <version>5.8.21</version>
         </dependency>
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-http</artifactId>
+            <version>5.8.21</version>
+        </dependency>
 
         <dependency>
             <groupId>cn.xuyanwu</groupId>

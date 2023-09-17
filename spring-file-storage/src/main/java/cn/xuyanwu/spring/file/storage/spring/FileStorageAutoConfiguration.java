@@ -110,6 +110,7 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
         if (properties.getEnableUriFileWrapper()) builder.addUriFileWrapperAdapter();
         if (properties.getEnableInputStreamFileWrapper()) builder.addInputStreamFileWrapperAdapter();
         if (properties.getEnableLocalFileWrapper()) builder.addLocalFileWrapperAdapter();
+        if (properties.getEnableHttpServletRequestFileWrapper()) builder.addHttpServletRequestFileWrapperAdapter();
         if (properties.getEnableMultipartFileWrapper())
             builder.addFileWrapperAdapter(new MultipartFileWrapperAdapter());
         return builder.build();

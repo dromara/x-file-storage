@@ -15,6 +15,7 @@ import cn.xuyanwu.spring.file.storage.tika.ContentTypeDetect;
 import cn.xuyanwu.spring.file.storage.tika.DefaultTikaFactory;
 import cn.xuyanwu.spring.file.storage.tika.TikaContentTypeDetect;
 import cn.xuyanwu.spring.file.storage.tika.TikaFactory;
+import cn.xuyanwu.spring.file.storage.util.Tools;
 import com.aliyun.oss.OSS;
 import com.amazonaws.services.s3.AmazonS3;
 import com.baidubce.services.bos.BosClient;
@@ -165,6 +166,19 @@ public class FileStorageServiceBuilder {
     }
 
     /**
+     * 添加 HttpServletRequest 文件包装适配器
+     */
+    public FileStorageServiceBuilder addHttpServletRequestFileWrapperAdapter() {
+        if (!doesNotExistClass("javax.servlet.http.HttpServletRequest")) {
+            fileWrapperAdapterList.add(new JavaxHttpServletRequestFileWrapperAdapter());
+        }
+        if (!doesNotExistClass("jakarta.servlet.http.HttpServletRequest")) {
+            fileWrapperAdapterList.add(new JakartaHttpServletRequestFileWrapperAdapter());
+        }
+        return this;
+    }
+
+    /**
      * 添加全部的文件包装适配器
      */
     public FileStorageServiceBuilder addAllFileWrapperAdapter() {
@@ -172,6 +186,7 @@ public class FileStorageServiceBuilder {
         addInputStreamFileWrapperAdapter();
         addLocalFileWrapperAdapter();
         addUriFileWrapperAdapter();
+        addHttpServletRequestFileWrapperAdapter();
         return this;
     }
 

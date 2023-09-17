@@ -2,12 +2,19 @@ package cn.xuyanwu.spring.file.storage.test.controller;
 
 import cn.xuyanwu.spring.file.storage.FileInfo;
 import cn.xuyanwu.spring.file.storage.FileStorageService;
+import cn.xuyanwu.spring.file.storage.file.HttpServletRequestFileWrapper;
+import cn.xuyanwu.spring.file.storage.file.MultipartFormDataReader;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 
+
+@Slf4j
 @RestController
 public class FileDetailController {
 
@@ -47,5 +54,17 @@ public class FileDetailController {
         return fileStorageService.of(file)
                 .setPlatform("aliyun-oss-1")    //使用指定的存储平台
                 .upload();
+    }
+
+    /**
+     * 直接读取 HttpServletRequest 中的文件进行上传，成功返回文件信息
+     */
+    @PostMapping("/upload-request")
+    public FileInfo uploadPlatform(HttpServletRequest request) {
+        HttpServletRequestFileWrapper wrapper = (HttpServletRequestFileWrapper) fileStorageService.wrapper(request);
+        MultipartFormDataReader.MultipartFormData formData = wrapper.getMultipartFormData();
+        Map<String, String[]> parameterMap = formData.getParameterMap();
+        log.info("parameterMap：{}",parameterMap);
+        return fileStorageService.of(wrapper).upload();
     }
 }
