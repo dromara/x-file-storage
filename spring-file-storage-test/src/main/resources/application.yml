@@ -10,6 +10,11 @@ spring:
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+
+  servlet:
+    multipart:
+      resolve-lazily: true # multipart 懒加载
+
   file-storage: #文件存储配置，不使用的情况下可以不写
     default-platform: local-plus-1 #默认使用的存储平台
     thumbnail-suffix: ".min.jpg" #缩略图后缀，例如【.min.jpg】【.png】
