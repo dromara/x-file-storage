@@ -11,7 +11,7 @@
 
     <name>spring-file-storage-parent</name>
     <description>A File Storage Service</description>
-    <url>https://github.com/1171736840/spring-file-storage</url>
+    <url>https://github.com/dromara/file4j</url>
 
     <licenses>
         <license>
@@ -28,9 +28,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git@github.com:1171736840/spring-file-storage.git</connection>
-        <developerConnection>scm:git:git@github.com:1171736840/spring-file-storage.git</developerConnection>
-        <url>git@github.com:1171736840/spring-file-storage.git</url>
+        <connection>scm:git:git@github.com:dromara/file4j.git</connection>
+        <developerConnection>scm:git:git@github.com:dromara/file4j.git</developerConnection>
+        <url>git@github.com:dromara/file4j.git</url>
     </scm>
 
 

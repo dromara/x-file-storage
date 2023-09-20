@@ -14,11 +14,11 @@ public class DefaultFileRecorder implements FileRecorder {
 
     @Override
     public FileInfo getByUrl(String url) {
-        throw new FileStorageRuntimeException("尚未实现 FileRecorder 接口，暂时无法使用此功能，参考文档：https://spring-file-storage.xuyanwu.cn/#/%E5%9F%BA%E7%A1%80%E5%8A%9F%E8%83%BD?id=%E4%BF%9D%E5%AD%98%E4%B8%8A%E4%BC%A0%E8%AE%B0%E5%BD%95");
+        throw new FileStorageRuntimeException("尚未实现 FileRecorder 接口，暂时无法使用此功能，参考文档：https://file4j.xuyanwu.cn/#/%E5%9F%BA%E7%A1%80%E5%8A%9F%E8%83%BD?id=%E4%BF%9D%E5%AD%98%E4%B8%8A%E4%BC%A0%E8%AE%B0%E5%BD%95");
     }
 
     @Override
     public boolean delete(String url) {
-        throw new FileStorageRuntimeException("尚未实现 FileRecorder 接口，暂时无法使用此功能，参考文档：https://spring-file-storage.xuyanwu.cn/#/%E5%9F%BA%E7%A1%80%E5%8A%9F%E8%83%BD?id=%E4%BF%9D%E5%AD%98%E4%B8%8A%E4%BC%A0%E8%AE%B0%E5%BD%95");
+        throw new FileStorageRuntimeException("尚未实现 FileRecorder 接口，暂时无法使用此功能，参考文档：https://file4j.xuyanwu.cn/#/%E5%9F%BA%E7%A1%80%E5%8A%9F%E8%83%BD?id=%E4%BF%9D%E5%AD%98%E4%B8%8A%E4%BC%A0%E8%AE%B0%E5%BD%95");
     }
 }
