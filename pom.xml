@@ -68,6 +68,8 @@
         <esdk-obs-java.version>3.22.12</esdk-obs-java.version>
         <google-cloud-storage.version>2.20.1</google-cloud-storage.version>
         <hutool.version>5.8.22</hutool.version>
+        <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
+        <jakarta.servlet-api.version>5.0.0</jakarta.servlet-api.version>
         <jsch.version>0.1.55</jsch.version>
         <lombok.version>1.18.16</lombok.version>
         <minio.version>8.5.2</minio.version>
@@ -95,7 +97,7 @@
             <dependency>
                 <groupId>javax.servlet</groupId>
                 <artifactId>javax.servlet-api</artifactId>
-                <version>4.0.1</version>
+                <version>${javax.servlet-api.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
@@ -103,7 +105,7 @@
             <dependency>
                 <groupId>jakarta.servlet</groupId>
                 <artifactId>jakarta.servlet-api</artifactId>
-                <version>5.0.0</version>
+                <version>${jakarta.servlet-api.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
