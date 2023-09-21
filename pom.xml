@@ -50,12 +50,32 @@
 
     <properties>
         <java.version>1.8</java.version>
-        <hutool.version>5.8.22</hutool.version>
-        <lombok.version>1.18.16</lombok.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Spring 组件 -->
+        <spring-boot.version>2.7.2</spring-boot.version>
+
+        <!-- 第三方SDK -->
+        <aliyun-sdk-oss.version>3.16.1</aliyun-sdk-oss.version>
+        <aws-java-sdk-s3.version>1.12.429</aws-java-sdk-s3.version>
+        <bce-java-sdk.version>0.10.251</bce-java-sdk.version>
+        <commons-net.version>3.9.0</commons-net.version>
+        <commons-pool2.version>2.11.1</commons-pool2.version>
+        <cos_api.version>5.6.137</cos_api.version>
+        <esdk-obs-java.version>3.22.12</esdk-obs-java.version>
+        <google-cloud-storage.version>2.20.1</google-cloud-storage.version>
+        <hutool.version>5.8.22</hutool.version>
+        <jsch.version>0.1.55</jsch.version>
+        <lombok.version>1.18.16</lombok.version>
+        <minio.version>8.5.2</minio.version>
+        <qiniu-java-sdk.version>7.12.1</qiniu-java-sdk.version>
+        <sardine.version>5.10</sardine.version>
+        <thumbnailator.version>0.4.20</thumbnailator.version>
+        <tika-core.version>2.4.1</tika-core.version>
+        <upyun-java-sdk.version>4.2.3</upyun-java-sdk.version>
     </properties>
 
     <dependencyManagement>
@@ -63,7 +83,7 @@
             <dependency>
                 <groupId>cn.xuyanwu</groupId>
                 <artifactId>file-storage-core</artifactId>
-                <version>1.0.3</version>
+                <version>${project.version}</version>
             </dependency>
             <!-- javax.servlet-api -->
             <dependency>
@@ -85,7 +105,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-pool2</artifactId>
-                <version>2.11.1</version>
+                <version>${commons-pool2.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
@@ -93,13 +113,13 @@
             <dependency>
                 <groupId>org.apache.tika</groupId>
                 <artifactId>tika-core</artifactId>
-                <version>2.4.1</version>
+                <version>${tika-core.version}</version>
             </dependency>
             <!-- 图片处理 https://github.com/coobird/thumbnailator -->
             <dependency>
                 <groupId>net.coobird</groupId>
                 <artifactId>thumbnailator</artifactId>
-                <version>0.4.20</version>
+                <version>${thumbnailator.version}</version>
             </dependency>
             <!--糊涂工具类核心-->
             <dependency>
@@ -117,25 +137,26 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-web</artifactId>
+                <version>${spring-boot.version}</version>
                 <scope>provided</scope>
-                <version>2.7.2</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-configuration-processor</artifactId>
+                <version>${spring-boot.version}</version>
                 <optional>true</optional>
-                <version>2.7.2</version>
             </dependency>
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
+                <scope>provided</scope>
             </dependency>
             <!-- 华为云 OBS -->
             <dependency>
                 <groupId>com.huaweicloud</groupId>
                 <artifactId>esdk-obs-java</artifactId>
-                <version>3.22.12</version>
+                <version>${esdk-obs-java.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
@@ -143,7 +164,7 @@
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk-s3</artifactId>
-                <version>1.12.429</version>
+                <version>${aws-java-sdk-s3.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
@@ -151,7 +172,7 @@
             <dependency>
                 <groupId>com.aliyun.oss</groupId>
                 <artifactId>aliyun-sdk-oss</artifactId>
-                <version>3.16.1</version>
+                <version>${aliyun-sdk-oss.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
@@ -160,7 +181,7 @@
             <dependency>
                 <groupId>com.baidubce</groupId>
                 <artifactId>bce-java-sdk</artifactId>
-                <version>0.10.251</version>
+                <version>${bce-java-sdk.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
                 <exclusions>
@@ -174,7 +195,7 @@
             <dependency>
                 <groupId>com.github.lookfirst</groupId>
                 <artifactId>sardine</artifactId>
-                <version>5.10</version>
+                <version>${sardine.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
@@ -182,7 +203,7 @@
             <dependency>
                 <groupId>com.jcraft</groupId>
                 <artifactId>jsch</artifactId>
-                <version>0.1.55</version>
+                <version>${jsch.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
@@ -190,7 +211,7 @@
             <dependency>
                 <groupId>commons-net</groupId>
                 <artifactId>commons-net</artifactId>
-                <version>3.9.0</version>
+                <version>${commons-net.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
@@ -198,7 +219,7 @@
             <dependency>
                 <groupId>io.minio</groupId>
                 <artifactId>minio</artifactId>
-                <version>8.5.2</version>
+                <version>${minio.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
@@ -206,7 +227,7 @@
             <dependency>
                 <groupId>com.upyun</groupId>
                 <artifactId>java-sdk</artifactId>
-                <version>4.2.3</version>
+                <version>${upyun-java-sdk.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
@@ -214,7 +235,7 @@
             <dependency>
                 <groupId>com.qcloud</groupId>
                 <artifactId>cos_api</artifactId>
-                <version>5.6.137</version>
+                <version>${cos_api.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
@@ -222,7 +243,7 @@
             <dependency>
                 <groupId>com.qiniu</groupId>
                 <artifactId>qiniu-java-sdk</artifactId>
-                <version>7.12.1</version>
+                <version>${qiniu-java-sdk.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
@@ -230,7 +251,7 @@
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-storage</artifactId>
-                <version>2.20.1</version>
+                <version>${google-cloud-storage.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
