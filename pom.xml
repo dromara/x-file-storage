@@ -82,6 +82,12 @@
         <dependencies>
             <dependency>
                 <groupId>cn.xuyanwu</groupId>
+                <artifactId>spring-file-storage</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>cn.xuyanwu</groupId>
                 <artifactId>file-storage-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
