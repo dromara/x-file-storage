@@ -4,14 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>cn.xuyanwu</groupId>
-    <artifactId>spring-file-storage-parent</artifactId>
+    <groupId>org.dromara</groupId>
+    <artifactId>x-file-storage-parent</artifactId>
     <packaging>pom</packaging>
     <version>1.0.3</version>
 
-    <name>spring-file-storage-parent</name>
+    <name>x-file-storage-parent</name>
     <description>A File Storage Service</description>
-    <url>https://github.com/dromara/file4j</url>
+    <url>https://github.com/dromara/x-file-storage</url>
 
     <licenses>
         <license>
@@ -28,9 +28,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git@github.com:dromara/file4j.git</connection>
-        <developerConnection>scm:git:git@github.com:dromara/file4j.git</developerConnection>
-        <url>git@github.com:dromara/file4j.git</url>
+        <connection>scm:git:git@github.com:dromara/x-file-storage.git</connection>
+        <developerConnection>scm:git:git@github.com:dromara/x-file-storage.git</developerConnection>
+        <url>git@github.com:dromara/x-file-storage.git</url>
     </scm>
 
 
@@ -44,8 +44,8 @@
 
 
     <modules>
-        <module>spring-file-storage</module>
-        <module>file-storage-core</module>
+        <module>x-file-storage-spring</module>
+        <module>x-file-storage-core</module>
     </modules>
 
     <properties>
@@ -83,14 +83,14 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>cn.xuyanwu</groupId>
-                <artifactId>spring-file-storage</artifactId>
+                <groupId>org.dromara</groupId>
+                <artifactId>x-file-storage-spring</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>cn.xuyanwu</groupId>
-                <artifactId>file-storage-core</artifactId>
+                <groupId>org.dromara</groupId>
+                <artifactId>x-file-storage-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- javax.servlet-api -->

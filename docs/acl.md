@@ -31,7 +31,7 @@ fileStorageService.setThFileAcl(fileInfo,Constant.ACL.PUBLIC_READ);
 
 一般情况下使用 私有`PRIVATE`、公共读`PUBLIC_READ`、公共读写`PUBLIC_READ_WRITE`这三个就够了，这是所有支持 ACL 的平台都通用的
 
-有些平台也定义了一些私有的 ACL，请查看 `cn.xuyanwu.spring.file.storage.constant` 包下面的 `Constant` 接口中定义的常量
+有些平台也定义了一些私有的 ACL，请查看 `org.dromara.x.file.storage.core.constant` 包下面的 `Constant` 接口中定义的常量
 
 因为这样设置的 ACL 都是字符串，可以方便的保存到数据库中，所以推荐使用这种方式
 
