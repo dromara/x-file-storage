@@ -7,7 +7,7 @@
 ```xml
 <dependency>
     <groupId>org.dromara</groupId>
-    <artifactId>x-storage-core</artifactId>
+    <artifactId>x-file-storage-core</artifactId>
     <version>1.0.3</version>
 </dependency>
 ```

@@ -87,7 +87,7 @@ Gitee：https://gitee.com/dromara/x-file-storage
 <!-- 引入本项目 -->
 <dependency>
     <groupId>org.dromara</groupId>
-    <artifactId>x-file-storage</artifactId>
+    <artifactId>x-file-storage-spring</artifactId>
     <version>1.0.3</version>
 </dependency>
 <!-- 引入 阿里云 OSS SDK，如果使用其它存储平台，就引入对应的 SDK  -->
