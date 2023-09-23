@@ -51,7 +51,7 @@ Gitee：https://gitee.com/dromara/x-file-storage
 
 这里是简要的更新记录，查看 [详细的更新记录](更新记录)
 
-`2.0.0` 更改项目名、更改包名、优化项目结构、捐赠至 [dromara](https://dromara.org/zh) 开源社区，查看 [更新记录](更新记录?id=_200)
+`2.0.0` 更改项目名、包名，优化项目结构、捐赠至 [dromara](https://dromara.org/zh) 开源社区，查看 [更新记录](更新记录?id=_200)
 <br />
 `1.0.3` 修复了 FileStorageClientFactory 未自动加载等问题，查看 [更新记录](更新记录?id=_103)
 <br />
