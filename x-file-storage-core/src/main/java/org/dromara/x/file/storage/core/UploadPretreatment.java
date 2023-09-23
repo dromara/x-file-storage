@@ -14,6 +14,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -285,6 +286,22 @@ public class UploadPretreatment {
     }
 
     /**
+     * 设置附加属性
+     */
+    public UploadPretreatment putAttrAll(boolean flag,Map<String, Object> attr) {
+        if (flag) putAttrAll(attr);
+        return this;
+    }
+
+    /**
+     * 设置附加属性
+     */
+    public UploadPretreatment putAttrAll(Map<String, Object> attr) {
+        getAttr().putAll(attr);
+        return this;
+    }
+
+    /**
      * 进行图片处理，可以进行裁剪、旋转、缩放、水印等操作
      */
     public UploadPretreatment image(boolean flag,Consumer<Thumbnails.Builder<? extends InputStream>> consumer) {
@@ -498,7 +515,7 @@ public class UploadPretreatment {
      *
      * @param progressListener 提供两个参数，第一个是 progressSize已传输字节数，第二个是 allSize总字节数
      */
-    public UploadPretreatment setProgressMonitor(boolean flag,BiConsumer<Long,Long> progressListener) {
+    public UploadPretreatment setProgressMonitor(boolean flag,BiConsumer<Long, Long> progressListener) {
         if (flag) setProgressMonitor(progressListener);
         return this;
     }
@@ -508,7 +525,7 @@ public class UploadPretreatment {
      *
      * @param progressListener 提供两个参数，第一个是 progressSize已传输字节数，第二个是 allSize总字节数
      */
-    public UploadPretreatment setProgressMonitor(BiConsumer<Long,Long> progressListener) {
+    public UploadPretreatment setProgressMonitor(BiConsumer<Long, Long> progressListener) {
         return setProgressMonitor(new ProgressListener() {
             @Override
             public void start() {
