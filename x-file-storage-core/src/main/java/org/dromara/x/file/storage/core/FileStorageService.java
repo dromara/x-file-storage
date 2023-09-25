@@ -274,7 +274,7 @@ public class FileStorageService {
     }
 
     /**
-     * 是否支持对文件生成可以签名访问的 URL
+     * 是否支持对文件的访问控制列表
      */
     public boolean isSupportAcl(FileStorage fileStorage) {
         if (fileStorage == null) return false;
