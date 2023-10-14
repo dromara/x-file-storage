@@ -66,11 +66,11 @@
 <!--        </dependency>-->
 
         <!-- Amazon S3 -->
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
-            <version>1.12.429</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.amazonaws</groupId>-->
+<!--            <artifactId>aws-java-sdk-s3</artifactId>-->
+<!--            <version>1.12.429</version>-->
+<!--        </dependency>-->
 
         <!-- MinIO -->
 <!--        <dependency>-->
@@ -122,11 +122,11 @@
         </dependency>
 
         <!-- 谷歌云 Google Cloud Platform Storage-->
-<!--        <dependency>-->
-<!--            <groupId>com.google.cloud</groupId>-->
-<!--            <artifactId>google-cloud-storage</artifactId>-->
-<!--            <version>2.20.1</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-storage</artifactId>
+            <version>2.20.1</version>
+        </dependency>
 
         <!--因存在较多冲突版本导致谷歌云无法使用，故引入独立版本-->
 <!--        <dependency>-->

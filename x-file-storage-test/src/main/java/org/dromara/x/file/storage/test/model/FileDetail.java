@@ -111,6 +111,30 @@ public class FileDetail {
     private String objectType;
 
     /**
+     * 文件元数据
+     */
+    @TableField(value = "metadata")
+    private String metadata;
+
+    /**
+     * 文件用户元数据
+     */
+    @TableField(value = "user_metadata")
+    private String userMetadata;
+
+    /**
+     * 缩略图元数据
+     */
+    @TableField(value = "th_metadata")
+    private String thMetadata;
+
+    /**
+     * 缩略图用户元数据
+     */
+    @TableField(value = "th_user_metadata")
+    private String thUserMetadata;
+
+    /**
      * 附加属性
      */
     @TableField(value = "attr")
@@ -153,6 +177,14 @@ public class FileDetail {
     public static final String COL_OBJECT_ID = "object_id";
 
     public static final String COL_OBJECT_TYPE = "object_type";
+
+    public static final String COL_METADATA = "metadata";
+
+    public static final String COL_USER_METADATA = "user_metadata";
+
+    public static final String COL_TH_METADATA = "th_metadata";
+
+    public static final String COL_TH_USER_METADATA = "th_user_metadata";
 
     public static final String COL_ATTR = "attr";
 

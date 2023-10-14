@@ -1,9 +1,11 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.qiniu.common.QiniuException;
 import com.qiniu.storage.BucketManager;
 import com.qiniu.storage.UploadManager;
+import com.qiniu.util.StringMap;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -79,13 +81,13 @@ public class QiniuKodoFileStorage implements FileStorage {
             UploadManager uploadManager = client.getUploadManager();
             String token = client.getAuth().uploadToken(bucketName);
             uploadManager.put(listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize()),
-                    newFileKey,token,null,fileInfo.getContentType());
+                    newFileKey,token,getObjectMetadata(fileInfo),fileInfo.getContentType());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
-                uploadManager.put(new ByteArrayInputStream(thumbnailBytes),newThFileKey,token,null,fileInfo.getThContentType());
+                uploadManager.put(new ByteArrayInputStream(thumbnailBytes),newThFileKey,token,getThObjectMetadata(fileInfo),fileInfo.getThContentType());
             }
 
             return true;
@@ -96,6 +98,34 @@ public class QiniuKodoFileStorage implements FileStorage {
             }
             throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
         }
+    }
+
+    /**
+     * 获取对象的元数据
+     */
+    public StringMap getObjectMetadata(FileInfo fileInfo) {
+        StringMap params = new StringMap();
+        if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
+            fileInfo.getMetadata().forEach(params::put);
+        }
+        if (CollUtil.isNotEmpty(fileInfo.getUserMetadata())) {
+            fileInfo.getUserMetadata().forEach((key,value) -> params.put(key.startsWith("x-qn-meta-") ? key : ("x-qn-meta-" + key),value));
+        }
+        return params;
+    }
+
+    /**
+     * 获取缩略图对象的元数据
+     */
+    public StringMap getThObjectMetadata(FileInfo fileInfo) {
+        StringMap params = new StringMap();
+        if (CollUtil.isNotEmpty(fileInfo.getThMetadata())) {
+            fileInfo.getThMetadata().forEach(params::put);
+        }
+        if (CollUtil.isNotEmpty(fileInfo.getThUserMetadata())) {
+            fileInfo.getThUserMetadata().forEach((key,value) -> params.put(key.startsWith("x-qn-meta-") ? key : ("x-qn-meta-" + key),value));
+        }
+        return params;
     }
 
     @Override
@@ -114,6 +144,11 @@ public class QiniuKodoFileStorage implements FileStorage {
         if (StrUtil.isBlank(fileInfo.getThUrl())) return null;
         int deadline = (int) (expiration.getTime() / 1000);
         return getClient().getAuth().privateDownloadUrlWithDeadline(fileInfo.getThUrl(),deadline);
+    }
+
+    @Override
+    public boolean isSupportMetadata() {
+        return true;
     }
 
     @Override

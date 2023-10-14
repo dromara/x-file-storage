@@ -20,13 +20,17 @@
     <result column="th_content_type" jdbcType="VARCHAR" property="thContentType" />
     <result column="object_id" jdbcType="VARCHAR" property="objectId" />
     <result column="object_type" jdbcType="VARCHAR" property="objectType" />
+    <result column="metadata" jdbcType="LONGVARCHAR" property="metadata" />
+    <result column="user_metadata" jdbcType="LONGVARCHAR" property="userMetadata" />
+    <result column="th_metadata" jdbcType="LONGVARCHAR" property="thMetadata" />
+    <result column="th_user_metadata" jdbcType="LONGVARCHAR" property="thUserMetadata" />
     <result column="attr" jdbcType="LONGVARCHAR" property="attr" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
   </resultMap>
   <sql id="Base_Column_List">
     <!--@mbg.generated-->
-    id, url, `size`, filename, original_filename, base_path, `path`, ext, content_type,
-    platform, th_url, th_filename, th_size, th_content_type, object_id, object_type,
-    attr, create_time
+    id, url, `size`, filename, original_filename, base_path, `path`, ext, content_type, 
+    platform, th_url, th_filename, th_size, th_content_type, object_id, object_type, 
+    metadata, user_metadata, th_metadata, th_user_metadata, attr, create_time
   </sql>
 </mapper>

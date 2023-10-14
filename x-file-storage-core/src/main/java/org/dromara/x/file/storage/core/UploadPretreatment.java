@@ -14,6 +14,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -71,6 +73,31 @@ public class UploadPretreatment {
      * 缩略图 MIME 类型，如果不设置则在上传文件根据缩略图文件名自动识别
      */
     private String thContentType;
+
+    /**
+     * 文件元数据
+     */
+    private Map<String, String> metadata;
+
+    /**
+     * 文件用户元数据
+     */
+    private Map<String, String> userMetadata;
+
+    /**
+     * 缩略图元数据
+     */
+    private Map<String, String> thMetadata;
+
+    /**
+     * 缩略图用户元数据
+     */
+    private Map<String, String> thUserMetadata;
+
+    /**
+     * 不支持元数据时抛出异常
+     */
+    private Boolean notSupportMetadataThrowException;
 
     /**
      * 附加属性字典
@@ -261,6 +288,166 @@ public class UploadPretreatment {
     }
 
     /**
+     * 获取文件元数据
+     */
+    public Map<String, String> getMetadata() {
+        if (metadata == null) metadata = new LinkedHashMap<>();
+        return metadata;
+    }
+
+    /**
+     * 设置文件元数据
+     */
+    public UploadPretreatment putMetadata(boolean flag,String key,String value) {
+        if (flag) putMetadata(key,value);
+        return this;
+    }
+
+    /**
+     * 设置文件元数据
+     */
+    public UploadPretreatment putMetadata(String key,String value) {
+        getMetadata().put(key,value);
+        return this;
+    }
+
+    /**
+     * 设置文件元数据
+     */
+    public UploadPretreatment putMetadataAll(boolean flag,Map<String, String> metadata) {
+        if (flag) putMetadataAll(metadata);
+        return this;
+    }
+
+    /**
+     * 设置文件元数据
+     */
+    public UploadPretreatment putMetadataAll(Map<String, String> metadata) {
+        getMetadata().putAll(metadata);
+        return this;
+    }
+
+    /**
+     * 获取文件用户元数据
+     */
+    public Map<String, String> getUserMetadata() {
+        if (userMetadata == null) userMetadata = new LinkedHashMap<>();
+        return userMetadata;
+    }
+
+    /**
+     * 设置文件用户元数据
+     */
+    public UploadPretreatment putUserMetadata(boolean flag,String key,String value) {
+        if (flag) putUserMetadata(key,value);
+        return this;
+    }
+
+    /**
+     * 设置文件用户元数据
+     */
+    public UploadPretreatment putUserMetadata(String key,String value) {
+        getUserMetadata().put(key,value);
+        return this;
+    }
+
+    /**
+     * 设置文件用户元数据
+     */
+    public UploadPretreatment putUserMetadataAll(boolean flag,Map<String, String> metadata) {
+        if (flag) putUserMetadataAll(metadata);
+        return this;
+    }
+
+    /**
+     * 设置文件用户元数据
+     */
+    public UploadPretreatment putUserMetadataAll(Map<String, String> metadata) {
+        getUserMetadata().putAll(metadata);
+        return this;
+    }
+
+    /**
+     * 获取缩略图元数据
+     */
+    public Map<String, String> getThMetadata() {
+        if (thMetadata == null) thMetadata = new LinkedHashMap<>();
+        return thMetadata;
+    }
+
+    /**
+     * 设置缩略图元数据
+     */
+    public UploadPretreatment putThMetadata(boolean flag,String key,String value) {
+        if (flag) putThMetadata(key,value);
+        return this;
+    }
+
+    /**
+     * 设置缩略图元数据
+     */
+    public UploadPretreatment putThMetadata(String key,String value) {
+        getThMetadata().put(key,value);
+        return this;
+    }
+
+    /**
+     * 设置缩略图元数据
+     */
+    public UploadPretreatment putThMetadataAll(boolean flag,Map<String, String> metadata) {
+        if (flag) putThMetadataAll(metadata);
+        return this;
+    }
+
+    /**
+     * 设置缩略图元数据
+     */
+    public UploadPretreatment putThMetadataAll(Map<String, String> metadata) {
+        getThMetadata().putAll(metadata);
+        return this;
+    }
+
+    /**
+     * 获取缩略图用户元数据
+     */
+    public Map<String, String> getThUserMetadata() {
+        if (thUserMetadata == null) thUserMetadata = new LinkedHashMap<>();
+        return thUserMetadata;
+    }
+
+    /**
+     * 设置缩略图用户元数据
+     */
+    public UploadPretreatment putThUserMetadata(boolean flag,String key,String value) {
+        if (flag) putThUserMetadata(key,value);
+        return this;
+    }
+
+    /**
+     * 设置缩略图用户元数据
+     */
+    public UploadPretreatment putThUserMetadata(String key,String value) {
+        getThUserMetadata().put(key,value);
+        return this;
+    }
+
+    /**
+     * 设置缩略图用户元数据
+     */
+    public UploadPretreatment putThUserMetadataAll(boolean flag,Map<String, String> metadata) {
+        if (flag) putThUserMetadataAll(metadata);
+        return this;
+    }
+
+    /**
+     * 设置缩略图用户元数据
+     */
+    public UploadPretreatment putThUserMetadataAll(Map<String, String> metadata) {
+        getThUserMetadata().putAll(metadata);
+        return this;
+    }
+
+    /**
      * 获取附加属性字典
      */
     public Dict getAttr() {
@@ -281,6 +468,22 @@ public class UploadPretreatment {
      */
     public UploadPretreatment putAttr(String key,Object value) {
         getAttr().put(key,value);
+        return this;
+    }
+
+    /**
+     * 设置附加属性
+     */
+    public UploadPretreatment putAttrAll(boolean flag,Map<String, Object> attr) {
+        if (flag) putAttrAll(attr);
+        return this;
+    }
+
+    /**
+     * 设置附加属性
+     */
+    public UploadPretreatment putAttrAll(Map<String, Object> attr) {
+        getAttr().putAll(attr);
         return this;
     }
 
@@ -498,7 +701,7 @@ public class UploadPretreatment {
      *
      * @param progressListener 提供两个参数，第一个是 progressSize已传输字节数，第二个是 allSize总字节数
      */
-    public UploadPretreatment setProgressMonitor(boolean flag,BiConsumer<Long,Long> progressListener) {
+    public UploadPretreatment setProgressMonitor(boolean flag,BiConsumer<Long, Long> progressListener) {
         if (flag) setProgressMonitor(progressListener);
         return this;
     }
@@ -508,7 +711,7 @@ public class UploadPretreatment {
      *
      * @param progressListener 提供两个参数，第一个是 progressSize已传输字节数，第二个是 allSize总字节数
      */
-    public UploadPretreatment setProgressMonitor(BiConsumer<Long,Long> progressListener) {
+    public UploadPretreatment setProgressMonitor(BiConsumer<Long, Long> progressListener) {
         return setProgressMonitor(new ProgressListener() {
             @Override
             public void start() {

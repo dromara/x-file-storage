@@ -74,6 +74,13 @@ public interface FileStorage extends AutoCloseable {
     }
 
     /**
+     * 是否支持 Metadata，一般情况下只有对象存储支持该功能
+     */
+    default boolean isSupportMetadata() {
+        return false;
+    }
+
+    /**
      * 删除文件
      */
     boolean delete(FileInfo fileInfo);

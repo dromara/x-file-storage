@@ -67,7 +67,6 @@ Gitee：https://gitee.com/dromara/x-file-storage
 
 - 接入存储平台：HDFS、FastDFS、杉岩 OBS、Samba、NFS
 - 大文件手动分片上传
-- 上传时增加 MetaData
 - 复制或移动文件
 - 文件内容预加载
 - 上传无需强制获取 Size
@@ -87,7 +86,7 @@ Gitee：https://gitee.com/dromara/x-file-storage
 <!-- 引入本项目 -->
 <dependency>
     <groupId>org.dromara</groupId>
-    <artifactId>x-file-storage</artifactId>
+    <artifactId>x-file-storage-spring</artifactId>
     <version>1.0.3</version>
 </dependency>
 <!-- 引入 阿里云 OSS SDK，如果使用其它存储平台，就引入对应的 SDK  -->

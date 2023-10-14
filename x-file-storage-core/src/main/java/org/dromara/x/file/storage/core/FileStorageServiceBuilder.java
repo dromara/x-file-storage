@@ -261,6 +261,7 @@ public class FileStorageServiceBuilder {
         service.setFileRecorder(fileRecorder);
         service.setDefaultPlatform(properties.getDefaultPlatform());
         service.setThumbnailSuffix(properties.getThumbnailSuffix());
+        service.setUploadNotSupportMetadataThrowException(properties.getUploadNotSupportMetadataThrowException());
         service.setAspectList(new CopyOnWriteArrayList<>(aspectList));
         service.setFileWrapperAdapterList(new CopyOnWriteArrayList<>(fileWrapperAdapterList));
         service.setContentTypeDetect(contentTypeDetect);
