@@ -86,4 +86,30 @@ public interface Constant {
         String BUCKET_OWNER_READ = "bucket-owner-read";
         String BUCKET_OWNER_FULL_CONTROL = "bucket-owner-full-control";
     }
+
+
+    /**
+     * 元数据名称，这里列举的是一些相对通用的名称，但不一定每个存储平台都支持，具体支持情况自行查阅对应存储的相关文档
+     * <p>阿里云 OSS {@link com.aliyun.oss.model.ObjectMetadata} {@link com.aliyun.oss.internal.OSSHeaders}</p>
+     * <p>Amazon S3 {@link com.amazonaws.services.s3.model.ObjectMetadata} {@link com.amazonaws.services.s3.Headers}</p>
+     * <p>华为云 OBS {@link com.obs.services.model.ObjectMetadata }</p>
+     * <p>百度云 BOS {@link com.baidubce.services.bos.model.ObjectMetadata }</p>
+     * <p>腾讯云 COS {@link com.qcloud.cos.model.ObjectMetadata }</p>
+     * <p>七牛云 Kodo <a href="https://developer.qiniu.com/kodo/1312/upload">https://developer.qiniu.com/kodo/1312/upload</a></p>
+     * <p>又拍云 USS {@link com.upyun.RestManager.PARAMS}</p>
+     * <p>MinIO {@link io.minio.ObjectWriteArgs}</p>
+     * <p>GoogleCloud Storage {@link com.google.cloud.storage.BlobInfo} {@link com.google.cloud.storage.Storage.BlobField}</p>
+     */
+    interface Metadata {
+        String CACHE_CONTROL = "Cache-Control";
+        String CONTENT_DISPOSITION = "Content-Disposition";
+        String CONTENT_ENCODING = "Content-Encoding";
+        String CONTENT_LENGTH = "Content-Length";
+        String CONTENT_MD5 = "Content-MD5";
+        String CONTENT_TYPE = "Content-Type";
+        String CONTENT_LANGUAGE = "Content-Language";
+        String EXPIRES = "Expires";
+        String LAST_MODIFIED = "Last-Modified";
+    }
+
 }

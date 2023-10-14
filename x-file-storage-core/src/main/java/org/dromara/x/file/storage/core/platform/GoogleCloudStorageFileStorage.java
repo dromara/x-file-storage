@@ -1,5 +1,10 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.text.NamingCase;
+import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.*;
@@ -26,6 +31,7 @@ import java.util.stream.Collectors;
 
 /**
  * GoogleCloud Storage 存储
+ *
  * @author Kytrun Xuyanwu
  * @version 1.0
  * {@code @date} 2022/11/4 9:56
@@ -76,22 +82,14 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        AclWrapper fileAcl = getAcl(fileInfo.getFileAcl());
+        ArrayList<Storage.BlobWriteOption> optionList = new ArrayList<>();
+        BlobInfo.Builder blobInfoBuilder = BlobInfo.newBuilder(bucketName,newFileKey);
+        setMetadata(blobInfoBuilder,fileInfo,optionList);
         ProgressListener listener = pre.getProgressListener();
         Storage client = getClient();
 
         try (InputStream in = pre.getFileWrapper().getInputStream()) {
             // 上传原文件
-            ArrayList<Storage.BlobWriteOption> optionList = new ArrayList<>();
-            BlobInfo.Builder blobInfoBuilder = BlobInfo.newBuilder(bucketName,newFileKey).setContentType(fileInfo.getContentType());
-            if (fileAcl != null) {
-                if (fileAcl.getAclList() != null) {
-                    blobInfoBuilder.setAcl(fileAcl.getAclList());
-                } else if (fileAcl.getPredefinedAcl() != null) {
-                    optionList.add(Storage.BlobWriteOption.predefinedAcl(fileAcl.getPredefinedAcl()));
-                }
-            }
-
             client.createFrom(blobInfoBuilder.build(),
                     listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize()),
                     optionList.toArray(new Storage.BlobWriteOption[]{})
@@ -103,15 +101,8 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
                 String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
                 ArrayList<Storage.BlobWriteOption> thOptionList = new ArrayList<>();
-                BlobInfo.Builder thBlobInfoBuilder = BlobInfo.newBuilder(bucketName,newThFileKey).setContentType(fileInfo.getThContentType());
-                AclWrapper thFileAcl = getAcl(fileInfo.getThFileAcl());
-                if (thFileAcl != null) {
-                    if (thFileAcl.getAclList() != null) {
-                        thBlobInfoBuilder.setAcl(thFileAcl.getAclList());
-                    } else if (thFileAcl.getPredefinedAcl() != null) {
-                        thOptionList.add(Storage.BlobWriteOption.predefinedAcl(thFileAcl.getPredefinedAcl()));
-                    }
-                }
+                BlobInfo.Builder thBlobInfoBuilder = BlobInfo.newBuilder(bucketName,newThFileKey);
+                setThMetadata(thBlobInfoBuilder,fileInfo,thOptionList);
                 client.createFrom(thBlobInfoBuilder.build(),new ByteArrayInputStream(thumbnailBytes),thOptionList.toArray(new Storage.BlobWriteOption[]{}));
             }
             return true;
@@ -151,6 +142,44 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
             return new AclWrapper(aclList);
         } else {
             throw new FileStorageRuntimeException("不支持的ACL：" + acl);
+        }
+    }
+
+    /**
+     * 设置对象的元数据
+     */
+    public void setMetadata(BlobInfo.Builder blobInfoBuilder,FileInfo fileInfo,ArrayList<Storage.BlobWriteOption> optionList) {
+        blobInfoBuilder.setContentType(fileInfo.getContentType()).setMetadata(fileInfo.getUserMetadata());
+        if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
+            CopyOptions copyOptions = CopyOptions.create().ignoreCase().setFieldNameEditor(name -> NamingCase.toCamelCase(name,CharUtil.DASHED));
+            BeanUtil.copyProperties(fileInfo.getMetadata(),blobInfoBuilder,copyOptions);
+        }
+        AclWrapper fileAcl = getAcl(fileInfo.getFileAcl());
+        if (fileAcl != null) {
+            if (fileAcl.getAclList() != null) {
+                blobInfoBuilder.setAcl(fileAcl.getAclList());
+            } else if (fileAcl.getPredefinedAcl() != null) {
+                optionList.add(Storage.BlobWriteOption.predefinedAcl(fileAcl.getPredefinedAcl()));
+            }
+        }
+    }
+
+    /**
+     * 设置缩略图对象的元数据
+     */
+    public void setThMetadata(BlobInfo.Builder blobInfoBuilder,FileInfo fileInfo,ArrayList<Storage.BlobWriteOption> optionList) {
+        blobInfoBuilder.setContentType(fileInfo.getThContentType()).setMetadata(fileInfo.getThUserMetadata());
+        if (CollUtil.isNotEmpty(fileInfo.getThMetadata())) {
+            CopyOptions copyOptions = CopyOptions.create().ignoreCase().setFieldNameEditor(name -> NamingCase.toCamelCase(name,CharUtil.DASHED));
+            BeanUtil.copyProperties(fileInfo.getThMetadata(),blobInfoBuilder,copyOptions);
+        }
+        AclWrapper fileAcl = getAcl(fileInfo.getThFileAcl());
+        if (fileAcl != null) {
+            if (fileAcl.getAclList() != null) {
+                blobInfoBuilder.setAcl(fileAcl.getAclList());
+            } else if (fileAcl.getPredefinedAcl() != null) {
+                optionList.add(Storage.BlobWriteOption.predefinedAcl(fileAcl.getPredefinedAcl()));
+            }
         }
     }
 
@@ -208,6 +237,11 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
         BlobInfo blobInfo = BlobInfo.newBuilder(bucketName,getThFileKey(fileInfo)).build();
         long duration = expiration.getTime() - System.currentTimeMillis();
         return getClient().signUrl(blobInfo,duration,TimeUnit.MILLISECONDS).toString();
+    }
+
+    @Override
+    public boolean isSupportMetadata() {
+        return true;
     }
 
     /**

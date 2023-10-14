@@ -27,6 +27,10 @@ public class SpringFileStorageProperties {
      */
     private String thumbnailSuffix = ".min.jpg";
     /**
+     * 上传时不支持元数据时抛出异常
+     */
+    private Boolean uploadNotSupportMetadataThrowException = true;
+    /**
      * 启用 byte[] 文件包装适配器
      */
     private Boolean enableByteFileWrapper = true;
@@ -120,6 +124,7 @@ public class SpringFileStorageProperties {
         FileStorageProperties properties = new FileStorageProperties();
         properties.setDefaultPlatform(defaultPlatform);
         properties.setThumbnailSuffix(thumbnailSuffix);
+        properties.setUploadNotSupportMetadataThrowException(uploadNotSupportMetadataThrowException);
         properties.setLocal(local.stream().filter(SpringLocalConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setLocalPlus(localPlus.stream().filter(SpringLocalPlusConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setHuaweiObs(huaweiObs.stream().filter(SpringHuaweiObsConfig::getEnableStorage).collect(Collectors.toList()));

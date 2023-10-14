@@ -27,6 +27,10 @@ public class FileStorageProperties {
      */
     private String thumbnailSuffix = ".min.jpg";
     /**
+     * 上传时不支持元数据时抛出异常
+     */
+    private Boolean uploadNotSupportMetadataThrowException = true;
+    /**
      * 本地存储
      */
     private List<? extends LocalConfig> local = new ArrayList<>();

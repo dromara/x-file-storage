@@ -1,5 +1,6 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
 import com.amazonaws.RequestClientOptions;
@@ -78,14 +79,12 @@ public class AmazonS3FileStorage implements FileStorage {
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
         CannedAccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
+        ObjectMetadata metadata = getObjectMetadata(fileInfo);
         ProgressListener listener = pre.getProgressListener();
         AmazonS3 client = getClient();
         boolean useMultipartUpload = fileInfo.getSize() >= multipartThreshold;
         String uploadId = null;
         try (InputStream in = pre.getFileWrapper().getInputStream()) {
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(fileInfo.getSize());
-            metadata.setContentType(fileInfo.getContentType());
             if (useMultipartUpload) {//分片上传
                 uploadId = client.initiateMultipartUpload(new InitiateMultipartUploadRequest(bucketName,newFileKey,metadata)).getUploadId();
                 List<PartETag> partList = new ArrayList<>();
@@ -137,10 +136,7 @@ public class AmazonS3FileStorage implements FileStorage {
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
-                ObjectMetadata thMetadata = new ObjectMetadata();
-                thMetadata.setContentLength(thumbnailBytes.length);
-                thMetadata.setContentType(fileInfo.getThContentType());
-                PutObjectRequest request = new PutObjectRequest(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),thMetadata);
+                PutObjectRequest request = new PutObjectRequest(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),getThObjectMetadata(fileInfo));
                 request.setCannedAcl(getAcl(fileInfo.getThFileAcl()));
                 client.putObject(request);
             }
@@ -174,6 +170,34 @@ public class AmazonS3FileStorage implements FileStorage {
         } else {
             throw new FileStorageRuntimeException("不支持的ACL：" + acl);
         }
+    }
+
+    /**
+     * 获取对象的元数据
+     */
+    public ObjectMetadata getObjectMetadata(FileInfo fileInfo) {
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentLength(fileInfo.getSize());
+        metadata.setContentType(fileInfo.getContentType());
+        metadata.setUserMetadata(fileInfo.getUserMetadata());
+        if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
+            fileInfo.getMetadata().forEach(metadata::setHeader);
+        }
+        return metadata;
+    }
+
+    /**
+     * 获取缩略图对象的元数据
+     */
+    public ObjectMetadata getThObjectMetadata(FileInfo fileInfo) {
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentLength(fileInfo.getThSize());
+        metadata.setContentType(fileInfo.getThContentType());
+        metadata.setUserMetadata(fileInfo.getThUserMetadata());
+        if (CollUtil.isNotEmpty(fileInfo.getThMetadata())) {
+            fileInfo.getThMetadata().forEach(metadata::setHeader);
+        }
+        return metadata;
     }
 
     @Override
@@ -213,6 +237,11 @@ public class AmazonS3FileStorage implements FileStorage {
         String key = getThFileKey(fileInfo);
         if (key == null) return false;
         getClient().setObjectAcl(bucketName,key,oAcl);
+        return true;
+    }
+
+    @Override
+    public boolean isSupportMetadata() {
         return true;
     }
 

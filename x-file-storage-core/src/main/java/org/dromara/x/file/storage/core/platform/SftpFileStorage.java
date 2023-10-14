@@ -1,5 +1,6 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.ssh.JschRuntimeException;
 import cn.hutool.extra.ssh.Sftp;
@@ -84,6 +85,9 @@ public class SftpFileStorage implements FileStorage {
         fileInfo.setUrl(domain + newFileKey);
         if (fileInfo.getFileAcl() != null) {
             throw new FileStorageRuntimeException("文件上传失败，SFTP 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
+        }
+        if (CollUtil.isNotEmpty(fileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
+            throw new FileStorageRuntimeException("文件上传失败，SFTP 不支持设置 UserMetadata！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
         ProgressListener listener = pre.getProgressListener();
 

@@ -1,6 +1,11 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.text.NamingCase;
+import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baidubce.BceServiceException;
 import com.baidubce.services.bos.BosClient;
@@ -74,17 +79,12 @@ public class BaiduBosFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        CannedAccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
+        ObjectMetadata metadata = getObjectMetadata(fileInfo);
         ProgressListener listener = pre.getProgressListener();
         BosClient client = getClient();
         boolean useMultipartUpload = fileInfo.getSize() >= multipartThreshold;
         String uploadId = null;
         try (InputStream in = pre.getFileWrapper().getInputStream()) {
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(fileInfo.getSize());
-            metadata.setContentType(fileInfo.getContentType());
-            if (fileAcl != null) metadata.setxBceAcl(fileAcl.toString());
-
             if (useMultipartUpload) {//分片上传
                 InitiateMultipartUploadRequest initiateMultipartUploadRequest = new InitiateMultipartUploadRequest(bucketName,newFileKey);
                 initiateMultipartUploadRequest.setObjectMetadata(metadata);
@@ -134,12 +134,8 @@ public class BaiduBosFileStorage implements FileStorage {
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
-                ObjectMetadata thMetadata = new ObjectMetadata();
-                thMetadata.setContentLength(thumbnailBytes.length);
-                thMetadata.setContentType(fileInfo.getThContentType());
-                CannedAccessControlList thFileAcl = getAcl(fileInfo.getThFileAcl());
-                if (thFileAcl != null) thMetadata.setxBceAcl(thFileAcl.toString());
-                client.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),thMetadata);
+
+                client.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),getThObjectMetadata(fileInfo));
             }
 
             return true;
@@ -169,6 +165,41 @@ public class BaiduBosFileStorage implements FileStorage {
             throw new FileStorageRuntimeException("不支持的ACL：" + acl);
         }
         return null;
+    }
+
+
+    /**
+     * 获取对象的元数据
+     */
+    public ObjectMetadata getObjectMetadata(FileInfo fileInfo) {
+        CannedAccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentLength(fileInfo.getSize());
+        metadata.setContentType(fileInfo.getContentType());
+        if (fileAcl != null) metadata.setxBceAcl(fileAcl.toString());
+        metadata.setUserMetadata(fileInfo.getUserMetadata());
+        if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
+            CopyOptions copyOptions = CopyOptions.create().ignoreCase().setFieldNameEditor(name -> NamingCase.toCamelCase(name,CharUtil.DASHED));
+            BeanUtil.copyProperties(fileInfo.getMetadata(),metadata,copyOptions);
+        }
+        return metadata;
+    }
+
+    /**
+     * 获取缩略图对象的元数据
+     */
+    public ObjectMetadata getThObjectMetadata(FileInfo fileInfo) {
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentLength(fileInfo.getThSize());
+        metadata.setContentType(fileInfo.getThContentType());
+        CannedAccessControlList thFileAcl = getAcl(fileInfo.getThFileAcl());
+        if (thFileAcl != null) metadata.setxBceAcl(thFileAcl.toString());
+        metadata.setUserMetadata(fileInfo.getThUserMetadata());
+        if (CollUtil.isNotEmpty(fileInfo.getThMetadata())) {
+            CopyOptions copyOptions = CopyOptions.create().ignoreCase().setFieldNameEditor(name -> NamingCase.toCamelCase(name,CharUtil.DASHED));
+            BeanUtil.copyProperties(fileInfo.getThMetadata(),metadata,copyOptions);
+        }
+        return metadata;
     }
 
     @Override
@@ -210,6 +241,11 @@ public class BaiduBosFileStorage implements FileStorage {
         String key = getThFileKey(fileInfo);
         if (key == null) return false;
         getClient().setObjectAcl(bucketName,key,oAcl);
+        return true;
+    }
+
+    @Override
+    public boolean isSupportMetadata() {
         return true;
     }
 

@@ -84,6 +84,39 @@ class FileStorageServiceBaseTest {
 
     }
 
+
+    /**
+     * 对文件上传时传入 Metadata 进行测试
+     */
+    @Test
+    public void uploadUserMetadata() {
+
+        String filename = "image.jpg";
+        InputStream in = this.getClass().getClassLoader().getResourceAsStream(filename);
+
+        //是否支持 ACL
+        FileStorage storage = fileStorageService.getFileStorage();
+        boolean supportMetadata = fileStorageService.isSupportMetadata(storage);
+        if (!supportMetadata) {
+            System.out.println("不支持文件的访问控制列表");
+            return;
+        }
+        FileInfo fileInfo = fileStorageService.of(in)
+                .setName("file")
+                .setOriginalFilename(filename)
+                .setPath("test/")
+                .putMetadata(Constant.Metadata.CONTENT_DISPOSITION,"attachment;filename=DownloadFileName.jpg")
+                .putMetadata("Test-Not-Support","123456")//测试不支持的元数据
+                .putUserMetadata("role","666")
+                .putThMetadata(Constant.Metadata.CONTENT_DISPOSITION,"attachment;filename=DownloadThFileName.jpg")
+                .putThUserMetadata("role","777")
+                .thumbnail()
+                .upload();
+        Assert.notNull(fileInfo,"文件上传失败！");
+        log.info("文件上传成功：{}",fileInfo.toString());
+
+    }
+
     /**
      * 测试根据 url 上传文件
      */

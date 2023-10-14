@@ -37,6 +37,7 @@ public class FileStorageService {
     private CopyOnWriteArrayList<FileStorage> fileStorageList;
     private String defaultPlatform;
     private String thumbnailSuffix;
+    private Boolean uploadNotSupportMetadataThrowException;
     private CopyOnWriteArrayList<FileStorageAspect> aspectList;
     private CopyOnWriteArrayList<FileWrapperAdapter> fileWrapperAdapterList;
     private ContentTypeDetect contentTypeDetect;
@@ -94,6 +95,10 @@ public class FileStorageService {
         fileInfo.setObjectType(pre.getObjectType());
         fileInfo.setPath(pre.getPath());
         fileInfo.setPlatform(pre.getPlatform());
+        fileInfo.setMetadata(pre.getMetadata());
+        fileInfo.setUserMetadata(pre.getUserMetadata());
+        fileInfo.setThMetadata(pre.getThMetadata());
+        fileInfo.setThUserMetadata(pre.getThUserMetadata());
         fileInfo.setAttr(pre.getAttr());
         fileInfo.setFileAcl(pre.getFileAcl());
         fileInfo.setThFileAcl(pre.getThFileAcl());
@@ -304,6 +309,22 @@ public class FileStorageService {
     }
 
     /**
+     * 是否支持 Metadata
+     */
+    public boolean isSupportMetadata(String platform) {
+        FileStorage storage = self.getFileStorageVerify(platform);
+        return self.isSupportMetadata(storage);
+    }
+
+    /**
+     * 是否支持 Metadata
+     */
+    public boolean isSupportMetadata(FileStorage fileStorage) {
+        if (fileStorage == null) return false;
+        return new IsSupportMetadataAspectChain(aspectList,FileStorage::isSupportMetadata).next(fileStorage);
+    }
+
+    /**
      * 创建上传预处理器
      */
     public UploadPretreatment of() {
@@ -311,6 +332,7 @@ public class FileStorageService {
         pre.setFileStorageService(self);
         pre.setPlatform(defaultPlatform);
         pre.setThumbnailSuffix(thumbnailSuffix);
+        pre.setNotSupportMetadataThrowException(uploadNotSupportMetadataThrowException);
         return pre;
     }
 

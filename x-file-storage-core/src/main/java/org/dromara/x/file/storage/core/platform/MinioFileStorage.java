@@ -77,7 +77,10 @@ public class MinioFileStorage implements FileStorage {
             Long size = fileInfo.getSize();
             client.putObject(PutObjectArgs.builder().bucket(bucketName).object(newFileKey)
                     .stream(listener == null ? in : new ProgressInputStream(in,listener,size),size,-1)
-                    .contentType(fileInfo.getContentType()).build());
+                    .contentType(fileInfo.getContentType())
+                    .headers(fileInfo.getMetadata())
+                    .userMetadata(fileInfo.getUserMetadata())
+                    .build());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
@@ -85,7 +88,10 @@ public class MinioFileStorage implements FileStorage {
                 fileInfo.setThUrl(domain + newThFileKey);
                 client.putObject(PutObjectArgs.builder().bucket(bucketName).object(newThFileKey)
                         .stream(new ByteArrayInputStream(thumbnailBytes),thumbnailBytes.length,-1)
-                        .contentType(fileInfo.getThContentType()).build());
+                        .contentType(fileInfo.getThContentType())
+                        .headers(fileInfo.getThMetadata())
+                        .userMetadata(fileInfo.getThUserMetadata())
+                        .build());
             }
 
             return true;
@@ -141,6 +147,11 @@ public class MinioFileStorage implements FileStorage {
                  ServerException e) {
             throw new FileStorageRuntimeException("对文件生成可以签名访问的 URL 失败！fileInfo：" + fileInfo,e);
         }
+    }
+
+    @Override
+    public boolean isSupportMetadata() {
+        return true;
     }
 
     @Override

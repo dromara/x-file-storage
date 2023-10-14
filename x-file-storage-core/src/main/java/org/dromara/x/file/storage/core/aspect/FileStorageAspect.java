@@ -93,6 +93,13 @@ public interface FileStorageAspect {
     }
 
     /**
+     * 是否支持 Metadata
+     */
+    default boolean isSupportMetadataAround(IsSupportMetadataAspectChain chain,FileStorage fileStorage) {
+        return chain.next(fileStorage);
+    }
+
+    /**
      * 通过反射调用指定存储平台的方法
      */
     default <T> T invoke(InvokeAspectChain chain,FileStorage fileStorage,String method,Object[] args) {

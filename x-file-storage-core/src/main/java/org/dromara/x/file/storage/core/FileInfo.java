@@ -7,6 +7,7 @@ import org.dromara.x.file.storage.core.constant.Constant;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Map;
 
 @Data
 public class FileInfo implements Serializable {
@@ -90,6 +91,26 @@ public class FileInfo implements Serializable {
      * 文件所属对象类型，例如用户头像，评价图片
      */
     private String objectType;
+
+    /**
+     * 文件元数据
+     */
+    private Map<String, String> metadata;
+
+    /**
+     * 文件用户元数据
+     */
+    private Map<String, String> userMetadata;
+
+    /**
+     * 缩略图元数据
+     */
+    private Map<String, String> thMetadata;
+
+    /**
+     * 缩略图用户元数据
+     */
+    private Map<String, String> thUserMetadata;
 
     /**
      * 附加属性字典

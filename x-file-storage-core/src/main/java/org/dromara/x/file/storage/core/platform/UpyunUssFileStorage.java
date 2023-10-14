@@ -1,5 +1,6 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
 import com.upyun.RestManager;
@@ -76,12 +77,9 @@ public class UpyunUssFileStorage implements FileStorage {
         RestManager manager = getClient();
         try (InputStream in = pre.getFileWrapper().getInputStream()) {
             //又拍云 USS 的 SDK 使用的是 REST API ，看文档不是区分大小文件的，测试大文件也是流式传输的，边读边传，不会占用大量内存
-            HashMap<String,String> params = new HashMap<>();
-            params.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getContentType());
-            params.put("Content-Length",String.valueOf(fileInfo.getSize()));
             try (Response result = manager.writeFile(newFileKey,
                     listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize()),
-                    params)) {
+                    getObjectMetadata(fileInfo))) {
                 if (!result.isSuccessful()) {
                     throw new UpException(result.toString());
                 }
@@ -91,9 +89,7 @@ public class UpyunUssFileStorage implements FileStorage {
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
-                HashMap<String,String> thParams = new HashMap<>();
-                thParams.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getThContentType());
-                Response thResult = manager.writeFile(newThFileKey,new ByteArrayInputStream(thumbnailBytes),thParams);
+                Response thResult = manager.writeFile(newThFileKey,new ByteArrayInputStream(thumbnailBytes),getThObjectMetadata(fileInfo));
                 if (!thResult.isSuccessful()) {
                     throw new UpException(thResult.toString());
                 }
@@ -107,6 +103,44 @@ public class UpyunUssFileStorage implements FileStorage {
             }
             throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
         }
+    }
+
+
+    /**
+     * 获取对象的元数据
+     */
+    public HashMap<String, String> getObjectMetadata(FileInfo fileInfo) {
+        HashMap<String, String> params = new HashMap<>();
+        params.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getContentType());
+        params.put("Content-Length",String.valueOf(fileInfo.getSize()));
+        if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
+            params.putAll(fileInfo.getMetadata());
+        }
+        if (CollUtil.isNotEmpty(fileInfo.getUserMetadata())) {
+            fileInfo.getUserMetadata().forEach((key,value) -> params.put(key.startsWith("x-upyun-meta-") ? key : ("x-upyun-meta-" + key),value));
+        }
+        return params;
+    }
+
+    /**
+     * 获取缩略图对象的元数据
+     */
+    public HashMap<String, String> getThObjectMetadata(FileInfo fileInfo) {
+        HashMap<String, String> params = new HashMap<>();
+        params.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getThContentType());
+        params.put("Content-Length",String.valueOf(fileInfo.getThSize()));
+        if (CollUtil.isNotEmpty(fileInfo.getThMetadata())) {
+            params.putAll(fileInfo.getThMetadata());
+        }
+        if (CollUtil.isNotEmpty(fileInfo.getThUserMetadata())) {
+            fileInfo.getThUserMetadata().forEach((key,value) -> params.put(key.startsWith("x-upyun-meta-") ? key : ("x-upyun-meta-" + key),value));
+        }
+        return params;
+    }
+
+    @Override
+    public boolean isSupportMetadata() {
+        return true;
     }
 
     @Override

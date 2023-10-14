@@ -1,6 +1,11 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.text.NamingCase;
+import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
 import com.obs.services.ObsClient;
 import com.obs.services.internal.ObsConvertor;
@@ -75,14 +80,12 @@ public class HuaweiObsFileStorage implements FileStorage {
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
         AccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
+        ObjectMetadata metadata = getObjectMetadata(fileInfo);
         ProgressListener listener = pre.getProgressListener();
         ObsClient client = getClient();
         boolean useMultipartUpload = fileInfo.getSize() >= multipartThreshold;
         String uploadId = null;
         try (InputStream in = pre.getFileWrapper().getInputStream()) {
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(fileInfo.getSize());
-            metadata.setContentType(fileInfo.getContentType());
             if (useMultipartUpload) {//分片上传
                 InitiateMultipartUploadRequest initiateMultipartUploadRequest = new InitiateMultipartUploadRequest(bucketName,newFileKey);
                 initiateMultipartUploadRequest.setMetadata(metadata);
@@ -128,11 +131,8 @@ public class HuaweiObsFileStorage implements FileStorage {
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
-                ObjectMetadata thMetadata = new ObjectMetadata();
-                thMetadata.setContentLength((long) thumbnailBytes.length);
-                thMetadata.setContentType(fileInfo.getThContentType());
                 PutObjectRequest request = new PutObjectRequest(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes));
-                request.setMetadata(thMetadata);
+                request.setMetadata(getThObjectMetadata(fileInfo));
                 request.setAcl(getAcl(fileInfo.getThFileAcl()));
                 client.putObject(request);
             }
@@ -162,6 +162,36 @@ public class HuaweiObsFileStorage implements FileStorage {
         } else {
             throw new FileStorageRuntimeException("不支持的ACL：" + acl);
         }
+    }
+
+    /**
+     * 获取对象的元数据
+     */
+    public ObjectMetadata getObjectMetadata(FileInfo fileInfo) {
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentLength(fileInfo.getSize());
+        metadata.setContentType(fileInfo.getContentType());
+        fileInfo.getUserMetadata().forEach(metadata::addUserMetadata);
+        if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
+            CopyOptions copyOptions = CopyOptions.create().ignoreCase().setFieldNameEditor(name -> NamingCase.toCamelCase(name,CharUtil.DASHED));
+            BeanUtil.copyProperties(fileInfo.getMetadata(),metadata,copyOptions);
+        }
+        return metadata;
+    }
+
+    /**
+     * 获取缩略图对象的元数据
+     */
+    public ObjectMetadata getThObjectMetadata(FileInfo fileInfo) {
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentLength(fileInfo.getThSize());
+        metadata.setContentType(fileInfo.getThContentType());
+        fileInfo.getThUserMetadata().forEach(metadata::addUserMetadata);
+        if (CollUtil.isNotEmpty(fileInfo.getThMetadata())) {
+            CopyOptions copyOptions = CopyOptions.create().ignoreCase().setFieldNameEditor(name -> NamingCase.toCamelCase(name,CharUtil.DASHED));
+            BeanUtil.copyProperties(fileInfo.getThMetadata(),metadata,copyOptions);
+        }
+        return metadata;
     }
 
     @Override
@@ -209,6 +239,11 @@ public class HuaweiObsFileStorage implements FileStorage {
         String key = getThFileKey(fileInfo);
         if (key == null) return false;
         getClient().setObjectAcl(bucketName,key,oAcl);
+        return true;
+    }
+
+    @Override
+    public boolean isSupportMetadata() {
         return true;
     }
 
