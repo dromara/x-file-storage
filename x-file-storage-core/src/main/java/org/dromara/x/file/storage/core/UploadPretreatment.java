@@ -100,6 +100,11 @@ public class UploadPretreatment {
     private Boolean notSupportMetadataThrowException;
 
     /**
+     * 不支持 ACL 时抛出异常
+     */
+    private Boolean notSupportAclThrowException;
+
+    /**
      * 附加属性字典
      */
     private Dict attr;

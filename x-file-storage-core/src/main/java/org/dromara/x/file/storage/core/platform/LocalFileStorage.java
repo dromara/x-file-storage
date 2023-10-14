@@ -44,7 +44,7 @@ public class LocalFileStorage implements FileStorage {
         File newFile = FileUtil.touch(basePath + path,fileInfo.getFilename());
         fileInfo.setBasePath(basePath);
         fileInfo.setUrl(domain + path + fileInfo.getFilename());
-        if (fileInfo.getFileAcl() != null) {
+        if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
             throw new FileStorageRuntimeException("文件上传失败，LocalFile 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
         if (CollUtil.isNotEmpty(fileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
