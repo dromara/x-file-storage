@@ -32,8 +32,8 @@ FileInfo fileInfo = fileStorageService.of(file)
 
 **第一种（全局）**
 ```yaml
-spring:
-  file-storage:
+dromara:
+  x-file-storage:
     upload-not-support-metadata-throw-exception: false
 ```
 

@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 @Data
 @Component
 @ConditionalOnMissingBean(SpringFileStorageProperties.class)
-@ConfigurationProperties(prefix = "spring.file-storage")
+@ConfigurationProperties(prefix = "dromara.x-file-storage")
 public class SpringFileStorageProperties {
 
     /**

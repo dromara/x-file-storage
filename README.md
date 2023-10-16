@@ -51,7 +51,7 @@ Gitee：https://gitee.com/dromara/x-file-storage
 
 这里是简要的更新记录，查看 [详细的更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录)
 
-`2.0.0` 更改项目名、包名，优化项目结构、捐赠至 [dromara](https://dromara.org/zh) 开源社区，查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_200)
+`2.0.0` 捐赠至 [dromara](https://dromara.org/zh) 开源社区，更改项目名、包名，优化项目结构、支持 Metadata 元数据等，从旧版升级需要注意，详情查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_200)
 <br />
 `1.0.3` 修复了 FileStorageClientFactory 未自动加载等问题，查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_103)
 <br />
@@ -66,11 +66,11 @@ Gitee：https://gitee.com/dromara/x-file-storage
 ### 📅更新计划
 
 - 接入存储平台：HDFS、FastDFS、杉岩 OBS、Samba、NFS
-- 大文件手动分片上传
+- 大文件手动分片上传（1.0.0 已支持大文件自动分片上传）
 - 复制或移动文件
 - 文件内容预加载
 - 上传无需强制获取 Size
-- 新增 Access 模块，通过 HTTP、FTP、WebDAV 等协议对外提供接口，方便其它程序使用
+- 新增 Access 模块，尝试通过 HTTP、FTP、WebDAV 等协议对外提供接口，方便其它程序使用
 
 -------
 
@@ -100,8 +100,8 @@ Gitee：https://gitee.com/dromara/x-file-storage
 `application.yml` 配置文件中添加以下基础配置
 
 ```yaml
-spring:
-  file-storage: #文件存储配置
+dromara:
+  x-file-storage: #文件存储配置
     default-platform: aliyun-oss-1 #默认使用的存储平台
     aliyun-oss:
       - platform: aliyun-oss-1 # 存储平台标识
