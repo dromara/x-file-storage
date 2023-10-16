@@ -132,3 +132,23 @@ ObsClient client = fileStorage.getClient();
 AccessControlList acl = client.getObjectAcl(fileStorage.getBucketName(),fileStorage.getFileKey(fileInfo));
 ```
 因为这种方式使用较少，且每个平台返回的的 ACL 都不一样，所以就没有封装统一的方法，一般情况下从`FileInfo`对象直接获取就行了
+
+
+## 处理异常
+
+默认在不支持的存储平台传入 ACL 会抛出异常，可以通过以下方式不抛出异常
+
+**第一种（全局）**
+```yaml
+dromara:
+  x-file-storage:
+    upload-not-support-alc-throw-exception: false
+```
+
+**第二种（仅当前）**
+```java
+FileInfo fileInfo = fileStorageService.of(file)
+        .setNotSupportAclThrowException(false) //在不支持 ACL 的存储平台不抛出异常
+        .setAcl(Constant.ACL.PRIVATE)
+        .upload();
+```

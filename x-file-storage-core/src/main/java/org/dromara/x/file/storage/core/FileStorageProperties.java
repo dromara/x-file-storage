@@ -31,6 +31,10 @@ public class FileStorageProperties {
      */
     private Boolean uploadNotSupportMetadataThrowException = true;
     /**
+     * 上传时不支持 ACL 时抛出异常
+     */
+    private Boolean uploadNotSupportAclThrowException = true;
+    /**
      * 本地存储
      */
     private List<? extends LocalConfig> local = new ArrayList<>();

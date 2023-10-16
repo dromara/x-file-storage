@@ -69,7 +69,7 @@ public class UpyunUssFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        if (fileInfo.getFileAcl() != null) {
+        if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
             throw new FileStorageRuntimeException("文件上传失败，又拍云 USS 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
         ProgressListener listener = pre.getProgressListener();

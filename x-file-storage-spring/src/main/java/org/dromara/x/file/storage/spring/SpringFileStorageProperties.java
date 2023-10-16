@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 @Data
 @Component
 @ConditionalOnMissingBean(SpringFileStorageProperties.class)
-@ConfigurationProperties(prefix = "spring.file-storage")
+@ConfigurationProperties(prefix = "dromara.x-file-storage")
 public class SpringFileStorageProperties {
 
     /**
@@ -30,6 +30,10 @@ public class SpringFileStorageProperties {
      * 上传时不支持元数据时抛出异常
      */
     private Boolean uploadNotSupportMetadataThrowException = true;
+    /**
+     * 上传时不支持 ACL 时抛出异常
+     */
+    private Boolean uploadNotSupportAclThrowException = true;
     /**
      * 启用 byte[] 文件包装适配器
      */
@@ -125,6 +129,7 @@ public class SpringFileStorageProperties {
         properties.setDefaultPlatform(defaultPlatform);
         properties.setThumbnailSuffix(thumbnailSuffix);
         properties.setUploadNotSupportMetadataThrowException(uploadNotSupportMetadataThrowException);
+        properties.setUploadNotSupportAclThrowException(uploadNotSupportAclThrowException);
         properties.setLocal(local.stream().filter(SpringLocalConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setLocalPlus(localPlus.stream().filter(SpringLocalPlusConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setHuaweiObs(huaweiObs.stream().filter(SpringHuaweiObsConfig::getEnableStorage).collect(Collectors.toList()));

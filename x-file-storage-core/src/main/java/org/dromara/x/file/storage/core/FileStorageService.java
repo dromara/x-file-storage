@@ -38,6 +38,7 @@ public class FileStorageService {
     private String defaultPlatform;
     private String thumbnailSuffix;
     private Boolean uploadNotSupportMetadataThrowException;
+    private Boolean uploadNotSupportAclThrowException;
     private CopyOnWriteArrayList<FileStorageAspect> aspectList;
     private CopyOnWriteArrayList<FileWrapperAdapter> fileWrapperAdapterList;
     private ContentTypeDetect contentTypeDetect;
@@ -333,6 +334,7 @@ public class FileStorageService {
         pre.setPlatform(defaultPlatform);
         pre.setThumbnailSuffix(thumbnailSuffix);
         pre.setNotSupportMetadataThrowException(uploadNotSupportMetadataThrowException);
+        pre.setNotSupportAclThrowException(uploadNotSupportAclThrowException);
         return pre;
     }
 
