@@ -196,9 +196,41 @@ public class FileDetailController {
 }
 ```
 
-#### ⚠️重要提示
+#### 🎨其它操作
 
-如果想使用删除、下载等功能，请阅读 [保存上传记录](https://x-file-storage.xuyanwu.cn/#/基础功能?id=保存上传记录) 章节
+```java
+//手动构造文件信息，可用于其它操作
+FileInfo fileInfo = new FileInfo()
+        .setPlatform("huawei-obs-1")
+        .setBasePath("test/")
+        .setPath("aa/")
+        .setFilename("image.png")
+        .setThFilename("image.png.min.jpg");
+
+//文件是否存在
+boolean exists = fileStorageService.exists(fileInfo);
+//下载
+byte[] bytes = fileStorageService.download(fileInfo).bytes();
+//删除
+fileStorageService.delete(fileInfo);
+//其它更多操作
+
+```
+
+如果将文件记录保存到数据库中，还可以更方便的根据 URL 进行操作了，详情请阅读 [保存上传记录](https://x-file-storage.xuyanwu.cn/#/基础功能?id=保存上传记录) 章节
+
+```java
+//直接从数据库中获取 FileInfo 对象，更加方便执行其它操作
+FileInfo fileInfo = fileStorageService.getFileInfoByUrl("https://abc.def.com/test/aa/image.png");
+
+//文件是否存在
+boolean exists = fileStorageService.exists("https://abc.def.com/test/aa/image.png");
+//下载
+byte[] bytes = fileStorageService.download("https://abc.def.com/test/aa/image.png").bytes();
+//删除
+fileStorageService.delete("https://abc.def.com/test/aa/image.png");
+//其它更多操作
+```
 
 -------
 
