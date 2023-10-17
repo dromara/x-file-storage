@@ -210,8 +210,8 @@ class FileStorageServiceBaseTest {
     public void invoke() {
         FileStorage fileStorage = fileStorageService.getFileStorage();
         Object[] args = new Object[]{fileStorage.getPlatform()};
-        Object exists = fileStorageService.invoke(fileStorage,"setPlatform",args);
-        log.info("通过反射调用存储平台的方法（文件是否存在）成功，结果：{}",exists);
+        Object result = fileStorageService.invoke(fileStorage,"setPlatform",args);
+        log.info("通过反射调用存储平台的方法（文件是否存在）成功，结果：{}",result);
     }
 
 }
