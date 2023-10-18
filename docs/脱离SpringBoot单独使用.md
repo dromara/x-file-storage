@@ -6,9 +6,9 @@
 
 ```xml
 <dependency>
-    <groupId>org.dromara</groupId>
+    <groupId>org.dromara.x-file-storage</groupId>
     <artifactId>x-file-storage-core</artifactId>
-    <version>1.0.3</version>
+    <version>2.0.0</version>
 </dependency>
 ```
 
