@@ -2,13 +2,13 @@
 
 从 `1.0.0` 版本开始支持脱离 `SpringBoot` 单独使用
 
-先引入本项目，注意这里是 `file-storage-core`，之后再参考 [快速入门](快速入门) 引入对应平台的依赖
+先引入本项目，注意这里是 `x-file-storage-core`，之后再参考 [快速入门](快速入门) 引入对应平台的依赖
 
 ```xml
 <dependency>
-    <groupId>cn.xuyanwu</groupId>
-    <artifactId>file-storage-core</artifactId>
-    <version>1.0.3</version>
+    <groupId>org.dromara.x-file-storage</groupId>
+    <artifactId>x-file-storage-core</artifactId>
+    <version>2.0.0</version>
 </dependency>
 ```
 
