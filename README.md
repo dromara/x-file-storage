@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-	<a target="_blank" href="https://search.maven.org/artifact/org.dromara/x-file-storage">
-		<img src="https://img.shields.io/maven-central/v/org.dromara/x-file-storage.svg?label=Maven%20Central" />
+	<a target="_blank" href="https://central.sonatype.com/search?q=org.dromara.x-file-storage">
+		<img src="https://img.shields.io/maven-central/v/org.dromara.x-file-storage/x-file-storage-core.svg?label=Maven%20Central" />
 	</a>
 	<a target="_blank" href="https://www.apache.org/licenses/LICENSE-2.0">
 		<img src="https://img.shields.io/badge/license-Apache%202-green.svg" />
@@ -231,6 +231,8 @@ byte[] bytes = fileStorageService.download("https://abc.def.com/test/aa/image.pn
 fileStorageService.delete("https://abc.def.com/test/aa/image.png");
 //其它更多操作
 ```
+
+点击 [快速入门](https://x-file-storage.xuyanwu.cn/#/快速入门) 查看全部存储平台的使用方法！
 
 -------
 
