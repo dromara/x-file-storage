@@ -16,6 +16,10 @@
     <name>x-file-storage-test</name>
     <description>x-file-storage 的测试和演示模块</description>
     
+    <properties>
+        <maven.deploy.skip>false</maven.deploy.skip>
+    </properties>
+    
     <dependencies>
         
         <!-- Apache commons-pool2 -->
