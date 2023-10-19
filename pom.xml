@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.dromara.x-file-storage</groupId>
     <artifactId>x-file-storage-parent</artifactId>
+    <version>${revision}</version>
     <packaging>pom</packaging>
-    <version>2.0.0</version>
 
     <name>x-file-storage-parent</name>
     <description>A File Storage Service</description>
@@ -16,16 +14,42 @@
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
         </license>
     </licenses>
 
     <developers>
         <developer>
+            <id>XuYanwu</id>
             <name>Xu Yanwu</name>
             <email>1171736840@qq.com</email>
+            <roles>
+                <role>Owner</role>
+            </roles>
+        </developer>
+        <developer>
+            <id>kytrun</id>
+            <name>Kytrun</name>
+            <email>i@kytrun.com</email>
+            <roles>
+                <role>Contrib</role>
+            </roles>
+        </developer>
+        <developer>
+            <id>xs</id>
+            <name>Tony</name>
+            <email>tonycody@qq.com</email>
+            <url>https://tonycody.github.io</url>
+            <roles>
+                <role>Contrib</role>
+            </roles>
         </developer>
     </developers>
+
+    <modules>
+        <module>x-file-storage-spring</module>
+        <module>x-file-storage-core</module>
+    </modules>
 
     <scm>
         <connection>scm:git:git@github.com:dromara/x-file-storage.git</connection>
@@ -33,32 +57,20 @@
         <url>git@github.com:dromara/x-file-storage.git</url>
     </scm>
 
-
-    <repositories>
-        <repository>
-            <id>aliyun</id>
-            <name>aliyun Repository</name>
-            <url>https://maven.aliyun.com/repository/public</url>
-        </repository>
-    </repositories>
-
-
-    <modules>
-        <module>x-file-storage-spring</module>
-        <module>x-file-storage-core</module>
-    </modules>
-
     <properties>
-        <java.version>1.8</java.version>
+        <revision>2.0.1-SNAPSHOT</revision>
+        <!--region Maven Base-->
+        <java.version>8</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!--endregion-->
 
         <!-- Spring 组件 -->
         <spring-boot.version>2.7.2</spring-boot.version>
 
-        <!-- 第三方SDK -->
+        <!--region 3rd SDK-->
         <aliyun-sdk-oss.version>3.16.1</aliyun-sdk-oss.version>
         <aws-java-sdk-s3.version>1.12.429</aws-java-sdk-s3.version>
         <bce-java-sdk.version>0.10.251</bce-java-sdk.version>
@@ -78,6 +90,18 @@
         <thumbnailator.version>0.4.20</thumbnailator.version>
         <tika-core.version>2.4.1</tika-core.version>
         <upyun-java-sdk.version>4.2.3</upyun-java-sdk.version>
+        <fastdfs-client-java.version>1.30-20230328</fastdfs-client-java.version>
+        <!--endregion-->
+
+        <!--region Maven Plugins-->
+        <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
+        <sorter-maven-plugin.version>1.0.1</sorter-maven-plugin.version>
+        <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
+        <maven-javadoc-plugin.version>2.9.1</maven-javadoc-plugin.version>
+        <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
+        <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
+        <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
+        <!--endregion-->
     </properties>
 
     <dependencyManagement>
@@ -264,14 +288,89 @@
                 <optional>true</optional>
             </dependency>
 
+            <!-- FastDFS -->
+            <dependency>
+                <groupId>io.github.rui8832</groupId>
+                <artifactId>fastdfs-client-java</artifactId>
+                <version>${fastdfs-client-java.version}</version>
+                <scope>provided</scope>
+                <optional>true</optional>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
-
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>${flatten-maven-plugin.version}</version>
+                <configuration>
+                    <flattenMode>ossrh</flattenMode>
+                    <updatePomFile>true</updatePomFile>
+                    <pomElements>
+                        <repositories>remove</repositories>
+                    </pomElements>
+                    <outputDirectory>${project.build.directory}/.flattened</outputDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                        <phase>process-resources</phase>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <phase>clean</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+            </plugin>
+            <!-- 保持所有模块 pom.xml 标签风格一致 -->
+            <plugin>
+                <groupId>io.github.tonycody.maven.plugins</groupId>
+                <artifactId>sorter-maven-plugin</artifactId>
+                <version>${sorter-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>sort</goal>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
     <profiles>
         <profile>
+            <id>test</id>
+            <modules>
+                <module>x-file-storage-test</module>
+            </modules>
+        </profile>
+        <profile>
             <id>release</id>
+            <distributionManagement>
+                <repository>
+                    <id>oss</id>
+                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+                </repository>
+                <snapshotRepository>
+                    <id>oss</id>
+                    <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+                </snapshotRepository>
+            </distributionManagement>
             <build>
                 <plugins>
 
@@ -279,14 +378,14 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>3.2.1</version>
+                        <version>${maven-source-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>oss</id>
-                                <phase>package</phase>
                                 <goals>
                                     <goal>jar-no-fork</goal>
                                 </goals>
+                                <phase>package</phase>
                             </execution>
                         </executions>
                     </plugin>
@@ -295,39 +394,38 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>2.9.1</version>
+                        <version>${maven-javadoc-plugin.version}</version>
                         <configuration>
                             <additionalparam>-Xdoclint:none</additionalparam>
                         </configuration>
                         <executions>
                             <execution>
-                                <phase>package</phase>
                                 <goals>
                                     <goal>jar</goal>
                                 </goals>
+                                <phase>package</phase>
                             </execution>
                         </executions>
                     </plugin>
-
                     <!-- Gpg Signature -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.6</version>
+                        <version>${maven-gpg-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>oss</id>
-                                <phase>verify</phase>
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
+                                <phase>verify</phase>
                             </execution>
                         </executions>
                     </plugin>
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
                         <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.8</version>
+                        <version>${nexus-staging-maven-plugin.version}</version>
                         <extensions>true</extensions>
                         <configuration>
                             <serverId>oss</serverId>
@@ -336,19 +434,8 @@
                             <stagingProgressTimeoutMinutes>10</stagingProgressTimeoutMinutes>
                         </configuration>
                     </plugin>
-
                 </plugins>
             </build>
-            <distributionManagement>
-                <snapshotRepository>
-                    <id>oss</id>
-                    <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-                </snapshotRepository>
-                <repository>
-                    <id>oss</id>
-                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-                </repository>
-            </distributionManagement>
         </profile>
     </profiles>
 

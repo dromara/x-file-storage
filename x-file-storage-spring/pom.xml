@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <parent>
-        <artifactId>x-file-storage-parent</artifactId>
-        <groupId>org.dromara.x-file-storage</groupId>
-        <version>2.0.0</version>
-    </parent>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.dromara.x-file-storage</groupId>
+        <artifactId>x-file-storage-parent</artifactId>
+        <version>${revision}</version>
+    </parent>
 
     <artifactId>x-file-storage-spring</artifactId>
 
@@ -16,7 +14,6 @@
             <groupId>org.dromara.x-file-storage</groupId>
             <artifactId>x-file-storage-core</artifactId>
         </dependency>
-
 
         <!-- 华为云 OBS -->
         <dependency>
@@ -113,6 +110,14 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
+
+        <!-- FastDFS Storage -->
+        <!--        <dependency>-->
+        <!--            <groupId>io.github.rui8832</groupId>-->
+        <!--            <artifactId>fastdfs-client-java</artifactId>-->
+        <!--            <scope>provided</scope>-->
+        <!--            <optional>true</optional>-->
+        <!--        </dependency>-->
 
         <!--糊涂工具类扩展-->
         <dependency>
