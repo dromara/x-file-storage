@@ -10,8 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.SftpConfig;
-import org.dromara.x.file.storage.core.ProgressInputStream;
-import org.dromara.x.file.storage.core.ProgressListener;
+import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
@@ -89,15 +88,15 @@ public class SftpFileStorage implements FileStorage {
         if (CollUtil.isNotEmpty(fileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
             throw new FileStorageRuntimeException("文件上传失败，SFTP 不支持设置 UserMetadata！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
-        ProgressListener listener = pre.getProgressListener();
 
         Sftp client = getClient();
-        try (InputStream in = pre.getFileWrapper().getInputStream()) {
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
             String path = getAbsolutePath(basePath + fileInfo.getPath());
             if (!client.exist(path)) {
                 client.mkDirs(path);
             }
-            client.upload(path,fileInfo.getFilename(),listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize()));
+            client.upload(path,fileInfo.getFilename(),in);
+            if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图

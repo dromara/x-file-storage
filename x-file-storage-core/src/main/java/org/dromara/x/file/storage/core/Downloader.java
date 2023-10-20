@@ -65,7 +65,7 @@ public class Downloader {
             }
 
             @Override
-            public void progress(long progressSize,long allSize) {
+            public void progress(long progressSize,Long allSize) {
                 progressListener.accept(progressSize,allSize);
             }
 

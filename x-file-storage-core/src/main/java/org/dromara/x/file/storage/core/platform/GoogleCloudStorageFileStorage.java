@@ -15,8 +15,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.GoogleCloudStorageConfig;
-import org.dromara.x.file.storage.core.ProgressInputStream;
-import org.dromara.x.file.storage.core.ProgressListener;
+import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
@@ -85,15 +84,12 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
         ArrayList<Storage.BlobWriteOption> optionList = new ArrayList<>();
         BlobInfo.Builder blobInfoBuilder = BlobInfo.newBuilder(bucketName,newFileKey);
         setMetadata(blobInfoBuilder,fileInfo,optionList);
-        ProgressListener listener = pre.getProgressListener();
         Storage client = getClient();
 
-        try (InputStream in = pre.getFileWrapper().getInputStream()) {
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
             // 上传原文件
-            client.createFrom(blobInfoBuilder.build(),
-                    listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize()),
-                    optionList.toArray(new Storage.BlobWriteOption[]{})
-            );
+            client.createFrom(blobInfoBuilder.build(),in,optionList.toArray(new Storage.BlobWriteOption[]{}));
+            if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             //上传缩略图
             byte[] thumbnailBytes = pre.getThumbnailBytes();
