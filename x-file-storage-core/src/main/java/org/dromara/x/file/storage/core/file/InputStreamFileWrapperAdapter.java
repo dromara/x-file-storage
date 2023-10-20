@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
-import org.dromara.x.file.storage.core.util.Tools;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,7 +29,7 @@ public class InputStreamFileWrapperAdapter implements FileWrapperAdapter {
     @Override
     public FileWrapper getFileWrapper(Object source,String name,String contentType,Long size) throws IOException {
         if (source instanceof InputStreamFileWrapper) {
-            return handleSize(updateFileWrapper((InputStreamFileWrapper) source,name,contentType,size));
+            return updateFileWrapper((InputStreamFileWrapper) source,name,contentType,size);
         } else {
             InputStream inputStream = (InputStream) source;
             if (name == null) name = "";
@@ -38,20 +37,8 @@ public class InputStreamFileWrapperAdapter implements FileWrapperAdapter {
             if (contentType == null) {
                 wrapper.getInputStreamMaskReset(in -> wrapper.setContentType(contentTypeDetect.detect(in,wrapper.getName())));
             }
-            return handleSize(wrapper);
+            return wrapper;
         }
     }
-
-    /**
-     * 处理文件 size
-     */
-    public FileWrapper handleSize(FileWrapper fileWrapper) throws IOException {
-        if (fileWrapper.getSize() == null) {
-            log.warn("构造 InputStreamFileWrapper 时未传入 size 参数，将通过读取全部字节方式获取 size ，这种方式将占用大量内存，如果明确知道此 InputStream 的长度，请传入 size 参数！");
-            fileWrapper.setSize(fileWrapper.getInputStreamMaskResetReturn(Tools::getSize));
-        }
-        return fileWrapper;
-    }
-
 
 }

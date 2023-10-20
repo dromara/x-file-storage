@@ -115,6 +115,11 @@ public class UploadPretreatment {
     private ProgressListener progressListener;
 
     /**
+     * 传时用的增强版本的 InputStream ，可以带进度监听、计算哈希等功能，仅内部使用
+     */
+    private InputStreamPlus inputStreamPlus;
+
+    /**
      * 文件的访问控制列表，一般情况下只有对象存储支持该功能
      * 详情见{@link FileInfo#setFileAcl}
      */
@@ -723,7 +728,7 @@ public class UploadPretreatment {
             }
 
             @Override
-            public void progress(long progressSize,long allSize) {
+            public void progress(long progressSize,Long allSize) {
                 progressListener.accept(progressSize,allSize);
             }
 
@@ -773,5 +778,24 @@ public class UploadPretreatment {
      */
     public FileInfo upload() {
         return fileStorageService.upload(this);
+    }
+
+    /**
+     * 获取增强版本的 InputStream ，可以带进度监听、计算哈希等功能
+     */
+    public InputStreamPlus getInputStreamPlus() throws IOException {
+        return getInputStreamPlus(true);
+    }
+
+    /**
+     * 获取增强版本的 InputStream ，可以带进度监听、计算哈希等功能
+     */
+    public InputStreamPlus getInputStreamPlus(boolean hasListener) throws IOException {
+        if (inputStreamPlus == null) {
+            inputStreamPlus = new InputStreamPlus(fileWrapper.getInputStream(),
+                    hasListener ? progressListener : null,
+                    fileWrapper.getSize());
+        }
+        return inputStreamPlus;
     }
 }

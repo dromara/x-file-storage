@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.LocalConfig;
-import org.dromara.x.file.storage.core.ProgressInputStream;
+import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
@@ -50,26 +50,25 @@ public class LocalFileStorage implements FileStorage {
         if (CollUtil.isNotEmpty(fileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
             throw new FileStorageRuntimeException("文件上传失败，LocalFile 不支持设置 UserMetadata！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
-        ProgressListener listener = pre.getProgressListener();
 
         try {
             FileWrapper fileWrapper = pre.getFileWrapper();
-            if (listener == null) {
-                if (fileWrapper.supportTransfer()) {
-                    fileWrapper.transferTo(newFile);
-                } else {
-                    FileUtil.writeFromStream(fileWrapper.getInputStream(),newFile);
-                }
-            } else {
-                if (fileWrapper.supportTransfer()) {
+            if (fileWrapper.supportTransfer()) {//移动文件，速度较快
+                ProgressListener listener = pre.getProgressListener();
+                if (listener != null) {
                     listener.start();
                     listener.progress(0,fileWrapper.getSize());
-                    fileWrapper.transferTo(newFile);
-                    listener.progress(fileWrapper.getSize(),fileWrapper.getSize());
-                    listener.finish();
-                } else {
-                    FileUtil.writeFromStream(new ProgressInputStream(fileWrapper.getInputStream(),listener,fileWrapper.getSize()),newFile);
                 }
+                fileWrapper.transferTo(newFile);
+                if (listener != null) {
+                    listener.progress(newFile.length(),fileWrapper.getSize());
+                    listener.finish();
+                }
+                if (fileInfo.getSize() == null) fileInfo.setSize(newFile.length());
+            } else {//通过输入流写入文件
+                InputStreamPlus in = pre.getInputStreamPlus();
+                FileUtil.writeFromStream(in,newFile);
+                if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
             }
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();

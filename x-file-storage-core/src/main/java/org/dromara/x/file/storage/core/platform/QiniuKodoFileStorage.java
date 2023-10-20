@@ -11,8 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.QiniuKodoConfig;
-import org.dromara.x.file.storage.core.ProgressInputStream;
-import org.dromara.x.file.storage.core.ProgressListener;
+import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.platform.QiniuKodoFileStorageClientFactory.QiniuKodoClient;
@@ -73,15 +72,14 @@ public class QiniuKodoFileStorage implements FileStorage {
         if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
             throw new FileStorageRuntimeException("文件上传失败，七牛云 Kodo 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
-        ProgressListener listener = pre.getProgressListener();
 
-        try (InputStream in = pre.getFileWrapper().getInputStream()) {
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
             //七牛云 Kodo 的 SDK 内部会自动分片上传
             QiniuKodoClient client = getClient();
             UploadManager uploadManager = client.getUploadManager();
             String token = client.getAuth().uploadToken(bucketName);
-            uploadManager.put(listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize()),
-                    newFileKey,token,getObjectMetadata(fileInfo),fileInfo.getContentType());
+            uploadManager.put(in,newFileKey,token,getObjectMetadata(fileInfo),fileInfo.getContentType());
+            if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图

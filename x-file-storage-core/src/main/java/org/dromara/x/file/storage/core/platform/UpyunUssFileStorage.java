@@ -12,8 +12,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.UpyunUssConfig;
-import org.dromara.x.file.storage.core.ProgressInputStream;
-import org.dromara.x.file.storage.core.ProgressListener;
+import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
@@ -72,18 +71,16 @@ public class UpyunUssFileStorage implements FileStorage {
         if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
             throw new FileStorageRuntimeException("文件上传失败，又拍云 USS 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
-        ProgressListener listener = pre.getProgressListener();
 
         RestManager manager = getClient();
-        try (InputStream in = pre.getFileWrapper().getInputStream()) {
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
             //又拍云 USS 的 SDK 使用的是 REST API ，看文档不是区分大小文件的，测试大文件也是流式传输的，边读边传，不会占用大量内存
-            try (Response result = manager.writeFile(newFileKey,
-                    listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize()),
-                    getObjectMetadata(fileInfo))) {
+            try (Response result = manager.writeFile(newFileKey,in,getObjectMetadata(fileInfo))) {
                 if (!result.isSuccessful()) {
                     throw new UpException(result.toString());
                 }
             }
+            if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
@@ -112,7 +109,6 @@ public class UpyunUssFileStorage implements FileStorage {
     public HashMap<String, String> getObjectMetadata(FileInfo fileInfo) {
         HashMap<String, String> params = new HashMap<>();
         params.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getContentType());
-        params.put("Content-Length",String.valueOf(fileInfo.getSize()));
         if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
             params.putAll(fileInfo.getMetadata());
         }
@@ -128,7 +124,6 @@ public class UpyunUssFileStorage implements FileStorage {
     public HashMap<String, String> getThObjectMetadata(FileInfo fileInfo) {
         HashMap<String, String> params = new HashMap<>();
         params.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getThContentType());
-        params.put("Content-Length",String.valueOf(fileInfo.getThSize()));
         if (CollUtil.isNotEmpty(fileInfo.getThMetadata())) {
             params.putAll(fileInfo.getThMetadata());
         }
