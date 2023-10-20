@@ -10,6 +10,7 @@ import java.io.InputStream;
 public class ProgressInputStream extends FilterInputStream {
 
     private boolean readFlag;
+    private boolean finishFlag;
     private long progressSize;
     private final long allSize;
     private final ProgressListener listener;
@@ -55,7 +56,10 @@ public class ProgressInputStream extends FilterInputStream {
         if (size > 0) {
             this.listener.progress(progressSize += size,allSize);
         } else if (size < 0) {
-            this.listener.finish();
+            if (!this.finishFlag) {
+                this.finishFlag = true;
+                this.listener.finish();
+            }
         }
     }
 
