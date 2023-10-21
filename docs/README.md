@@ -69,7 +69,6 @@ Gitee：https://gitee.com/dromara/x-file-storage
 - 大文件手动分片上传（1.0.0 已支持大文件自动分片上传）
 - 复制或移动文件
 - 文件内容预加载
-- 上传无需强制获取 Size
 - 新增 Access 模块，尝试通过 HTTP、FTP、WebDAV 等协议对外提供接口，方便其它程序使用
 
 -------
