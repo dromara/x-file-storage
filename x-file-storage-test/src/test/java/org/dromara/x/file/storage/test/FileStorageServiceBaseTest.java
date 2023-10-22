@@ -52,8 +52,12 @@ class FileStorageServiceBaseTest {
                     }
 
                     @Override
-                    public void progress(long progressSize,long allSize) {
-                        System.out.println("已上传 " + progressSize + " 总大小" + allSize + " " + (progressSize * 10000 / allSize * 0.01) + "%");
+                    public void progress(long progressSize,Long allSize) {
+                        if (allSize == null) {
+                            System.out.println("已上传 " + progressSize + " 总大小未知");
+                        } else {
+                            System.out.println("已上传 " + progressSize + " 总大小" + allSize + " " + (progressSize * 10000 / allSize * 0.01) + "%");
+                        }
                     }
 
                     @Override
