@@ -755,6 +755,22 @@ public class UploadPretreatment {
     }
 
     /**
+     * 设置文件的访问控制列表，一般情况下只有对象存储支持该功能
+     */
+    public UploadPretreatment setFileAcl(boolean flag,Object acl) {
+        if (flag) setFileAcl(acl);
+        return this;
+    }
+
+    /**
+     * 设置文件的访问控制列表，一般情况下只有对象存储支持该功能
+     */
+    public UploadPretreatment setThFileAcl(boolean flag,Object acl) {
+        if (flag) setThFileAcl(acl);
+        return this;
+    }
+
+    /**
      * 同时设置 fileAcl 和 thFileAcl 两个属性
      * 详情见{@link FileInfo#setFileAcl}
      */
