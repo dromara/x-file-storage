@@ -216,7 +216,7 @@ public class UploadPretreatment {
      * 设置缩略图的保存文件名，注意此文件名不含后缀，后缀用 {@link UploadPretreatment#thumbnailSuffix} 属性控制
      */
     public UploadPretreatment setSaveThFilename(boolean flag,String saveThFilename) {
-        if (flag) setSaveThFilename(saveFilename);
+        if (flag) setSaveThFilename(saveThFilename);
         return this;
     }
 
