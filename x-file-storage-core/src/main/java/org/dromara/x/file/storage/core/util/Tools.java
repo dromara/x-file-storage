@@ -23,7 +23,7 @@ public class Tools {
         for (String path : paths) {
             String left = sb.toString();
             boolean leftHas = left.endsWith("/") || left.endsWith("\\");
-            boolean rightHas = path.endsWith("/") || path.endsWith("\\");
+            boolean rightHas = path.startsWith("/") || path.startsWith("\\");
 
             if (leftHas && rightHas) {
                 sb.append(path.substring(1));
