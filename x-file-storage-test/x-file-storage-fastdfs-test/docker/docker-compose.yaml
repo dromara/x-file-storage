@@ -9,7 +9,7 @@ services:
       - TZ=Asia/Shanghai
       - LANG=C.UTF-8
       - LC_ALL=C.UTF-8
-    command: "/bin/bash -c echo '172.28.133.14 tracer' >> /etc/hosts && tracker"
+    command: bash -c "echo '172.28.133.14 tracer' >> /etc/hosts && tracker"
   storage:
     image: season/fastdfs:1.2
     restart: always
