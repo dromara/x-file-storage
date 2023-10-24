@@ -87,6 +87,7 @@ public class UpyunUssFileStorage implements FileStorage {
                 String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
                 Response thResult = manager.writeFile(newThFileKey,new ByteArrayInputStream(thumbnailBytes),getThObjectMetadata(fileInfo));
+                IoUtil.close(thResult);
                 if (!thResult.isSuccessful()) {
                     throw new UpException(thResult.toString());
                 }
