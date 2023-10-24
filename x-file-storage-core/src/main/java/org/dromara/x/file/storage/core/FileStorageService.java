@@ -126,7 +126,7 @@ public class FileStorageService {
         }
 
         FileStorage fileStorage = self.getFileStorage(pre.getPlatform());
-        if (fileStorage == null) throw new FileStorageRuntimeException("没有找到对应的存储平台！");
+        if (fileStorage == null) throw new FileStorageRuntimeException(StrUtil.format("没有找到对应的存储平台！platform:{}", pre.getPlatform()));
 
         //处理切面
         return new UploadAspectChain(aspectList,(_fileInfo,_pre,_fileStorage,_fileRecorder) -> {

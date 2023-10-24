@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.dromara.x-file-storage</groupId>
+        <artifactId>x-file-storage-test</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>x-file-storage-fastdfs-test</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.rui8832</groupId>
+            <artifactId>fastdfs-client-java</artifactId>
+        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>org.csource</groupId>-->
+        <!--            <artifactId>fastdfs-client</artifactId>-->
+        <!--            &lt;!&ndash;                <version>${fastdfs-client-java.version}</version>&ndash;&gt;-->
+        <!--            <version>1.0</version>-->
+        <!--            <scope>system</scope>-->
+        <!--            <systemPath>C:/Users/XS/.m2/repository/org/csource/fastdfs-client/1.25/fastdfs-client-1.25.jar</systemPath>-->
+        <!--            <optional>true</optional>-->
+        <!--        </dependency>-->
+    </dependencies>
+
+</project>

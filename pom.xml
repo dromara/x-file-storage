@@ -111,17 +111,18 @@
 
     <dependencyManagement>
         <dependencies>
+            <!--region 1rd-->
             <dependency>
                 <groupId>org.dromara.x-file-storage</groupId>
                 <artifactId>x-file-storage-spring</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.dromara.x-file-storage</groupId>
                 <artifactId>x-file-storage-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <!--endregion-->
             <!-- javax.servlet-api -->
             <dependency>
                 <groupId>javax.servlet</groupId>
@@ -161,16 +162,12 @@
             <!--糊涂工具类核心-->
             <dependency>
                 <groupId>cn.hutool</groupId>
-                <artifactId>hutool-core</artifactId>
+                <artifactId>hutool-bom</artifactId>
                 <version>${hutool.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
-            <dependency>
-                <groupId>cn.hutool</groupId>
-                <artifactId>hutool-extra</artifactId>
-                <version>${hutool.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
-            </dependency>
+            <!--region Spring Boot-->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-web</artifactId>
@@ -183,12 +180,14 @@
                 <version>${spring-boot.version}</version>
                 <optional>true</optional>
             </dependency>
+            <!--endregion-->
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <!--region 所有存储平台-->
             <!-- 华为云 OBS -->
             <dependency>
                 <groupId>com.huaweicloud</groupId>
@@ -298,10 +297,9 @@
                 <groupId>io.github.rui8832</groupId>
                 <artifactId>fastdfs-client-java</artifactId>
                 <version>${fastdfs-client-java.version}</version>
-                <scope>provided</scope>
                 <optional>true</optional>
             </dependency>
-
+            <!--endregion-->
         </dependencies>
     </dependencyManagement>
 
