@@ -1,4 +1,4 @@
-version: '3.3'
+version: '3.8'
 services:
   tracker:
     image: season/fastdfs:1.2
