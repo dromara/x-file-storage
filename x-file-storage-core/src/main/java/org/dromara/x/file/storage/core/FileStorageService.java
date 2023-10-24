@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.aspect.*;
+import org.dromara.x.file.storage.core.copy.Replicator;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.file.FileWrapperAdapter;
@@ -443,6 +444,19 @@ public class FileStorageService {
         throw new FileStorageRuntimeException("不支持此文件");
     }
 
+    /**
+     * 复制文件
+     */
+    public Replicator copy(FileInfo fileInfo) {
+        return new Replicator(fileInfo,self);
+    }
+
+    /**
+     * 复制文件
+     */
+    public Replicator copy(String url) {
+        return self.copy(getFileInfoByUrl(url));
+    }
 
     /**
      * 通过反射调用指定存储平台的方法
