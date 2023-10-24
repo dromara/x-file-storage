@@ -11,6 +11,7 @@ import lombok.Setter;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.WebDavConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
+import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.util.Tools;
@@ -96,7 +97,7 @@ public class WebDavFileStorage implements FileStorage {
             throw new FileStorageRuntimeException("文件上传失败，WebDAV 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
         if (CollUtil.isNotEmpty(fileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
-            throw new FileStorageRuntimeException("文件上传失败，WebDAV 不支持设置 UserMetadata！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
+            throw new FileStorageRuntimeException("文件上传失败，WebDAV 不支持设置 Metadata！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
 
         Sardine client = getClient();
@@ -173,6 +174,76 @@ public class WebDavFileStorage implements FileStorage {
             consumer.accept(in);
         } catch (IOException e) {
             throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        }
+    }
+
+    @Override
+    public boolean isSupportCopy() {
+        return true;
+    }
+
+    @Override
+    public void copy(FileInfo srcFileInfo,FileInfo destFileInfo,ProgressListener progressListener) {
+        if (!basePath.equals(srcFileInfo.getBasePath())) {
+            throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+
+        Sardine client = getClient();
+        String srcFileUrl = getUrl(getFileKey(srcFileInfo));
+        try {
+            if (!client.exists(srcFileUrl)) {
+                throw new FileStorageRuntimeException("文件复制失败，源文件不存在！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+            }
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("文件复制失败，检查源文件失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
+        }
+        try {
+            createDirectory(client,getUrl(destFileInfo.getBasePath() + destFileInfo.getPath()));
+        } catch (IOException e) {
+            throw new FileStorageRuntimeException("文件复制失败，检查并创建父路径失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
+        }
+
+        //复制缩略图文件
+        String destThFileUrl = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            String destThFileKey = getThFileKey(destFileInfo);
+            destThFileUrl = getUrl(destThFileKey);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            try {
+                client.copy(getUrl(getThFileKey(srcFileInfo)),destThFileUrl);
+            } catch (IOException e) {
+                throw new FileStorageRuntimeException("缩略图文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
+            }
+        }
+
+        //复制文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        String destFileUrl = getUrl(destFileKey);
+        try {
+            if (progressListener != null) {
+                progressListener.start();
+                progressListener.progress(0,srcFileInfo.getSize());
+            }
+            client.copy(srcFileUrl,destFileUrl);
+            if (progressListener != null) {
+                Long progressSize = srcFileInfo.getSize();
+                if (progressSize == null) {
+                    progressSize = client.list(destFileUrl,0,false).get(0).getContentLength();
+                }
+                progressListener.progress(progressSize,srcFileInfo.getSize());
+                progressListener.finish();
+            }
+        } catch (IOException e) {
+            try {
+                if (destThFileUrl != null) client.delete(destThFileUrl);
+            } catch (IOException ignored) {
+            }
+            try {
+                client.delete(destFileUrl);
+            } catch (IOException ignored) {
+            }
+            throw new FileStorageRuntimeException("文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
         }
     }
 }

@@ -18,7 +18,7 @@ public class InputStreamPlus extends FilterInputStream {
     protected final ProgressListener listener;
     protected int markFlag;
 
-    protected InputStreamPlus(InputStream in,ProgressListener listener,Long allSize) {
+    public InputStreamPlus(InputStream in,ProgressListener listener,Long allSize) {
         super(in);
         this.listener = listener;
         this.allSize = allSize;

@@ -216,7 +216,7 @@ public class UploadPretreatment {
      * 设置缩略图的保存文件名，注意此文件名不含后缀，后缀用 {@link UploadPretreatment#thumbnailSuffix} 属性控制
      */
     public UploadPretreatment setSaveThFilename(boolean flag,String saveThFilename) {
-        if (flag) setSaveThFilename(saveFilename);
+        if (flag) setSaveThFilename(saveThFilename);
         return this;
     }
 
@@ -751,6 +751,22 @@ public class UploadPretreatment {
      */
     public UploadPretreatment setProgressMonitor(ProgressListener progressListener) {
         this.progressListener = progressListener;
+        return this;
+    }
+
+    /**
+     * 设置文件的访问控制列表，一般情况下只有对象存储支持该功能
+     */
+    public UploadPretreatment setFileAcl(boolean flag,Object acl) {
+        if (flag) setFileAcl(acl);
+        return this;
+    }
+
+    /**
+     * 设置文件的访问控制列表，一般情况下只有对象存储支持该功能
+     */
+    public UploadPretreatment setThFileAcl(boolean flag,Object acl) {
+        if (flag) setThFileAcl(acl);
         return this;
     }
 

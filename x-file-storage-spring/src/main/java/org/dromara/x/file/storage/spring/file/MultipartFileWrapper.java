@@ -1,6 +1,7 @@
 package org.dromara.x.file.storage.spring.file;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.IoUtil;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -49,6 +50,7 @@ public class MultipartFileWrapper implements FileWrapper {
         // 根据文档来看 MultipartFile 最终都会由框架从临时目录中删除
         try {
             file.transferTo(dest);
+            IoUtil.close(inputStream);
         } catch (Exception ignored) {
             try {
                 FileUtil.writeFromStream(getInputStream(),dest);
