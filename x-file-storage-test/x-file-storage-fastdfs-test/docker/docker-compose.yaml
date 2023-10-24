@@ -24,7 +24,6 @@ services:
       - TZ=Asia/Shanghai
       - LANG=C.UTF-8
       - LC_ALL=C.UTF-8
-      - TRACKER_SERVER=tracker:22122
     command: storage
   nginx:
     image: season/fastdfs:1.2
