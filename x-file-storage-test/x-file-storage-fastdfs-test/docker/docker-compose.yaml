@@ -13,6 +13,9 @@ services:
   storage:
     image: season/fastdfs:1.2
     restart: always
+    ports:
+      - "23000:23000"
+      - "8888:8888"
     volumes:
       - "./storage.conf:/fdfs_conf/storage.conf"
       - "./storage_base_path:/fastdfs/storage/data"
@@ -26,6 +29,8 @@ services:
   nginx:
     image: season/fastdfs:1.2
     restart: always
+    ports:
+      - "8088:8088"
     volumes:
       - "./nginx.conf:/etc/nginx/conf/nginx.conf"
       - "./store_path0:/fastdfs/store_path"
