@@ -2,32 +2,31 @@ version: '3.3'
 services:
   tracker:
     image: season/fastdfs:1.2
-    container_name: tracker
-    network_mode: host
     restart: always
     ports:
       - "22122:22122"
+    environment:
+      - TZ=Asia/Shanghai
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
     command: "tracker"
   storage:
     image: season/fastdfs:1.2
-    container_name: storage
-    network_mode: host
     restart: always
     volumes:
       - "./storage.conf:/fdfs_conf/storage.conf"
       - "./storage_base_path:/fastdfs/storage/data"
       - "./store_path0:/fastdfs/store_path"
     environment:
-      TRACKER_SERVER: "192.168.110.106:22122"
+      - TZ=Asia/Shanghai
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
+      - TRACKER_SERVER=tracker:22122
     command: "storage"
   nginx:
     image: season/fastdfs:1.2
-    container_name: fdfs-nginx
     restart: always
-    network_mode: host
     volumes:
       - "./nginx.conf:/etc/nginx/conf/nginx.conf"
       - "./store_path0:/fastdfs/store_path"
-    environment:
-      TRACKER_SERVER: "192.168.110.106:22122"
     command: "nginx"
