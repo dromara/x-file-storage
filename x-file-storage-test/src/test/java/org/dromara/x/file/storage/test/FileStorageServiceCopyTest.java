@@ -1,6 +1,7 @@
 package org.dromara.x.file.storage.test;
 
 import cn.hutool.core.lang.Assert;
+import cn.hutool.core.thread.ThreadUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
@@ -25,6 +26,9 @@ class FileStorageServiceCopyTest {
         FileInfo fileInfo = fileStorageService.of(in).setOriginalFilename(filename).setPath("test/").setSaveFilename("aaa.jpg").setSaveThFilename("bbb").thumbnail(200,200).upload();
         Assert.notNull(fileInfo,"文件上传失败！");
         log.info("被复制的文件上传成功：{}",fileInfo);
+
+        //为了防止有些存储平台（例如又拍云）刚上传完后就进行操作会出现错误，这里等待一会
+        ThreadUtil.sleep(1000);
         return fileInfo;
     }
 

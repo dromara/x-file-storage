@@ -5,6 +5,7 @@ import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
 import com.upyun.RestManager;
 import com.upyun.UpException;
+import com.upyun.UpYunUtils;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,6 +14,7 @@ import okhttp3.ResponseBody;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.UpyunUssConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
+import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
@@ -21,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -33,6 +36,7 @@ public class UpyunUssFileStorage implements FileStorage {
     private String platform;
     private String domain;
     private String basePath;
+    private String bucketName;
     private FileStorageClientFactory<RestManager> clientFactory;
 
 
@@ -40,6 +44,7 @@ public class UpyunUssFileStorage implements FileStorage {
         platform = config.getPlatform();
         domain = config.getDomain();
         basePath = config.getBasePath();
+        bucketName = config.getBucketName();
         this.clientFactory = clientFactory;
     }
 
@@ -196,6 +201,74 @@ public class UpyunUssFileStorage implements FileStorage {
             consumer.accept(in);
         } catch (IOException | UpException e) {
             throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        }
+    }
+
+    @Override
+    public boolean isSupportCopy() {
+        return true;
+    }
+
+    public Response checkResponse(Response response) throws UpException, IOException {
+        if (!response.isSuccessful()) {
+            if (response.body() != null) {
+                throw new UpException(response.body().string());
+            } else {
+                response.close();
+                throw new UpException(response.toString());
+            }
+        }
+        response.close();
+        return response;
+    }
+
+    @Override
+    public void copy(FileInfo srcFileInfo,FileInfo destFileInfo,ProgressListener progressListener) {
+
+        if (!basePath.equals(srcFileInfo.getBasePath())) {
+            throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        RestManager client = getClient();
+
+        //获取远程文件信息
+        String srcFileKey = getFileKey(srcFileInfo);
+        long srcFileSize;
+        try {
+            Response response = checkResponse(client.getFileInfo(srcFileKey));
+            srcFileSize = Long.parseLong(Objects.requireNonNull(response.header(RestManager.PARAMS.X_UPYUN_FILE_SIZE.getValue())));
+        } catch (Exception e) {
+            throw new FileStorageRuntimeException("文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
+        }
+
+        //复制缩略图文件
+        String destThFileKey = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            destThFileKey = getThFileKey(destFileInfo);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            try {
+                checkResponse(client.copyFile(destThFileKey,UpYunUtils.formatPath(bucketName,getThFileKey(srcFileInfo)),null));
+            } catch (Exception e) {
+                throw new FileStorageRuntimeException("缩略图文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
+            }
+        }
+
+        //复制文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        try {
+            ProgressListener.quickStart(progressListener,srcFileSize);
+            checkResponse(client.copyFile(destFileKey,UpYunUtils.formatPath(bucketName,srcFileKey),null));
+            ProgressListener.quickFinish(progressListener,srcFileSize);
+        } catch (Exception e) {
+            if (destThFileKey != null) try {
+                IoUtil.close(client.deleteFile(destThFileKey,null));
+            } catch (Exception ignored) {
+            }
+            try {
+                IoUtil.close(client.deleteFile(destFileKey,null));
+            } catch (Exception ignored) {
+            }
+            throw new FileStorageRuntimeException("文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
         }
     }
 }

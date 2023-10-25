@@ -112,4 +112,22 @@ public interface Constant {
         String LAST_MODIFIED = "Last-Modified";
     }
 
+
+    /**
+     * 复制模式
+     */
+    enum CopyMode {
+        /**
+         * 自动选择，优先使用同平台复制，不支持同平台复制的情况下走跨平台复制
+         */
+        AUTO,
+        /**
+         * 仅使用同平台复制，如果不支持同平台复制则抛出异常。FTP、SFTP等存储平台不支持同平台复制，只能走跨平台复制
+         */
+        SAME,
+        /**
+         * 仅使用跨平台复制
+         */
+        CROSS
+    }
 }
