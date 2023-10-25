@@ -75,7 +75,7 @@ public class FileStorageService {
      */
     public <T extends FileStorage> T getFileStorageVerify(String platform) {
         T fileStorage = self.getFileStorage(platform);
-        if (fileStorage == null) throw new FileStorageRuntimeException("没有找到对应的存储平台！");
+        if (fileStorage == null) throw new FileStorageRuntimeException(StrUtil.format("没有找到对应的存储平台！platform:{}", platform));
         return fileStorage;
     }
 

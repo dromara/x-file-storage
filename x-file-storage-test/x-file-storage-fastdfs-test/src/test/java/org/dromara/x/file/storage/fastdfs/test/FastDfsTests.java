@@ -27,20 +27,47 @@ import java.io.IOException;
 @SpringBootTest
 class FastDfsTests {
     
+    /**
+     * File name
+     */
+    private static final String FILE_NAME = "M00/00/00/rByFDmU4vwyAW-wzAAAAMk___qE415.txt";
+    
     @Resource
     private FileStorageService fileStorageService;
     
     @Test
     void upload() {
-        File file = FileUtil.file("test.txt");
+        File file = FileUtil.file("fastdfs.txt");
         
         try {
             FileInputStream fileInputStream = new FileInputStream(file);
-            MultipartFile multipartFile = new MockMultipartFile("uploadFile", file.getName(), "text/plain", fileInputStream);
+            MultipartFile multipartFile = new MockMultipartFile("uploadFile", file.getName(), "text/plain",
+                    fileInputStream);
             FileInfo upload = fileStorageService.of(multipartFile).upload();
             Console.log(upload);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    
+    @Test
+    void download() {
+        File tempFile = FileUtil.createTempFile();
+        Console.log(tempFile);
+        fileStorageService.download(new FileInfo().setPlatform("fastdfs-1").setFilename(FILE_NAME)).file(tempFile);
+    }
+    
+    @Test
+    void exists() {
+        boolean exists = fileStorageService.exists(
+                new FileInfo().setPlatform("fastdfs-1").setFilename(FILE_NAME));
+        Console.log("exists: " + exists);
+    }
+    
+    @Test
+    void delete() {
+        boolean deleted = fileStorageService.delete(
+                new FileInfo().setPlatform("fastdfs-1").setFilename(FILE_NAME));
+        Console.log("deleted: " + deleted);
     }
 }

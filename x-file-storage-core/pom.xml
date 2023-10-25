@@ -10,7 +10,6 @@
     <artifactId>x-file-storage-core</artifactId>
 
     <dependencies>
-
         <!-- javax.servlet-api -->
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -18,7 +17,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- jakarta.servlet-api -->
         <dependency>
             <groupId>jakarta.servlet</groupId>
@@ -26,7 +24,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- Apache commons-pool2 -->
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -34,7 +31,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 华为云 OBS -->
         <dependency>
             <groupId>com.huaweicloud</groupId>
@@ -42,7 +38,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- Amazon S3 -->
         <dependency>
             <groupId>com.amazonaws</groupId>
@@ -50,7 +45,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 阿里云 OSS -->
         <dependency>
             <groupId>com.aliyun.oss</groupId>
@@ -58,15 +52,19 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 百度云 BOS -->
         <dependency>
             <groupId>com.baidubce</groupId>
             <artifactId>bce-java-sdk</artifactId>
             <scope>provided</scope>
             <optional>true</optional>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework</groupId>
+                    <artifactId>spring-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
-
         <!-- WebDAV -->
         <dependency>
             <groupId>com.github.lookfirst</groupId>
@@ -74,7 +72,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- SFTP -->
         <dependency>
             <groupId>com.jcraft</groupId>
@@ -82,7 +79,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- FTP -->
         <dependency>
             <groupId>commons-net</groupId>
@@ -90,7 +86,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- MinIO -->
         <dependency>
             <groupId>io.minio</groupId>
@@ -98,7 +93,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 又拍云 USS -->
         <dependency>
             <groupId>com.upyun</groupId>
@@ -106,7 +100,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 腾讯云 COS -->
         <dependency>
             <groupId>com.qcloud</groupId>
@@ -114,7 +107,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 七牛云 Kodo -->
         <dependency>
             <groupId>com.qiniu</groupId>
@@ -122,7 +114,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 谷歌云 Google Cloud Platform Storage-->
         <dependency>
             <groupId>com.google.cloud</groupId>
@@ -130,53 +121,37 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- FastDFS Storage -->
         <dependency>
             <groupId>io.github.rui8832</groupId>
             <artifactId>fastdfs-client-java</artifactId>
+            <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
-        <!--        <dependency>-->
-        <!--            <groupId>org.csource</groupId>-->
-        <!--            <artifactId>fastdfs-client</artifactId>-->
-        <!--            &lt;!&ndash;                <version>${fastdfs-client-java.version}</version>&ndash;&gt;-->
-        <!--            <version>1.0</version>-->
-        <!--            <scope>system</scope>-->
-        <!--            <systemPath>C:/Users/XS/.m2/repository/org/csource/fastdfs-client/1.25/fastdfs-client-1.25.jar</systemPath>-->
-        <!--            <optional>true</optional>-->
-        <!--        </dependency>-->
-
         <!--糊涂工具类核心-->
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-core</artifactId>
         </dependency>
-
         <!--糊涂工具类扩展-->
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-extra</artifactId>
-            <scope>provided</scope>
-            <optional>true</optional>
         </dependency>
-
         <!-- Tika -->
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
         </dependency>
-
         <!-- 图片处理 https://github.com/coobird/thumbnailator -->
         <dependency>
             <groupId>net.coobird</groupId>
             <artifactId>thumbnailator</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <scope>provided</scope>
             <optional>true</optional>
         </dependency>
     </dependencies>

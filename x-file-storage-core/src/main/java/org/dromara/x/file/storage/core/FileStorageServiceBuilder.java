@@ -475,7 +475,7 @@ public class FileStorageServiceBuilder {
         
        return fastdfs.stream().map(config -> {
             log.info("加载 FastDFS 存储平台：{}", config.getPlatform());
-            FileStorageClientFactory<StorageClient1> clientFactory = getFactory(config.getPlatform(), clientFactoryList, () -> new FastDfsFileStorageClientFactory(config));
+            FileStorageClientFactory<StorageClient> clientFactory = getFactory(config.getPlatform(), clientFactoryList, () -> new FastDfsFileStorageClientFactory(config));
             return new FastDfsFileStorage(config, clientFactory);
         }).collect(Collectors.toList());
     }

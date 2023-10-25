@@ -1,10 +1,8 @@
 package org.dromara.x.file.storage.core;
 
-import com.google.common.collect.Lists;
+import cn.hutool.core.util.StrUtil;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
 import lombok.experimental.Accessors;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.dromara.x.file.storage.core.constant.Constant;
@@ -16,6 +14,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Data
 @Accessors(chain = true)
@@ -733,75 +732,127 @@ public class FileStorageProperties {
      * FastDFS
      */
     @Data
-    @NoArgsConstructor
     @EqualsAndHashCode(callSuper = true)
     public static class FastDfsConfig extends BaseConfig {
         
         /**
-         * Tracker Server 地址（IP:PORT），多个用英文逗号隔开
+         * Tracker Server 配置
          */
-        @NonNull
-        private String trackerServer;
+        private FastDfsTrackerServer trackerServer;
         
         /**
-         * 组名，可以为空
+         * Storage Server 配置（当不使用 Tracker Server 时使用）
          */
-        private String groupName;
+        private FastDfsStorageServer storageServer;
         
         /**
-         * 连接超时，单位：秒，默认：5s
+         * 额外扩展配置
          */
-        private Integer connectTimeoutInSeconds;
+        private FastDfsExtra extra;
         
         /**
-         * 套接字超时，单位：秒，默认：30s
+         * 访问域名
          */
-        private Integer networkTimeoutInSeconds;
+        private String domain = "";
         
         /**
-         * 字符编码，默认：UTF-8
+         * 基础路径
          */
-        private Charset charset;
-        
-        /**
-         * 默认：false
-         */
-        private Boolean httpAntiStealToken;
-        
-        /**
-         * 安全密钥，默认：FastDFS1234567890
-         */
-        private String httpSecretKey;
-        
-        /**
-         * 默认：80
-         */
-        private Integer trackerHttpPort;
-        
-        /**
-         * 是否启用连接池。默认：true
-         */
-        private Boolean connectionPoolEnabled;
-        
-        /**
-         * 默认：100
-         */
-        private Integer connectionPoolMaxCountPerEntry;
-        
-        /**
-         * 连接池最大空闲时间。单位：秒，默认：3600
-         */
-        private Integer connectionPoolMaxIdleTime;
-        
-        /**
-         * 连接池最大等待时间。单位：毫秒，默认：1000
-         */
-        private Integer connectionPoolMaxWaitTimeInMs;
+        private String basePath = "";
         
         /**
          * 其它自定义配置
          */
         private Map<String, Object> attr = new LinkedHashMap<>();
+        
+        public String getGroupName() {
+            return Optional.ofNullable(extra).map(FastDfsExtra::getGroupName).orElse(StrUtil.EMPTY);
+        }
+        
+        @Data
+        @EqualsAndHashCode
+        public static class FastDfsTrackerServer {
+            
+            /**
+             * Tracker Server 地址（IP:PORT），多个用英文逗号隔开
+             */
+            private String serverAddr;
+            
+            /**
+             * 默认：80
+             */
+            private Integer httpPort;
+        }
+        
+        @Data
+        @EqualsAndHashCode
+        public static class FastDfsStorageServer {
+            
+            /**
+             * Storage Server 地址:IP:PORT
+             */
+            private String serverAddr;
+            
+            /**
+             * Store path
+             */
+            private Integer storePath = 0;
+        }
+        
+        @Data
+        @EqualsAndHashCode
+        public static class FastDfsExtra {
+            
+            /**
+             * 组名，可以为空
+             */
+            private String groupName;
+            
+            /**
+             * 连接超时，单位：秒，默认：5s
+             */
+            private Integer connectTimeoutInSeconds;
+            
+            /**
+             * 套接字超时，单位：秒，默认：30s
+             */
+            private Integer networkTimeoutInSeconds;
+            
+            /**
+             * 字符编码，默认：UTF-8
+             */
+            private Charset charset;
+            
+            /**
+             * 默认：false
+             */
+            private Boolean httpAntiStealToken;
+            
+            /**
+             * 安全密钥，默认：FastDFS1234567890
+             */
+            private String httpSecretKey;
+            
+            /**
+             * 是否启用连接池。默认：true
+             */
+            private Boolean connectionPoolEnabled;
+            
+            /**
+             * 默认：100
+             */
+            private Integer connectionPoolMaxCountPerEntry;
+            
+            /**
+             * 连接池最大空闲时间。单位：秒，默认：3600
+             */
+            private Integer connectionPoolMaxIdleTime;
+            
+            /**
+             * 连接池最大等待时间。单位：毫秒，默认：1000
+             */
+            private Integer connectionPoolMaxWaitTimeInMs;
+        }
     }
     
     /**

@@ -3,9 +3,9 @@ services:
   tracker:
     image: season/fastdfs:1.2
     restart: always
+    network_mode: host
     ports:
       - "22122:22122"
-    network_mode: host
     environment:
       - TZ=Asia/Shanghai
       - LANG=C.UTF-8
@@ -14,10 +14,10 @@ services:
   storage:
     image: season/fastdfs:1.2
     restart: always
+    network_mode: host
     ports:
       - "23000:23000"
       - "8888:8888"
-    network_mode: host
     volumes:
       - "./storage.conf:/fdfs_conf/storage.conf"
       - "./storage_base_path:/fastdfs/storage/data"

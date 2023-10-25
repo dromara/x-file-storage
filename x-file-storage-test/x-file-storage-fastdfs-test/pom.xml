@@ -14,15 +14,10 @@
             <groupId>io.github.rui8832</groupId>
             <artifactId>fastdfs-client-java</artifactId>
         </dependency>
-        <!--        <dependency>-->
-        <!--            <groupId>org.csource</groupId>-->
-        <!--            <artifactId>fastdfs-client</artifactId>-->
-        <!--            &lt;!&ndash;                <version>${fastdfs-client-java.version}</version>&ndash;&gt;-->
-        <!--            <version>1.0</version>-->
-        <!--            <scope>system</scope>-->
-        <!--            <systemPath>C:/Users/XS/.m2/repository/org/csource/fastdfs-client/1.25/fastdfs-client-1.25.jar</systemPath>-->
-        <!--            <optional>true</optional>-->
-        <!--        </dependency>-->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-json</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

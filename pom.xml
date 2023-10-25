@@ -128,24 +128,18 @@
                 <groupId>javax.servlet</groupId>
                 <artifactId>javax.servlet-api</artifactId>
                 <version>${javax.servlet-api.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
             <!-- jakarta.servlet-api -->
             <dependency>
                 <groupId>jakarta.servlet</groupId>
                 <artifactId>jakarta.servlet-api</artifactId>
                 <version>${jakarta.servlet-api.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
             <!-- Apache commons-pool2 -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-pool2</artifactId>
                 <version>${commons-pool2.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
             <!-- Tika -->
             <dependency>
@@ -178,14 +172,12 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-configuration-processor</artifactId>
                 <version>${spring-boot.version}</version>
-                <optional>true</optional>
             </dependency>
             <!--endregion-->
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
-                <scope>provided</scope>
             </dependency>
             <!--region 所有存储平台-->
             <!-- 华为云 OBS -->
@@ -193,111 +185,78 @@
                 <groupId>com.huaweicloud</groupId>
                 <artifactId>esdk-obs-java</artifactId>
                 <version>${esdk-obs-java.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
             <!-- Amazon S3 -->
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk-s3</artifactId>
                 <version>${aws-java-sdk-s3.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
             <!-- 阿里云 OSS -->
             <dependency>
                 <groupId>com.aliyun.oss</groupId>
                 <artifactId>aliyun-sdk-oss</artifactId>
                 <version>${aliyun-sdk-oss.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
-
             <!-- 百度云 BOS -->
             <dependency>
                 <groupId>com.baidubce</groupId>
                 <artifactId>bce-java-sdk</artifactId>
                 <version>${bce-java-sdk.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.springframework</groupId>
-                        <artifactId>spring-core</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <!-- WebDAV -->
             <dependency>
                 <groupId>com.github.lookfirst</groupId>
                 <artifactId>sardine</artifactId>
                 <version>${sardine.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
             <!-- SFTP -->
             <dependency>
                 <groupId>com.jcraft</groupId>
                 <artifactId>jsch</artifactId>
                 <version>${jsch.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
             <!-- FTP -->
             <dependency>
                 <groupId>commons-net</groupId>
                 <artifactId>commons-net</artifactId>
                 <version>${commons-net.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
             <!-- MinIO -->
             <dependency>
                 <groupId>io.minio</groupId>
                 <artifactId>minio</artifactId>
                 <version>${minio.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
             <!-- 又拍云 USS -->
             <dependency>
                 <groupId>com.upyun</groupId>
                 <artifactId>java-sdk</artifactId>
                 <version>${upyun-java-sdk.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
             <!-- 腾讯云 COS -->
             <dependency>
                 <groupId>com.qcloud</groupId>
                 <artifactId>cos_api</artifactId>
                 <version>${cos_api.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
             <!-- 七牛云 Kodo -->
             <dependency>
                 <groupId>com.qiniu</groupId>
                 <artifactId>qiniu-java-sdk</artifactId>
                 <version>${qiniu-java-sdk.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
             <!-- 谷歌云 Google Cloud Platform Storage-->
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-storage</artifactId>
                 <version>${google-cloud-storage.version}</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
-
             <!-- FastDFS -->
             <dependency>
                 <groupId>io.github.rui8832</groupId>
                 <artifactId>fastdfs-client-java</artifactId>
                 <version>${fastdfs-client-java.version}</version>
-                <optional>true</optional>
             </dependency>
             <!--endregion-->
         </dependencies>
@@ -329,11 +288,11 @@
                 <artifactId>flatten-maven-plugin</artifactId>
                 <version>${flatten-maven-plugin.version}</version>
                 <configuration>
-                    <flattenMode>ossrh</flattenMode>
+                    <flattenMode>oss</flattenMode>
                     <updatePomFile>true</updatePomFile>
-                    <pomElements>
-                        <repositories>remove</repositories>
-                    </pomElements>
+                    <!--                    <pomElements>-->
+                    <!--                        <repositories>remove</repositories>-->
+                    <!--                    </pomElements>-->
                     <outputDirectory>${project.build.directory}/.flattened</outputDirectory>
                 </configuration>
                 <executions>
