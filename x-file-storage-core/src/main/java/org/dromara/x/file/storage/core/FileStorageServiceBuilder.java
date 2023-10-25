@@ -16,6 +16,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
+import org.csource.fastdfs.StorageClient;
+import org.csource.fastdfs.StorageClient1;
 import org.dromara.x.file.storage.core.FileStorageProperties.*;
 import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
@@ -31,6 +33,7 @@ import org.dromara.x.file.storage.core.tika.TikaFactory;
 import org.dromara.x.file.storage.core.util.Tools;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -251,8 +254,9 @@ public class FileStorageServiceBuilder {
         fileStorageList.addAll(buildAmazonS3FileStorage(properties.getAmazonS3(),clientFactoryList));
         fileStorageList.addAll(buildFtpFileStorage(properties.getFtp(),clientFactoryList));
         fileStorageList.addAll(buildSftpFileStorage(properties.getSftp(),clientFactoryList));
-        fileStorageList.addAll(buildWebDavFileStorage(properties.getWebDav(),clientFactoryList));
+        fileStorageList.addAll(buildWebDavFileStorage(properties.getWebdav(),clientFactoryList));
         fileStorageList.addAll(buildGoogleCloudStorageFileStorage(properties.getGoogleCloudStorage(),clientFactoryList));
+        fileStorageList.addAll(buildFastDfsFileStorage(properties.getFastdfs(),clientFactoryList));
 
         //本体
         FileStorageService service = new FileStorageService();
@@ -271,7 +275,7 @@ public class FileStorageServiceBuilder {
 
         return service;
     }
-
+    
     /**
      * 创建一个 FileStorageService 的构造器
      */
@@ -306,7 +310,7 @@ public class FileStorageServiceBuilder {
      */
     public static List<HuaweiObsFileStorage> buildHuaweiObsFileStorage(List<? extends HuaweiObsConfig> list,List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list,"华为云 OBS ","com.obs.services.ObsClient");
+        buildFileStorageDetect(list,"华为云 OBS","com.obs.services.ObsClient");
         return list.stream().map(config -> {
             log.info("加载华为云 OBS 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<ObsClient> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new HuaweiObsFileStorageClientFactory(config));
@@ -319,7 +323,7 @@ public class FileStorageServiceBuilder {
      */
     public static List<AliyunOssFileStorage> buildAliyunOssFileStorage(List<? extends AliyunOssConfig> list,List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list,"阿里云 OSS ","com.aliyun.oss.OSS");
+        buildFileStorageDetect(list,"阿里云 OSS","com.aliyun.oss.OSS");
         return list.stream().map(config -> {
             log.info("加载阿里云 OSS 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<OSS> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new AliyunOssFileStorageClientFactory(config));
@@ -332,7 +336,7 @@ public class FileStorageServiceBuilder {
      */
     public static List<QiniuKodoFileStorage> buildQiniuKodoFileStorage(List<? extends QiniuKodoConfig> list,List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list,"七牛云 Kodo ","com.qiniu.storage.UploadManager");
+        buildFileStorageDetect(list,"七牛云 Kodo","com.qiniu.storage.UploadManager");
         return list.stream().map(config -> {
             log.info("加载七牛云 Kodo 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<QiniuKodoClient> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new QiniuKodoFileStorageClientFactory(config));
@@ -345,7 +349,7 @@ public class FileStorageServiceBuilder {
      */
     public static List<TencentCosFileStorage> buildTencentCosFileStorage(List<? extends TencentCosConfig> list,List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list,"腾讯云 COS ","com.qcloud.cos.COSClient");
+        buildFileStorageDetect(list,"腾讯云 COS","com.qcloud.cos.COSClient");
         return list.stream().map(config -> {
             log.info("加载腾讯云 COS 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<COSClient> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new TencentCosFileStorageClientFactory(config));
@@ -358,7 +362,7 @@ public class FileStorageServiceBuilder {
      */
     public static List<BaiduBosFileStorage> buildBaiduBosFileStorage(List<? extends BaiduBosConfig> list,List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list,"百度云 BOS ","com.baidubce.services.bos.BosClient");
+        buildFileStorageDetect(list,"百度云 BOS","com.baidubce.services.bos.BosClient");
         return list.stream().map(config -> {
             log.info("加载百度云 BOS 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<BosClient> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new BaiduBosFileStorageClientFactory(config));
@@ -371,7 +375,7 @@ public class FileStorageServiceBuilder {
      */
     public static List<UpyunUssFileStorage> buildUpyunUssFileStorage(List<? extends UpyunUssConfig> list,List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list,"又拍云 USS ","com.upyun.RestManager");
+        buildFileStorageDetect(list,"又拍云 USS","com.upyun.RestManager");
         return list.stream().map(config -> {
             log.info("加载又拍云 USS 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<RestManager> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new UpyunUssFileStorageClientFactory(config));
@@ -384,7 +388,7 @@ public class FileStorageServiceBuilder {
      */
     public static List<MinioFileStorage> buildMinioFileStorage(List<? extends MinioConfig> list,List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list," MinIO ","io.minio.MinioClient");
+        buildFileStorageDetect(list,"MinIO","io.minio.MinioClient");
         return list.stream().map(config -> {
             log.info("加载 MinIO 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<MinioClient> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new MinioFileStorageClientFactory(config));
@@ -397,7 +401,7 @@ public class FileStorageServiceBuilder {
      */
     public static List<AmazonS3FileStorage> buildAmazonS3FileStorage(List<? extends AmazonS3Config> list,List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list," Amazon S3 ","com.amazonaws.services.s3.AmazonS3");
+        buildFileStorageDetect(list,"Amazon S3","com.amazonaws.services.s3.AmazonS3");
         return list.stream().map(config -> {
             log.info("加载 Amazon S3 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<AmazonS3> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new AmazonS3FileStorageClientFactory(config));
@@ -410,7 +414,7 @@ public class FileStorageServiceBuilder {
      */
     public static List<FtpFileStorage> buildFtpFileStorage(List<? extends FtpConfig> list,List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list," FTP ","org.apache.commons.net.ftp.FTPClient","cn.hutool.extra.ftp.Ftp","org.apache.commons.pool2.impl.GenericObjectPool");
+        buildFileStorageDetect(list,"FTP","org.apache.commons.net.ftp.FTPClient","cn.hutool.extra.ftp.Ftp","org.apache.commons.pool2.impl.GenericObjectPool");
         return list.stream().map(config -> {
             log.info("加载 FTP 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<Ftp> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new FtpFileStorageClientFactory(config));
@@ -423,7 +427,7 @@ public class FileStorageServiceBuilder {
      */
     public static List<SftpFileStorage> buildSftpFileStorage(List<? extends SftpConfig> list,List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list," SFTP ","com.jcraft.jsch.ChannelSftp","cn.hutool.extra.ftp.Ftp","org.apache.commons.pool2.impl.GenericObjectPool");
+        buildFileStorageDetect(list,"SFTP","com.jcraft.jsch.ChannelSftp","cn.hutool.extra.ftp.Ftp","org.apache.commons.pool2.impl.GenericObjectPool");
         return list.stream().map(config -> {
             log.info("加载 SFTP 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<Sftp> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new SftpFileStorageClientFactory(config));
@@ -436,7 +440,7 @@ public class FileStorageServiceBuilder {
      */
     public static List<WebDavFileStorage> buildWebDavFileStorage(List<? extends WebDavConfig> list,List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list," WebDAV ","com.github.sardine.Sardine");
+        buildFileStorageDetect(list,"WebDAV","com.github.sardine.Sardine");
         return list.stream().map(config -> {
             log.info("加载 WebDAV 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<Sardine> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new WebDavFileStorageClientFactory(config));
@@ -454,6 +458,27 @@ public class FileStorageServiceBuilder {
             log.info("加载 GoogleCloud Storage 存储平台：{}",config.getPlatform());
             FileStorageClientFactory<Storage> clientFactory = getFactory(config.getPlatform(),clientFactoryList,() -> new GoogleCloudStorageFileStorageClientFactory(config));
             return new GoogleCloudStorageFileStorage(config,clientFactory);
+        }).collect(Collectors.toList());
+    }
+    
+    /**
+     * 构建 FastDFS 客户端
+     * @param fastdfs FastDFS 配置列表
+     * @param clientFactoryList 客户端工厂
+     * @return {@link Collection}<{@link ?} {@link extends} {@link FileStorage}>
+     */
+    private Collection<? extends FileStorage> buildFastDfsFileStorage(List<? extends FastDfsConfig> fastdfs,
+            List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        if (CollUtil.isEmpty(fastdfs)) {
+            return Collections.emptyList();
+        }
+        
+        buildFileStorageDetect(fastdfs,"FastDFS","org.csource.fastdfs.StorageClient");
+        
+       return fastdfs.stream().map(config -> {
+            log.info("加载 FastDFS 存储平台：{}", config.getPlatform());
+            FileStorageClientFactory<StorageClient> clientFactory = getFactory(config.getPlatform(), clientFactoryList, () -> new FastDfsFileStorageClientFactory(config));
+            return new FastDfsFileStorage(config, clientFactory);
         }).collect(Collectors.toList());
     }
 
@@ -496,7 +521,7 @@ public class FileStorageServiceBuilder {
         if (CollUtil.isEmpty(list)) return;
         for (String className : classNames) {
             if (doesNotExistClass(className)) {
-                throw new FileStorageRuntimeException("检测到" + platformName + "配置，但是没有找到对应的依赖类：" + className + "，所以无法加载此存储平台！配置参考地址：https://x-file-storage.xuyanwu.cn/#/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8");
+                throw new FileStorageRuntimeException("检测到【" + platformName + "】配置，但是没有找到对应的依赖类：【" + className + "】，所以无法加载此存储平台！配置参考地址：https://x-file-storage.xuyanwu.cn/#/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8");
             }
         }
     }

@@ -3,7 +3,21 @@ package org.dromara.x.file.storage.spring;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.dromara.x.file.storage.core.FileStorageProperties;
-import org.dromara.x.file.storage.core.FileStorageProperties.*;
+import org.dromara.x.file.storage.core.FileStorageProperties.AliyunOssConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.AmazonS3Config;
+import org.dromara.x.file.storage.core.FileStorageProperties.BaiduBosConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.FastDfsConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.FtpConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.GoogleCloudStorageConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.HuaweiObsConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.LocalConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.LocalPlusConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.MinioConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.QiniuKodoConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.SftpConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.TencentCosConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.UpyunUssConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.WebDavConfig;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -121,12 +135,17 @@ public class SpringFileStorageProperties {
     /**
      * WebDAV
      */
-    private List<? extends SpringWebDavConfig> WebDav = new ArrayList<>();
+    private List<? extends SpringWebDavConfig> webdav = new ArrayList<>();
 
     /**
      * GoogleCloud Storage
      */
     private List<? extends SpringGoogleCloudStorageConfig> googleCloudStorage = new ArrayList<>();
+    
+    /**
+     * FastDFS
+     */
+    private List<? extends SpringFastDfsConfig> fastdfs = new ArrayList<>();
 
 
     /**
@@ -152,8 +171,9 @@ public class SpringFileStorageProperties {
         properties.setAmazonS3(amazonS3.stream().filter(SpringAmazonS3Config::getEnableStorage).collect(Collectors.toList()));
         properties.setFtp(ftp.stream().filter(SpringFtpConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setSftp(sftp.stream().filter(SpringSftpConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setWebDav(WebDav.stream().filter(SpringWebDavConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setWebdav(webdav.stream().filter(SpringWebDavConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setGoogleCloudStorage(googleCloudStorage.stream().filter(SpringGoogleCloudStorageConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setFastdfs(fastdfs.stream().filter(SpringFastDfsConfig::getEnableStorage).collect(Collectors.toList()));
         return properties;
     }
 
@@ -335,6 +355,20 @@ public class SpringFileStorageProperties {
     @Data
     @EqualsAndHashCode(callSuper = true)
     public static class SpringGoogleCloudStorageConfig extends GoogleCloudStorageConfig {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+    
+    /**
+     * FastDFS Storage
+     * @author XS <wanghaiqi@beeplay123.com>
+     * @date 2023/10/23
+     */
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    public static class SpringFastDfsConfig extends FastDfsConfig {
         /**
          * 启用存储
          */
