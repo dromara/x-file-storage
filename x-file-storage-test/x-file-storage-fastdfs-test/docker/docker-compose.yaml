@@ -30,6 +30,7 @@ services:
   nginx:
     image: season/fastdfs:1.2
     restart: always
+    network_mode: host
     ports:
       - "8088:8088"
     volumes:
