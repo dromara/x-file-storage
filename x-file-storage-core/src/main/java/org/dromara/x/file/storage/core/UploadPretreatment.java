@@ -458,6 +458,22 @@ public class UploadPretreatment {
     }
 
     /**
+     * 设置不支持元数据时抛出异常
+     */
+    public UploadPretreatment setNotSupportMetadataThrowException(boolean flag,Boolean notSupportMetadataThrowException) {
+        if (flag) this.notSupportMetadataThrowException = notSupportMetadataThrowException;
+        return this;
+    }
+
+    /**
+     * 设置不支持 ACL 时抛出异常
+     */
+    public UploadPretreatment setNotSupportAclThrowException(boolean flag,Boolean notSupportAclThrowException) {
+        if (flag) this.notSupportAclThrowException = notSupportAclThrowException;
+        return this;
+    }
+
+    /**
      * 获取附加属性字典
      */
     public Dict getAttr() {

@@ -181,7 +181,7 @@ public class LocalPlusFileStorage implements FileStorage {
             if (progressListener == null) {
                 FileUtil.copyFile(srcFile,destFile,StandardCopyOption.REPLACE_EXISTING);
             } else {
-                InputStreamPlus in = new InputStreamPlus(FileUtil.getInputStream(srcFile),progressListener,srcFileInfo.getSize());
+                InputStreamPlus in = new InputStreamPlus(FileUtil.getInputStream(srcFile),progressListener,srcFile.length());
                 FileUtil.writeFromStream(in,destFile);
             }
         } catch (Exception e) {

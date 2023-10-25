@@ -91,13 +91,13 @@ public class Downloader {
             new DownloadAspectChain(aspectList,(_fileInfo,_fileStorage,_consumer) ->
                     _fileStorage.download(_fileInfo,_consumer)
             ).next(fileInfo,fileStorage,in ->
-                    consumer.accept(progressListener == null ? in : new ProgressInputStream(in,progressListener,fileInfo.getSize()))
+                    consumer.accept( new InputStreamPlus(in,progressListener,fileInfo.getSize()))
             );
         } else if (target == TARGET_TH_FILE) {  //下载缩略图文件
             new DownloadThAspectChain(aspectList,(_fileInfo,_fileStorage,_consumer) ->
                     _fileStorage.downloadTh(_fileInfo,_consumer)
             ).next(fileInfo,fileStorage,in ->
-                    consumer.accept(progressListener == null ? in : new ProgressInputStream(in,progressListener,fileInfo.getThSize()))
+                    consumer.accept(new InputStreamPlus(in,progressListener,fileInfo.getThSize()))
             );
         } else {
             throw new FileStorageRuntimeException("没找到对应的下载目标，请设置 target 参数！");

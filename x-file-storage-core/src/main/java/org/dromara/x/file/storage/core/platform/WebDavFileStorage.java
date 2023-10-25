@@ -3,6 +3,7 @@ package org.dromara.x.file.storage.core.platform;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.util.StrUtil;
+import com.github.sardine.DavResource;
 import com.github.sardine.Sardine;
 import com.github.sardine.impl.SardineException;
 import lombok.Getter;
@@ -187,19 +188,21 @@ public class WebDavFileStorage implements FileStorage {
         if (!basePath.equals(srcFileInfo.getBasePath())) {
             throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
         }
-
         Sardine client = getClient();
+
+        //获取远程文件信息
         String srcFileUrl = getUrl(getFileKey(srcFileInfo));
+        DavResource srcFile;
         try {
-            if (!client.exists(srcFileUrl)) {
-                throw new FileStorageRuntimeException("文件复制失败，源文件不存在！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
-            }
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件复制失败，检查源文件失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
+            srcFile = client.list(srcFileUrl,0,false).get(0);
+        } catch (Exception e) {
+            throw new FileStorageRuntimeException("文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
         }
+
+        //检查并创建父路径
         try {
             createDirectory(client,getUrl(destFileInfo.getBasePath() + destFileInfo.getPath()));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new FileStorageRuntimeException("文件复制失败，检查并创建父路径失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
         }
 
@@ -211,7 +214,7 @@ public class WebDavFileStorage implements FileStorage {
             destFileInfo.setThUrl(domain + destThFileKey);
             try {
                 client.copy(getUrl(getThFileKey(srcFileInfo)),destThFileUrl);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw new FileStorageRuntimeException("缩略图文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
             }
         }
@@ -221,27 +224,17 @@ public class WebDavFileStorage implements FileStorage {
         destFileInfo.setUrl(domain + destFileKey);
         String destFileUrl = getUrl(destFileKey);
         try {
-            if (progressListener != null) {
-                progressListener.start();
-                progressListener.progress(0,srcFileInfo.getSize());
-            }
+            ProgressListener.quickStart(progressListener,srcFile.getContentLength());
             client.copy(srcFileUrl,destFileUrl);
-            if (progressListener != null) {
-                Long progressSize = srcFileInfo.getSize();
-                if (progressSize == null) {
-                    progressSize = client.list(destFileUrl,0,false).get(0).getContentLength();
-                }
-                progressListener.progress(progressSize,srcFileInfo.getSize());
-                progressListener.finish();
-            }
-        } catch (IOException e) {
+            ProgressListener.quickFinish(progressListener,srcFile.getContentLength());
+        } catch (Exception e) {
             try {
                 if (destThFileUrl != null) client.delete(destThFileUrl);
-            } catch (IOException ignored) {
+            } catch (Exception ignored) {
             }
             try {
                 client.delete(destFileUrl);
-            } catch (IOException ignored) {
+            } catch (Exception ignored) {
             }
             throw new FileStorageRuntimeException("文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
         }

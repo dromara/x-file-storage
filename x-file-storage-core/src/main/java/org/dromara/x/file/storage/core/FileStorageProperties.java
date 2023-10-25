@@ -35,6 +35,14 @@ public class FileStorageProperties {
      */
     private Boolean uploadNotSupportAclThrowException = true;
     /**
+     * 复制时不支持元数据时抛出异常
+     */
+    private Boolean copyNotSupportMetadataThrowException = true;
+    /**
+     * 复制时不支持 ACL 时抛出异常
+     */
+    private Boolean copyNotSupportAclThrowException = true;
+    /**
      * 本地存储
      */
     private List<? extends LocalConfig> local = new ArrayList<>();
