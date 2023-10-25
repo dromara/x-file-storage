@@ -267,6 +267,8 @@ public class FileStorageServiceBuilder {
         service.setThumbnailSuffix(properties.getThumbnailSuffix());
         service.setUploadNotSupportMetadataThrowException(properties.getUploadNotSupportMetadataThrowException());
         service.setUploadNotSupportAclThrowException(properties.getUploadNotSupportAclThrowException());
+        service.setCopyNotSupportMetadataThrowException(properties.getCopyNotSupportMetadataThrowException());
+        service.setCopyNotSupportAclThrowException(properties.getCopyNotSupportAclThrowException());
         service.setAspectList(new CopyOnWriteArrayList<>(aspectList));
         service.setFileWrapperAdapterList(new CopyOnWriteArrayList<>(fileWrapperAdapterList));
         service.setContentTypeDetect(contentTypeDetect);

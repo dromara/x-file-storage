@@ -41,6 +41,14 @@ public class FileStorageProperties {
     private Boolean uploadNotSupportAclThrowException = true;
     
     /**
+     * 复制时不支持元数据时抛出异常
+     */
+    private Boolean copyNotSupportMetadataThrowException = true;
+    /**
+     * 复制时不支持 ACL 时抛出异常
+     */
+    private Boolean copyNotSupportAclThrowException = true;
+    /**
      * 本地存储
      */
     private List<? extends LocalConfig> local = new ArrayList<>();
@@ -209,7 +217,7 @@ public class FileStorageProperties {
         private String defaultAcl;
         
         /**
-         * 自动分片上传阈值，超过此大小则使用分片上传，默认 128MB
+         * 自动分片上传阈值，达到此大小则使用分片上传，默认 128MB
          */
         private int multipartThreshold = 128 * 1024 * 1024;
         
@@ -255,7 +263,7 @@ public class FileStorageProperties {
         private String defaultAcl;
         
         /**
-         * 自动分片上传阈值，超过此大小则使用分片上传，默认 128MB
+         * 自动分片上传阈值，达到此大小则使用分片上传，默认 128MB
          */
         private int multipartThreshold = 128 * 1024 * 1024;
         
@@ -330,7 +338,7 @@ public class FileStorageProperties {
         private String defaultAcl;
         
         /**
-         * 自动分片上传阈值，超过此大小则使用分片上传，默认 128MB
+         * 自动分片上传阈值，达到此大小则使用分片上传，默认 128MB
          */
         private int multipartThreshold = 128 * 1024 * 1024;
         
@@ -376,7 +384,7 @@ public class FileStorageProperties {
         private String defaultAcl;
         
         /**
-         * 自动分片上传阈值，超过此大小则使用分片上传，默认 128MB
+         * 自动分片上传阈值，达到此大小则使用分片上传，默认 128MB
          */
         private int multipartThreshold = 128 * 1024 * 1024;
         
@@ -446,6 +454,15 @@ public class FileStorageProperties {
         private String basePath = "";
         
         /**
+         * 自动分片上传阈值，达到此大小则使用分片上传，默认 128MB。
+         * 在获取不到文件大小或达到这个阈值的情况下，会使用这里提供的分片大小，否则 MinIO 会自动分片大小
+         */
+        private int multipartThreshold = 128 * 1024 * 1024;
+        /**
+         * 自动分片上传时每个分片大小，默认 32MB
+         */
+        private int multipartPartSize = 32 * 1024 * 1024;
+        /**
          * 其它自定义配置
          */
         private Map<String, Object> attr = new LinkedHashMap<>();
@@ -484,7 +501,7 @@ public class FileStorageProperties {
         private String defaultAcl;
         
         /**
-         * 自动分片上传阈值，超过此大小则使用分片上传，默认 128MB
+         * 自动分片上传阈值，达到此大小则使用分片上传，默认 128MB
          */
         private int multipartThreshold = 128 * 1024 * 1024;
         

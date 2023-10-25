@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.BaiduBosConfig;
+import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
@@ -82,9 +83,9 @@ public class BaiduBosFileStorage implements FileStorage {
         ObjectMetadata metadata = getObjectMetadata(fileInfo);
         ProgressListener listener = pre.getProgressListener();
         BosClient client = getClient();
-        boolean useMultipartUpload = fileInfo.getSize() >= multipartThreshold;
+        boolean useMultipartUpload = fileInfo.getSize() == null || fileInfo.getSize() >= multipartThreshold;
         String uploadId = null;
-        try (InputStream in = pre.getFileWrapper().getInputStream()) {
+        try (InputStreamPlus in = pre.getInputStreamPlus(false)) {
             if (useMultipartUpload) {//分片上传
                 InitiateMultipartUploadRequest initiateMultipartUploadRequest = new InitiateMultipartUploadRequest(bucketName,newFileKey);
                 initiateMultipartUploadRequest.setObjectMetadata(metadata);
@@ -130,6 +131,8 @@ public class BaiduBosFileStorage implements FileStorage {
                 client.putObject(request);
                 if (listener != null) listener.finish();
             }
+            if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
+
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = getThFileKey(fileInfo);
@@ -174,7 +177,7 @@ public class BaiduBosFileStorage implements FileStorage {
     public ObjectMetadata getObjectMetadata(FileInfo fileInfo) {
         CannedAccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
         ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentLength(fileInfo.getSize());
+        if (fileInfo.getSize() != null) metadata.setContentLength(fileInfo.getSize());
         metadata.setContentType(fileInfo.getContentType());
         if (fileAcl != null) metadata.setxBceAcl(fileAcl.toString());
         metadata.setUserMetadata(fileInfo.getUserMetadata());

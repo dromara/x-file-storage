@@ -10,10 +10,8 @@ import com.amazonaws.services.s3.model.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.dromara.x.file.storage.core.FileInfo;
-import org.dromara.x.file.storage.core.FileStorageProperties;
 import org.dromara.x.file.storage.core.ProgressListener;
-import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.*;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
 import java.io.BufferedInputStream;
@@ -82,9 +80,9 @@ public class AmazonS3FileStorage implements FileStorage {
         ObjectMetadata metadata = getObjectMetadata(fileInfo);
         ProgressListener listener = pre.getProgressListener();
         AmazonS3 client = getClient();
-        boolean useMultipartUpload = fileInfo.getSize() >= multipartThreshold;
+        boolean useMultipartUpload = fileInfo.getSize() == null || fileInfo.getSize() >= multipartThreshold;
         String uploadId = null;
-        try (InputStream in = pre.getFileWrapper().getInputStream()) {
+        try (InputStreamPlus in = pre.getInputStreamPlus(false)) {
             if (useMultipartUpload) {//分片上传
                 uploadId = client.initiateMultipartUpload(new InitiateMultipartUploadRequest(bucketName,newFileKey,metadata)).getUploadId();
                 List<PartETag> partList = new ArrayList<>();
@@ -131,6 +129,7 @@ public class AmazonS3FileStorage implements FileStorage {
                 }
                 client.putObject(request);
             }
+            if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
@@ -177,7 +176,7 @@ public class AmazonS3FileStorage implements FileStorage {
      */
     public ObjectMetadata getObjectMetadata(FileInfo fileInfo) {
         ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentLength(fileInfo.getSize());
+        if (fileInfo.getSize() != null) metadata.setContentLength(fileInfo.getSize());
         metadata.setContentType(fileInfo.getContentType());
         metadata.setUserMetadata(fileInfo.getUserMetadata());
         if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {

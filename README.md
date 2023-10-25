@@ -36,7 +36,7 @@
 ### 📚简介
 
 一行代码将文件存储到本地、FTP、SFTP、WebDAV、阿里云 OSS、华为云 OBS、七牛云 Kodo、腾讯云 COS、百度云 BOS、又拍云 USS、MinIO、
-Amazon S3、GoogleCloud Storage、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动 云EOS、沃云 OSS、
+Amazon S3、GoogleCloud Storage、Cloudflare R2、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动 云EOS、沃云 OSS、
 网易数帆 NOS、Ucloud US3、青云 QingStor、平安云 OBS、首云 OSS、IBM COS、其它兼容 S3 协议的存储平台。查看 [所有支持的存储平台](https://x-file-storage.xuyanwu.cn/#/存储平台)
 
 💡 通过 WebDAV 连接到 Alist 后，可以使用百度网盘、天翼云盘、阿里云盘、迅雷网盘等常见存储服务，查看 [Alist 支持的存储平台](https://alist-doc.nn.ci/docs/webdav)
@@ -69,7 +69,6 @@ Gitee：https://gitee.com/dromara/x-file-storage
 - 大文件手动分片上传（1.0.0 已支持大文件自动分片上传）
 - 复制或移动文件
 - 文件内容预加载
-- 上传无需强制获取 Size
 - 新增 Access 模块，尝试通过 HTTP、FTP、WebDAV 等协议对外提供接口，方便其它程序使用
 
 -------

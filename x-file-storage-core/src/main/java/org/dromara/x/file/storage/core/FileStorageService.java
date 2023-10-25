@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.aspect.*;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.file.FileWrapperAdapter;
@@ -39,6 +40,8 @@ public class FileStorageService {
     private String thumbnailSuffix;
     private Boolean uploadNotSupportMetadataThrowException;
     private Boolean uploadNotSupportAclThrowException;
+    private Boolean copyNotSupportMetadataThrowException;
+    private Boolean copyNotSupportAclThrowException;
     private CopyOnWriteArrayList<FileStorageAspect> aspectList;
     private CopyOnWriteArrayList<FileWrapperAdapter> fileWrapperAdapterList;
     private ContentTypeDetect contentTypeDetect;
@@ -443,6 +446,21 @@ public class FileStorageService {
         throw new FileStorageRuntimeException("不支持此文件");
     }
 
+    /**
+     * 复制文件
+     */
+    public CopyPretreatment copy(FileInfo fileInfo) {
+        return new CopyPretreatment(fileInfo,self)
+                .setNotSupportMetadataThrowException(copyNotSupportMetadataThrowException)
+                .setNotSupportAclThrowException(copyNotSupportAclThrowException);
+    }
+
+    /**
+     * 复制文件
+     */
+    public CopyPretreatment copy(String url) {
+        return self.copy(getFileInfoByUrl(url));
+    }
 
     /**
      * 通过反射调用指定存储平台的方法

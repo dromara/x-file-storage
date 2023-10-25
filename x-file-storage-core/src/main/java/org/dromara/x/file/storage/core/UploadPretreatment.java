@@ -115,6 +115,11 @@ public class UploadPretreatment {
     private ProgressListener progressListener;
 
     /**
+     * 传时用的增强版本的 InputStream ，可以带进度监听、计算哈希等功能，仅内部使用
+     */
+    private InputStreamPlus inputStreamPlus;
+
+    /**
      * 文件的访问控制列表，一般情况下只有对象存储支持该功能
      * 详情见{@link FileInfo#setFileAcl}
      */
@@ -211,7 +216,7 @@ public class UploadPretreatment {
      * 设置缩略图的保存文件名，注意此文件名不含后缀，后缀用 {@link UploadPretreatment#thumbnailSuffix} 属性控制
      */
     public UploadPretreatment setSaveThFilename(boolean flag,String saveThFilename) {
-        if (flag) setSaveThFilename(saveFilename);
+        if (flag) setSaveThFilename(saveThFilename);
         return this;
     }
 
@@ -449,6 +454,22 @@ public class UploadPretreatment {
      */
     public UploadPretreatment putThUserMetadataAll(Map<String, String> metadata) {
         getThUserMetadata().putAll(metadata);
+        return this;
+    }
+
+    /**
+     * 设置不支持元数据时抛出异常
+     */
+    public UploadPretreatment setNotSupportMetadataThrowException(boolean flag,Boolean notSupportMetadataThrowException) {
+        if (flag) this.notSupportMetadataThrowException = notSupportMetadataThrowException;
+        return this;
+    }
+
+    /**
+     * 设置不支持 ACL 时抛出异常
+     */
+    public UploadPretreatment setNotSupportAclThrowException(boolean flag,Boolean notSupportAclThrowException) {
+        if (flag) this.notSupportAclThrowException = notSupportAclThrowException;
         return this;
     }
 
@@ -723,7 +744,7 @@ public class UploadPretreatment {
             }
 
             @Override
-            public void progress(long progressSize,long allSize) {
+            public void progress(long progressSize,Long allSize) {
                 progressListener.accept(progressSize,allSize);
             }
 
@@ -746,6 +767,22 @@ public class UploadPretreatment {
      */
     public UploadPretreatment setProgressMonitor(ProgressListener progressListener) {
         this.progressListener = progressListener;
+        return this;
+    }
+
+    /**
+     * 设置文件的访问控制列表，一般情况下只有对象存储支持该功能
+     */
+    public UploadPretreatment setFileAcl(boolean flag,Object acl) {
+        if (flag) setFileAcl(acl);
+        return this;
+    }
+
+    /**
+     * 设置文件的访问控制列表，一般情况下只有对象存储支持该功能
+     */
+    public UploadPretreatment setThFileAcl(boolean flag,Object acl) {
+        if (flag) setThFileAcl(acl);
         return this;
     }
 
@@ -773,5 +810,24 @@ public class UploadPretreatment {
      */
     public FileInfo upload() {
         return fileStorageService.upload(this);
+    }
+
+    /**
+     * 获取增强版本的 InputStream ，可以带进度监听、计算哈希等功能
+     */
+    public InputStreamPlus getInputStreamPlus() throws IOException {
+        return getInputStreamPlus(true);
+    }
+
+    /**
+     * 获取增强版本的 InputStream ，可以带进度监听、计算哈希等功能
+     */
+    public InputStreamPlus getInputStreamPlus(boolean hasListener) throws IOException {
+        if (inputStreamPlus == null) {
+            inputStreamPlus = new InputStreamPlus(fileWrapper.getInputStream(),
+                    hasListener ? progressListener : null,
+                    fileWrapper.getSize());
+        }
+        return inputStreamPlus;
     }
 }

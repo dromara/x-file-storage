@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.TencentCosConfig;
+import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
@@ -80,9 +81,9 @@ public class TencentCosFileStorage implements FileStorage {
         ObjectMetadata metadata = getObjectMetadata(fileInfo);
         ProgressListener listener = pre.getProgressListener();
         COSClient client = getClient();
-        boolean useMultipartUpload = fileInfo.getSize() >= multipartThreshold;
+        boolean useMultipartUpload = fileInfo.getSize() == null || fileInfo.getSize() >= multipartThreshold;
         String uploadId = null;
-        try (InputStream in = pre.getFileWrapper().getInputStream()) {
+        try (InputStreamPlus in = pre.getInputStreamPlus(false)) {
             if (useMultipartUpload) {//分片上传
                 InitiateMultipartUploadRequest initiateMultipartUploadRequest = new InitiateMultipartUploadRequest(bucketName,newFileKey,metadata);
                 initiateMultipartUploadRequest.setCannedACL(fileAcl);
@@ -129,6 +130,7 @@ public class TencentCosFileStorage implements FileStorage {
                 }
                 client.putObject(request);
             }
+            if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
@@ -176,7 +178,7 @@ public class TencentCosFileStorage implements FileStorage {
      */
     public ObjectMetadata getObjectMetadata(FileInfo fileInfo) {
         ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentLength(fileInfo.getSize());
+        if (fileInfo.getSize() != null) metadata.setContentLength(fileInfo.getSize());
         metadata.setContentType(fileInfo.getContentType());
         metadata.setUserMetadata(fileInfo.getUserMetadata());
         if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {

@@ -5,16 +5,18 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * 带进度通知的 InputStream 包装类
+ * 带进度通知的 InputStream 包装类，将在后续版本中删除，请使用 InputStreamPlus 代替此类
  */
+@Deprecated
 public class ProgressInputStream extends FilterInputStream {
 
     private boolean readFlag;
+    private boolean finishFlag;
     private long progressSize;
-    private final long allSize;
+    private final Long allSize;
     private final ProgressListener listener;
 
-    public ProgressInputStream(InputStream in,ProgressListener listener,long allSize) {
+    public ProgressInputStream(InputStream in,ProgressListener listener,Long allSize) {
         super(in);
         this.listener = listener;
         this.allSize = allSize;
@@ -55,7 +57,10 @@ public class ProgressInputStream extends FilterInputStream {
         if (size > 0) {
             this.listener.progress(progressSize += size,allSize);
         } else if (size < 0) {
-            this.listener.finish();
+            if (!this.finishFlag) {
+                this.finishFlag = true;
+                this.listener.finish();
+            }
         }
     }
 

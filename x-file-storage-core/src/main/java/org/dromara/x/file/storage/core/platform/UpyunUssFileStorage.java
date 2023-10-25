@@ -5,6 +5,7 @@ import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
 import com.upyun.RestManager;
 import com.upyun.UpException;
+import com.upyun.UpYunUtils;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,7 +13,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.UpyunUssConfig;
-import org.dromara.x.file.storage.core.ProgressInputStream;
+import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -34,6 +36,7 @@ public class UpyunUssFileStorage implements FileStorage {
     private String platform;
     private String domain;
     private String basePath;
+    private String bucketName;
     private FileStorageClientFactory<RestManager> clientFactory;
 
 
@@ -41,6 +44,7 @@ public class UpyunUssFileStorage implements FileStorage {
         platform = config.getPlatform();
         domain = config.getDomain();
         basePath = config.getBasePath();
+        bucketName = config.getBucketName();
         this.clientFactory = clientFactory;
     }
 
@@ -72,24 +76,23 @@ public class UpyunUssFileStorage implements FileStorage {
         if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
             throw new FileStorageRuntimeException("文件上传失败，又拍云 USS 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
-        ProgressListener listener = pre.getProgressListener();
 
         RestManager manager = getClient();
-        try (InputStream in = pre.getFileWrapper().getInputStream()) {
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
             //又拍云 USS 的 SDK 使用的是 REST API ，看文档不是区分大小文件的，测试大文件也是流式传输的，边读边传，不会占用大量内存
-            try (Response result = manager.writeFile(newFileKey,
-                    listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize()),
-                    getObjectMetadata(fileInfo))) {
+            try (Response result = manager.writeFile(newFileKey,in,getObjectMetadata(fileInfo))) {
                 if (!result.isSuccessful()) {
                     throw new UpException(result.toString());
                 }
             }
+            if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
                 String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
                 Response thResult = manager.writeFile(newThFileKey,new ByteArrayInputStream(thumbnailBytes),getThObjectMetadata(fileInfo));
+                IoUtil.close(thResult);
                 if (!thResult.isSuccessful()) {
                     throw new UpException(thResult.toString());
                 }
@@ -112,7 +115,6 @@ public class UpyunUssFileStorage implements FileStorage {
     public HashMap<String, String> getObjectMetadata(FileInfo fileInfo) {
         HashMap<String, String> params = new HashMap<>();
         params.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getContentType());
-        params.put("Content-Length",String.valueOf(fileInfo.getSize()));
         if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
             params.putAll(fileInfo.getMetadata());
         }
@@ -128,7 +130,6 @@ public class UpyunUssFileStorage implements FileStorage {
     public HashMap<String, String> getThObjectMetadata(FileInfo fileInfo) {
         HashMap<String, String> params = new HashMap<>();
         params.put(RestManager.PARAMS.CONTENT_TYPE.getValue(),fileInfo.getThContentType());
-        params.put("Content-Length",String.valueOf(fileInfo.getThSize()));
         if (CollUtil.isNotEmpty(fileInfo.getThMetadata())) {
             params.putAll(fileInfo.getThMetadata());
         }
@@ -200,6 +201,74 @@ public class UpyunUssFileStorage implements FileStorage {
             consumer.accept(in);
         } catch (IOException | UpException e) {
             throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+        }
+    }
+
+    @Override
+    public boolean isSupportCopy() {
+        return true;
+    }
+
+    public Response checkResponse(Response response) throws UpException, IOException {
+        if (!response.isSuccessful()) {
+            if (response.body() != null) {
+                throw new UpException(response.body().string());
+            } else {
+                response.close();
+                throw new UpException(response.toString());
+            }
+        }
+        response.close();
+        return response;
+    }
+
+    @Override
+    public void copy(FileInfo srcFileInfo,FileInfo destFileInfo,ProgressListener progressListener) {
+
+        if (!basePath.equals(srcFileInfo.getBasePath())) {
+            throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        RestManager client = getClient();
+
+        //获取远程文件信息
+        String srcFileKey = getFileKey(srcFileInfo);
+        long srcFileSize;
+        try {
+            Response response = checkResponse(client.getFileInfo(srcFileKey));
+            srcFileSize = Long.parseLong(Objects.requireNonNull(response.header(RestManager.PARAMS.X_UPYUN_FILE_SIZE.getValue())));
+        } catch (Exception e) {
+            throw new FileStorageRuntimeException("文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
+        }
+
+        //复制缩略图文件
+        String destThFileKey = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            destThFileKey = getThFileKey(destFileInfo);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            try {
+                checkResponse(client.copyFile(destThFileKey,UpYunUtils.formatPath(bucketName,getThFileKey(srcFileInfo)),null));
+            } catch (Exception e) {
+                throw new FileStorageRuntimeException("缩略图文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
+            }
+        }
+
+        //复制文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        try {
+            ProgressListener.quickStart(progressListener,srcFileSize);
+            checkResponse(client.copyFile(destFileKey,UpYunUtils.formatPath(bucketName,srcFileKey),null));
+            ProgressListener.quickFinish(progressListener,srcFileSize);
+        } catch (Exception e) {
+            if (destThFileKey != null) try {
+                IoUtil.close(client.deleteFile(destThFileKey,null));
+            } catch (Exception ignored) {
+            }
+            try {
+                IoUtil.close(client.deleteFile(destFileKey,null));
+            } catch (Exception ignored) {
+            }
+            throw new FileStorageRuntimeException("文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
         }
     }
 }

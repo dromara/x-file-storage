@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.QiniuKodoConfig;
-import org.dromara.x.file.storage.core.ProgressInputStream;
+import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
@@ -73,15 +73,14 @@ public class QiniuKodoFileStorage implements FileStorage {
         if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
             throw new FileStorageRuntimeException("文件上传失败，七牛云 Kodo 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
-        ProgressListener listener = pre.getProgressListener();
 
-        try (InputStream in = pre.getFileWrapper().getInputStream()) {
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
             //七牛云 Kodo 的 SDK 内部会自动分片上传
             QiniuKodoClient client = getClient();
             UploadManager uploadManager = client.getUploadManager();
             String token = client.getAuth().uploadToken(bucketName);
-            uploadManager.put(listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize()),
-                    newFileKey,token,getObjectMetadata(fileInfo),fileInfo.getContentType());
+            uploadManager.put(in,newFileKey,token,getObjectMetadata(fileInfo),fileInfo.getContentType());
+            if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
@@ -212,5 +211,61 @@ public class QiniuKodoFileStorage implements FileStorage {
         }
     }
 
+    @Override
+    public boolean isSupportCopy() {
+        return true;
+    }
+
+    @Override
+    public void copy(FileInfo srcFileInfo,FileInfo destFileInfo,ProgressListener progressListener) {
+        if (!basePath.equals(srcFileInfo.getBasePath())) {
+            throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+
+        BucketManager manager = getClient().getBucketManager();
+
+        //获取远程文件信息
+        String srcFileKey = getFileKey(srcFileInfo);
+        com.qiniu.storage.model.FileInfo srcFile;
+        try {
+            srcFile = manager.stat(bucketName,srcFileKey);
+            if (srcFile == null || (StrUtil.isBlank(srcFile.md5) && StrUtil.isBlank(srcFile.hash))) {
+                throw new FileStorageRuntimeException("文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+            }
+        } catch (Exception e) {
+            throw new FileStorageRuntimeException("文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
+        }
+
+        //复制缩略图文件
+        String destThFileKey = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            destThFileKey = getThFileKey(destFileInfo);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            try {
+                manager.copy(bucketName,getThFileKey(srcFileInfo),bucketName,destThFileKey,true);
+            } catch (Exception e) {
+                throw new FileStorageRuntimeException("缩略图文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
+            }
+        }
+
+        //复制文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        try {
+            ProgressListener.quickStart(progressListener,srcFile.fsize);
+            manager.copy(bucketName,srcFileKey,bucketName,destFileKey,true);
+            ProgressListener.quickFinish(progressListener,srcFile.fsize);
+        } catch (Exception e) {
+            if (destThFileKey != null) try {
+                manager.delete(bucketName,destThFileKey);
+            } catch (Exception ignored) {
+            }
+            try {
+                manager.delete(bucketName,destFileKey);
+            } catch (Exception ignored) {
+            }
+            throw new FileStorageRuntimeException("文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo,e);
+        }
+    }
 
 }

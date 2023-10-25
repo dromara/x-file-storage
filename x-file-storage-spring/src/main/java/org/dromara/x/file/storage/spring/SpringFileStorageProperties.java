@@ -49,6 +49,14 @@ public class SpringFileStorageProperties {
      */
     private Boolean uploadNotSupportAclThrowException = true;
     /**
+     * 复制时不支持元数据时抛出异常
+     */
+    private Boolean copyNotSupportMetadataThrowException = true;
+    /**
+     * 复制时不支持 ACL 时抛出异常
+     */
+    private Boolean copyNotSupportAclThrowException = true;
+    /**
      * 启用 byte[] 文件包装适配器
      */
     private Boolean enableByteFileWrapper = true;
@@ -149,6 +157,8 @@ public class SpringFileStorageProperties {
         properties.setThumbnailSuffix(thumbnailSuffix);
         properties.setUploadNotSupportMetadataThrowException(uploadNotSupportMetadataThrowException);
         properties.setUploadNotSupportAclThrowException(uploadNotSupportAclThrowException);
+        properties.setCopyNotSupportMetadataThrowException(copyNotSupportMetadataThrowException);
+        properties.setCopyNotSupportAclThrowException(copyNotSupportAclThrowException);
         properties.setLocal(local.stream().filter(SpringLocalConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setLocalPlus(localPlus.stream().filter(SpringLocalPlusConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setHuaweiObs(huaweiObs.stream().filter(SpringHuaweiObsConfig::getEnableStorage).collect(Collectors.toList()));

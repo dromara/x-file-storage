@@ -10,8 +10,7 @@ import lombok.Setter;
 import org.apache.commons.net.ftp.FTPClient;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.FtpConfig;
-import org.dromara.x.file.storage.core.ProgressInputStream;
-import org.dromara.x.file.storage.core.ProgressListener;
+import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
@@ -85,15 +84,13 @@ public class FtpFileStorage implements FileStorage {
             throw new FileStorageRuntimeException("文件上传失败，FTP 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
         if (CollUtil.isNotEmpty(fileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
-            throw new FileStorageRuntimeException("文件上传失败，FTP 不支持设置 UserMetadata！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
+            throw new FileStorageRuntimeException("文件上传失败，FTP 不支持设置 Metadata！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
-        ProgressListener listener = pre.getProgressListener();
 
         Ftp client = getClient();
-        try (InputStream in = pre.getFileWrapper().getInputStream()) {
-            client.upload(getAbsolutePath(basePath + fileInfo.getPath()),fileInfo.getFilename(),
-                    listener == null ? in : new ProgressInputStream(in,listener,fileInfo.getSize())
-            );
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
+            client.upload(getAbsolutePath(basePath + fileInfo.getPath()),fileInfo.getFilename(),in);
+            if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图

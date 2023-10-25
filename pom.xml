@@ -62,7 +62,7 @@
     </scm>
 
     <properties>
-        <revision>2.0.1-SNAPSHOT</revision>
+        <revision>2.1.0-SNAPSHOT</revision>
         <!--region Maven Base-->
         <java.version>8</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>

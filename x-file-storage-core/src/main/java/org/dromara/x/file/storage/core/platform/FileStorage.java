@@ -1,6 +1,7 @@
 package org.dromara.x.file.storage.core.platform;
 
 import org.dromara.x.file.storage.core.FileInfo;
+import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 
 import java.io.InputStream;
@@ -99,6 +100,19 @@ public interface FileStorage extends AutoCloseable {
      * 下载缩略图文件
      */
     void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer);
+
+    /**
+     * 复制复制文件
+     */
+    default boolean isSupportCopy() {
+        return false;
+    }
+
+    /**
+     * 复制文件
+     */
+    default void copy(FileInfo srcFileInfo,FileInfo destFileInfo,ProgressListener progressListener) {
+    }
 
     /**
      * 释放相关资源

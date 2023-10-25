@@ -9,8 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.MinioConfig;
-import org.dromara.x.file.storage.core.ProgressInputStream;
-import org.dromara.x.file.storage.core.ProgressListener;
+import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
@@ -33,6 +32,8 @@ public class MinioFileStorage implements FileStorage {
     private String bucketName;
     private String domain;
     private String basePath;
+    private int multipartThreshold;
+    private int multipartPartSize;
     private FileStorageClientFactory<MinioClient> clientFactory;
 
 
@@ -41,6 +42,8 @@ public class MinioFileStorage implements FileStorage {
         bucketName = config.getBucketName();
         domain = config.getDomain();
         basePath = config.getBasePath();
+        multipartThreshold = config.getMultipartThreshold();
+        multipartPartSize = config.getMultipartPartSize();
         this.clientFactory = clientFactory;
     }
 
@@ -70,17 +73,23 @@ public class MinioFileStorage implements FileStorage {
         if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
             throw new FileStorageRuntimeException("文件上传失败，MinIO 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
         }
-        ProgressListener listener = pre.getProgressListener();
         MinioClient client = getClient();
-        try (InputStream in = pre.getFileWrapper().getInputStream()) {
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
             //MinIO 的 SDK 内部会自动分片上传
-            Long size = fileInfo.getSize();
+            Long objectSize = fileInfo.getSize();
+            long partSize = -1;
+            if (fileInfo.getSize() == null || fileInfo.getSize() >= multipartThreshold) {
+                objectSize = -1L;
+                partSize = multipartPartSize;
+            }
             client.putObject(PutObjectArgs.builder().bucket(bucketName).object(newFileKey)
-                    .stream(listener == null ? in : new ProgressInputStream(in,listener,size),size,-1)
+                    .stream(in,objectSize,partSize)
                     .contentType(fileInfo.getContentType())
                     .headers(fileInfo.getMetadata())
                     .userMetadata(fileInfo.getUserMetadata())
                     .build());
+
+            if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { //上传缩略图
