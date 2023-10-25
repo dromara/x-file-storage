@@ -46,10 +46,6 @@
         </developer>
     </developers>
 
-    <prerequisites>
-        <maven>3.8.1</maven>
-    </prerequisites>
-
     <modules>
         <module>x-file-storage-spring</module>
         <module>x-file-storage-core</module>
@@ -64,6 +60,7 @@
     <properties>
         <revision>2.1.0-SNAPSHOT</revision>
         <!--region Maven Base-->
+        <maven.version>3.8.1</maven.version>
         <java.version>8</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
@@ -106,6 +103,7 @@
         <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
         <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
         <maven-enforcer-plugin.version>3.3.0</maven-enforcer-plugin.version>
+        <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
         <!--endregion-->
     </properties>
 
@@ -278,6 +276,9 @@
                                 <requireJavaVersion>
                                     <version>${java.version}</version>
                                 </requireJavaVersion>
+                                <requireMavenVersion>
+                                    <version>${maven.version}</version>
+                                </requireMavenVersion>
                             </rules>
                         </configuration>
                     </execution>
@@ -290,9 +291,6 @@
                 <configuration>
                     <flattenMode>oss</flattenMode>
                     <updatePomFile>true</updatePomFile>
-                    <!--                    <pomElements>-->
-                    <!--                        <repositories>remove</repositories>-->
-                    <!--                    </pomElements>-->
                     <outputDirectory>${project.build.directory}/.flattened</outputDirectory>
                 </configuration>
                 <executions>
@@ -311,6 +309,10 @@
                         <phase>clean</phase>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>${maven-resources-plugin.version}</version>
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -354,7 +356,6 @@
             </distributionManagement>
             <build>
                 <plugins>
-
                     <!-- Source -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -370,7 +371,6 @@
                             </execution>
                         </executions>
                     </plugin>
-
                     <!-- Javadoc -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>

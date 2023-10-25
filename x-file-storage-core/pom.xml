@@ -58,6 +58,12 @@
             <artifactId>bce-java-sdk</artifactId>
             <scope>provided</scope>
             <optional>true</optional>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework</groupId>
+                    <artifactId>spring-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- WebDAV -->
         <dependency>
