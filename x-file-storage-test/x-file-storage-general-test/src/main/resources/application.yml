@@ -1,0 +1,145 @@
+server:
+  port: 8030
+
+spring:
+  profiles:
+    active: xu-dev
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/x-file-storage-test?characterEncoding=UTF-8&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+
+  servlet:
+    multipart:
+      resolve-lazily: true # multipart 懒加载
+
+dromara:
+  x-file-storage: #文件存储配置，不使用的情况下可以不写
+    default-platform: local-plus-1 #默认使用的存储平台
+    thumbnail-suffix: ".min.jpg" #缩略图后缀，例如【.min.jpg】【.png】
+    local: # 本地存储（不推荐使用）
+      - platform: local-1 # 存储平台标识
+        enable-storage: true  #启用存储
+        enable-access: true #启用访问（线上请使用 Nginx 配置，效率更高）
+        domain: "" # 访问域名，例如：“http://127.0.0.1:8030/test/file/”，注意后面要和 path-patterns 保持一致，“/”结尾，本地存储建议使用相对路径，方便后期更换域名
+        base-path: D:/Temp/test/ # 存储地址
+        path-patterns: /test/file/** # 访问路径，开启 enable-access 后，通过此路径可以访问到上传的文件
+    local-plus: # 本地存储升级版
+      - platform: local-plus-1 # 存储平台标识
+        enable-storage: true  #启用存储
+        enable-access: true #启用访问（线上请使用 Nginx 配置，效率更高）
+        domain: "" # 访问域名，例如：“http://127.0.0.1:8030/”，注意后面要和 path-patterns 保持一致，“/”结尾，本地存储建议使用相对路径，方便后期更换域名
+        base-path: local-plus/ # 基础路径
+        path-patterns: /** # 访问路径
+        storage-path: D:/Temp/ # 存储路径
+    huawei-obs: # 华为云 OBS ，不使用的情况下可以不写
+      - platform: huawei-obs-1 # 存储平台标识
+        enable-storage: false  # 启用存储
+        access-key: ??
+        secret-key: ??
+        end-point: ??
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：http://abc.obs.com/
+        base-path: hy/ # 基础路径
+    aliyun-oss: # 阿里云 OSS ，不使用的情况下可以不写
+      - platform: aliyun-oss-1 # 存储平台标识
+        enable-storage: false  # 启用存储
+        access-key: ??
+        secret-key: ??
+        end-point: ??
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.oss-cn-shanghai.aliyuncs.com/
+        base-path: hy/ # 基础路径
+    qiniu-kodo: # 七牛云 kodo ，不使用的情况下可以不写
+      - platform: qiniu-kodo-1 # 存储平台标识
+        enable-storage: false  # 启用存储
+        access-key: ??
+        secret-key: ??
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：http://abc.hn-bkt.clouddn.com/
+        base-path: base/ # 基础路径
+    tencent-cos: # 腾讯云 COS
+      - platform: tencent-cos-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        secret-id: ??
+        secret-key: ??
+        region: ?? #存仓库所在地域
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.cos.ap-nanjing.myqcloud.com/
+        base-path: hy/ # 基础路径
+    baidu-bos: # 百度云 BOS
+      - platform: baidu-bos-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        access-key: ??
+        secret-key: ??
+        end-point: ?? # 例如 abc.fsh.bcebos.com
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.fsh.bcebos.com/abc/
+        base-path: hy/ # 基础路径
+    upyun-uss: # 又拍云 USS
+      - platform: upyun-uss-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        username: ??
+        password: ??
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：http://abc.test.upcdn.net/
+        base-path: hy/ # 基础路径
+    minio: # MinIO，由于 MinIO SDK 支持 Amazon S3，其它兼容 Amazon S3 协议的存储平台也都可配置在这里
+      - platform: minio-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        access-key: ??
+        secret-key: ??
+        end-point: ??
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：http://minio.abc.com/abc/
+        base-path: hy/ # 基础路径
+    amazon-s3: # Amazon S3，其它兼容 Amazon S3 协议的存储平台也都可配置在这里
+      - platform: amazon-s3-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        access-key: ??
+        secret-key: ??
+        region: ?? # 与 end-point 参数至少填一个
+        end-point: ?? # 与 region 参数至少填一个
+        bucket-name: ??
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.hn-bkt.clouddn.com/
+        base-path: s3/ # 基础路径
+    ftp: # FTP
+      - platform: ftp-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        host: ?? # 主机，例如：192.168.1.105
+        port: 21 # 端口，默认21
+        user: anonymous # 用户名，默认 anonymous（匿名）
+        password: "" # 密码，默认空
+        domain: ?? # 访问域名，注意“/”结尾，例如：ftp://192.168.1.105/
+        base-path: ftp/ # 基础路径
+        storage-path: / # 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+    sftp: # SFTP
+      - platform: sftp-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        host: ?? # 主机，例如：192.168.1.105
+        port: 22 # 端口，默认22
+        user: root # 用户名
+        password: ?? # 密码或私钥密码
+        private-key-path: ?? # 私钥路径，兼容Spring的ClassPath路径、文件路径、HTTP路径等，例如：classpath:id_rsa_2048
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://file.abc.com/
+        base-path: sftp/ # 基础路径
+        storage-path: /www/wwwroot/file.abc.com/ # 存储路径，注意“/”结尾
+    webdav: # WebDAV
+      - platform: webdav-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        server: ?? # 服务器地址，例如：http://192.168.1.105:8405/
+        user: ?? # 用户名
+        password: ?? # 密码
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://file.abc.com/
+        base-path: webdav/ # 基础路径
+        storage-path: / # 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+    google-cloud-storage: # 谷歌云存储
+      - platform: google-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        project-id: ?? # 项目 id
+        bucket-name: ??
+        credentials-path: file:/deploy/example-key.json # 授权 key json 路径，兼容Spring的ClassPath路径、文件路径、HTTP路径等
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://storage.googleapis.com/test-bucket/
+        base-path: hy/ # 基础路径
