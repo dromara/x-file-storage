@@ -287,4 +287,92 @@ public class AliyunOssFileStorage implements FileStorage {
             throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
         }
     }
+
+    @Override
+    public boolean isSupportCopy() {
+        return true;
+    }
+
+    @Override
+    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, ProgressListener progressListener) {
+        if (!basePath.equals(srcFileInfo.getBasePath())) {
+            throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
+                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        OSS client = getClient();
+
+        // 获取远程文件信息
+        String srcFileKey = getFileKey(srcFileInfo);
+        ObjectMetadata srcFile;
+        try {
+            srcFile = client.getObjectMetadata(bucketName, srcFileKey);
+        } catch (Exception e) {
+            throw new FileStorageRuntimeException(
+                    "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+        }
+
+        String destThFileKey = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            destThFileKey = getThFileKey(destFileInfo);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            client.copyObject(bucketName, getThFileKey(srcFileInfo), bucketName, destThFileKey);
+        }
+
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        long fileSize = srcFile.getContentLength();
+        boolean useMultipartCopy = fileSize < 1024 * 1024 * 1024; // 按照阿里云 OSS 官方文档小于 1GB，走小文件复制
+        String uploadId = null;
+        try {
+            if (useMultipartCopy) { // 小文件复制
+                ProgressListener.quickStart(progressListener, fileSize);
+                client.copyObject(bucketName, srcFileKey, bucketName, destFileKey);
+                ProgressListener.quickFinish(progressListener, fileSize);
+            } else { // 大文件复制
+                // 初始化拷贝任务，拷贝源文件ContentType和UserMetadata，分片拷贝默认不拷贝源文件的ContentType和UserMetadata。
+                CannedAccessControlList fileAcl = getAcl(destFileInfo.getFileAcl());
+                ObjectMetadata metadata = getObjectMetadata(destFileInfo, fileAcl);
+                uploadId = client.initiateMultipartUpload(
+                                new InitiateMultipartUploadRequest(bucketName, destFileKey, metadata))
+                        .getUploadId();
+                ProgressListener.quickStart(progressListener, fileSize);
+                ArrayList<PartETag> partList = new ArrayList<>();
+                long progressSize = 0;
+                int i = 0;
+                while (progressSize < fileSize) {
+                    // 设置分片大小为 256 MB。单位为字节。
+                    long currentPartSize = Math.min(256 * 1024 * 1024, fileSize - progressSize);
+                    UploadPartCopyRequest part =
+                            new UploadPartCopyRequest(bucketName, srcFileKey, bucketName, destFileKey);
+                    part.setUploadId(uploadId);
+                    part.setPartSize(currentPartSize);
+                    part.setBeginIndex(progressSize);
+                    part.setPartNumber(++i);
+                    partList.add(client.uploadPartCopy(part).getPartETag());
+                    ProgressListener.quickProgress(progressListener, progressSize += currentPartSize, fileSize);
+                }
+                CompleteMultipartUploadRequest completeRequest =
+                        new CompleteMultipartUploadRequest(bucketName, destFileKey, uploadId, partList);
+                completeRequest.setObjectACL(fileAcl);
+                client.completeMultipartUpload(completeRequest);
+                ProgressListener.quickFinish(progressListener);
+            }
+        } catch (Exception e) {
+            if (destThFileKey != null)
+                try {
+                    client.deleteObject(bucketName, destThFileKey);
+                } catch (Exception ignored) {
+                }
+            try {
+                if (useMultipartCopy) {
+                    client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName, destFileKey, uploadId));
+                } else {
+                    client.deleteObject(bucketName, destFileKey);
+                }
+            } catch (Exception ignored) {
+            }
+            throw new FileStorageRuntimeException(
+                    "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+        }
+    }
 }
