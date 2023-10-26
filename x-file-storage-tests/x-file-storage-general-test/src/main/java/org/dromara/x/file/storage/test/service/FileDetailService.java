@@ -8,14 +8,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
 import lombok.SneakyThrows;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.test.mapper.FileDetailMapper;
 import org.dromara.x.file.storage.test.model.FileDetail;
 import org.springframework.stereotype.Service;
-
-import java.util.Map;
 
 /**
  * 用来将文件上传记录保存到数据库，这里使用了 MyBatis-Plus 和 Hutool 工具类
@@ -31,14 +30,15 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper, FileDetail>
     @SneakyThrows
     @Override
     public boolean save(FileInfo info) {
-        FileDetail detail = BeanUtil.copyProperties(info,FileDetail.class,"metadata","userMetadata","thMetadata","thUserMetadata","attr");
+        FileDetail detail = BeanUtil.copyProperties(
+                info, FileDetail.class, "metadata", "userMetadata", "thMetadata", "thUserMetadata", "attr");
 
-        //这是手动获 元数据 并转成 json 字符串，方便存储在数据库中
+        // 这是手动获 元数据 并转成 json 字符串，方便存储在数据库中
         detail.setMetadata(valueToJson(info.getMetadata()));
         detail.setUserMetadata(valueToJson(info.getUserMetadata()));
         detail.setThMetadata(valueToJson(info.getThMetadata()));
         detail.setThUserMetadata(valueToJson(info.getThUserMetadata()));
-        //这是手动获 取附加属性字典 并转成 json 字符串，方便存储在数据库中
+        // 这是手动获 取附加属性字典 并转成 json 字符串，方便存储在数据库中
         detail.setAttr(valueToJson(info.getAttr()));
         boolean b = save(detail);
         if (b) {
@@ -53,15 +53,16 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper, FileDetail>
     @SneakyThrows
     @Override
     public FileInfo getByUrl(String url) {
-        FileDetail detail = getOne(new QueryWrapper<FileDetail>().eq(FileDetail.COL_URL,url));
-        FileInfo info = BeanUtil.copyProperties(detail,FileInfo.class,"metadata","userMetadata","thMetadata","thUserMetadata","attr");
+        FileDetail detail = getOne(new QueryWrapper<FileDetail>().eq(FileDetail.COL_URL, url));
+        FileInfo info = BeanUtil.copyProperties(
+                detail, FileInfo.class, "metadata", "userMetadata", "thMetadata", "thUserMetadata", "attr");
 
-        //这是手动获取数据库中的 json 字符串 并转成 元数据，方便使用
+        // 这是手动获取数据库中的 json 字符串 并转成 元数据，方便使用
         info.setMetadata(jsonToMetadata(detail.getMetadata()));
         info.setUserMetadata(jsonToMetadata(detail.getUserMetadata()));
         info.setThMetadata(jsonToMetadata(detail.getThMetadata()));
         info.setThUserMetadata(jsonToMetadata(detail.getThUserMetadata()));
-        //这是手动获取数据库中的 json 字符串 并转成 附加属性字典，方便使用
+        // 这是手动获取数据库中的 json 字符串 并转成 附加属性字典，方便使用
         info.setAttr(jsonToDict(detail.getAttr()));
         return info;
     }
@@ -71,7 +72,7 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper, FileDetail>
      */
     @Override
     public boolean delete(String url) {
-        remove(new QueryWrapper<FileDetail>().eq(FileDetail.COL_URL,url));
+        remove(new QueryWrapper<FileDetail>().eq(FileDetail.COL_URL, url));
         return true;
     }
 
@@ -88,8 +89,7 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper, FileDetail>
      */
     public Map<String, String> jsonToMetadata(String json) throws JsonProcessingException {
         if (StrUtil.isBlank(json)) return null;
-        return objectMapper.readValue(json,new TypeReference<Map<String, String>>() {
-        });
+        return objectMapper.readValue(json, new TypeReference<Map<String, String>>() {});
     }
 
     /**
@@ -97,8 +97,6 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper, FileDetail>
      */
     public Dict jsonToDict(String json) throws JsonProcessingException {
         if (StrUtil.isBlank(json)) return null;
-        return objectMapper.readValue(json,Dict.class);
+        return objectMapper.readValue(json, Dict.class);
     }
 }
-
-

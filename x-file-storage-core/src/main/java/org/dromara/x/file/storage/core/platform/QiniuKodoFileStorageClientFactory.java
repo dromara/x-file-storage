@@ -34,7 +34,7 @@ public class QiniuKodoFileStorageClientFactory implements FileStorageClientFacto
         if (client == null) {
             synchronized (this) {
                 if (client == null) {
-                    client = new QiniuKodoClient(accessKey,secretKey);
+                    client = new QiniuKodoClient(accessKey, secretKey);
                 }
             }
         }
@@ -46,7 +46,6 @@ public class QiniuKodoFileStorageClientFactory implements FileStorageClientFacto
         client = null;
     }
 
-
     @Getter
     @Setter
     public static class QiniuKodoClient {
@@ -57,7 +56,7 @@ public class QiniuKodoFileStorageClientFactory implements FileStorageClientFacto
         private volatile BucketManager bucketManager;
         private volatile UploadManager uploadManager;
 
-        public QiniuKodoClient(String accessKey,String secretKey) {
+        public QiniuKodoClient(String accessKey, String secretKey) {
             this.accessKey = accessKey;
             this.secretKey = secretKey;
         }
@@ -66,7 +65,7 @@ public class QiniuKodoFileStorageClientFactory implements FileStorageClientFacto
             if (auth == null) {
                 synchronized (this) {
                     if (auth == null) {
-                        auth = Auth.create(accessKey,secretKey);
+                        auth = Auth.create(accessKey, secretKey);
                     }
                 }
             }
@@ -89,7 +88,7 @@ public class QiniuKodoFileStorageClientFactory implements FileStorageClientFacto
             if (bucketManager == null) {
                 synchronized (this) {
                     if (bucketManager == null) {
-                        bucketManager = new BucketManager(getAuth(),getConfiguration());
+                        bucketManager = new BucketManager(getAuth(), getConfiguration());
                     }
                 }
             }

@@ -39,9 +39,10 @@ public class AmazonS3FileStorageClientFactory implements FileStorageClientFactor
             synchronized (this) {
                 if (client == null) {
                     AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
-                            .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey,secretKey)));
+                            .withCredentials(
+                                    new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)));
                     if (StrUtil.isNotBlank(endPoint)) {
-                        builder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endPoint,region));
+                        builder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endPoint, region));
                     } else if (StrUtil.isNotBlank(region)) {
                         builder.withRegion(region);
                     }

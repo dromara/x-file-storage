@@ -10,6 +10,14 @@ import cn.hutool.core.util.StrUtil;
 import com.baidubce.BceServiceException;
 import com.baidubce.services.bos.BosClient;
 import com.baidubce.services.bos.model.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,15 +27,6 @@ import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 
 /**
  * 百度云 BOS 存储
@@ -45,7 +44,7 @@ public class BaiduBosFileStorage implements FileStorage {
     private int multipartPartSize;
     private FileStorageClientFactory<BosClient> clientFactory;
 
-    public BaiduBosFileStorage(BaiduBosConfig config,FileStorageClientFactory<BosClient> clientFactory) {
+    public BaiduBosFileStorage(BaiduBosConfig config, FileStorageClientFactory<BosClient> clientFactory) {
         platform = config.getPlatform();
         bucketName = config.getBucketName();
         domain = config.getDomain();
@@ -59,7 +58,6 @@ public class BaiduBosFileStorage implements FileStorage {
     public BosClient getClient() {
         return clientFactory.getClient();
     }
-
 
     @Override
     public void close() {
@@ -76,7 +74,7 @@ public class BaiduBosFileStorage implements FileStorage {
     }
 
     @Override
-    public boolean save(FileInfo fileInfo,UploadPretreatment pre) {
+    public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
@@ -86,16 +84,18 @@ public class BaiduBosFileStorage implements FileStorage {
         boolean useMultipartUpload = fileInfo.getSize() == null || fileInfo.getSize() >= multipartThreshold;
         String uploadId = null;
         try (InputStreamPlus in = pre.getInputStreamPlus(false)) {
-            if (useMultipartUpload) {//分片上传
-                InitiateMultipartUploadRequest initiateMultipartUploadRequest = new InitiateMultipartUploadRequest(bucketName,newFileKey);
+            if (useMultipartUpload) { // 分片上传
+                InitiateMultipartUploadRequest initiateMultipartUploadRequest =
+                        new InitiateMultipartUploadRequest(bucketName, newFileKey);
                 initiateMultipartUploadRequest.setObjectMetadata(metadata);
-                uploadId = client.initiateMultipartUpload(initiateMultipartUploadRequest).getUploadId();
+                uploadId = client.initiateMultipartUpload(initiateMultipartUploadRequest)
+                        .getUploadId();
                 List<PartETag> partList = new ArrayList<>();
                 int i = 0;
                 AtomicLong progressSize = new AtomicLong();
                 if (listener != null) listener.start();
                 while (true) {
-                    byte[] bytes = IoUtil.readBytes(in,multipartPartSize);
+                    byte[] bytes = IoUtil.readBytes(in, multipartPartSize);
                     if (bytes == null || bytes.length == 0) break;
                     UploadPartRequest part = new UploadPartRequest();
                     part.setBucketName(bucketName);
@@ -103,28 +103,30 @@ public class BaiduBosFileStorage implements FileStorage {
                     part.setUploadId(uploadId);
                     part.setInputStream(new ByteArrayInputStream(bytes));
                     part.setPartSize(bytes.length); // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为100 KB。
-                    part.setPartNumber(++i); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，BosClient将返回InvalidArgument错误码。
+                    part.setPartNumber(
+                            ++i); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，BosClient将返回InvalidArgument错误码。
                     if (listener != null) {
                         part.setProgressCallback(new BosProgressCallback<Object>() {
                             @Override
-                            public void onProgress(long currentSize,long totalSize,Object data) {
-                                listener.progress(progressSize.get() + currentSize,fileInfo.getSize());
+                            public void onProgress(long currentSize, long totalSize, Object data) {
+                                listener.progress(progressSize.get() + currentSize, fileInfo.getSize());
                             }
                         });
                     }
                     partList.add(client.uploadPart(part).getPartETag());
                     progressSize.addAndGet(bytes.length);
                 }
-                client.completeMultipartUpload(new CompleteMultipartUploadRequest(bucketName,newFileKey,uploadId,partList));
+                client.completeMultipartUpload(
+                        new CompleteMultipartUploadRequest(bucketName, newFileKey, uploadId, partList));
                 if (listener != null) listener.finish();
             } else {
-                PutObjectRequest request = new PutObjectRequest(bucketName,newFileKey,in,metadata);
+                PutObjectRequest request = new PutObjectRequest(bucketName, newFileKey, in, metadata);
                 if (listener != null) {
                     listener.start();
                     request.setProgressCallback(new BosProgressCallback<Object>() {
                         @Override
-                        public void onProgress(long currentSize,long totalSize,Object data) {
-                            listener.progress(currentSize,fileInfo.getSize());
+                        public void onProgress(long currentSize, long totalSize, Object data) {
+                            listener.progress(currentSize, fileInfo.getSize());
                         }
                     });
                 }
@@ -134,24 +136,28 @@ public class BaiduBosFileStorage implements FileStorage {
             if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
-            if (thumbnailBytes != null) { //上传缩略图
+            if (thumbnailBytes != null) { // 上传缩略图
                 String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
 
-                client.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),getThObjectMetadata(fileInfo));
+                client.putObject(
+                        bucketName,
+                        newThFileKey,
+                        new ByteArrayInputStream(thumbnailBytes),
+                        getThObjectMetadata(fileInfo));
             }
 
             return true;
         } catch (IOException e) {
             if (useMultipartUpload) {
-                client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName,newFileKey,uploadId));
+                client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName, newFileKey, uploadId));
             } else {
-                client.deleteObject(bucketName,newFileKey);
+                client.deleteObject(bucketName, newFileKey);
             }
-            throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
+            throw new FileStorageRuntimeException(
+                    "文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
         }
     }
-
 
     public CannedAccessControlList getAcl(Object acl) {
         if (acl instanceof CannedAccessControlList) {
@@ -170,7 +176,6 @@ public class BaiduBosFileStorage implements FileStorage {
         return null;
     }
 
-
     /**
      * 获取对象的元数据
      */
@@ -182,8 +187,10 @@ public class BaiduBosFileStorage implements FileStorage {
         if (fileAcl != null) metadata.setxBceAcl(fileAcl.toString());
         metadata.setUserMetadata(fileInfo.getUserMetadata());
         if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
-            CopyOptions copyOptions = CopyOptions.create().ignoreCase().setFieldNameEditor(name -> NamingCase.toCamelCase(name,CharUtil.DASHED));
-            BeanUtil.copyProperties(fileInfo.getMetadata(),metadata,copyOptions);
+            CopyOptions copyOptions = CopyOptions.create()
+                    .ignoreCase()
+                    .setFieldNameEditor(name -> NamingCase.toCamelCase(name, CharUtil.DASHED));
+            BeanUtil.copyProperties(fileInfo.getMetadata(), metadata, copyOptions);
         }
         return metadata;
     }
@@ -199,8 +206,10 @@ public class BaiduBosFileStorage implements FileStorage {
         if (thFileAcl != null) metadata.setxBceAcl(thFileAcl.toString());
         metadata.setUserMetadata(fileInfo.getThUserMetadata());
         if (CollUtil.isNotEmpty(fileInfo.getThMetadata())) {
-            CopyOptions copyOptions = CopyOptions.create().ignoreCase().setFieldNameEditor(name -> NamingCase.toCamelCase(name,CharUtil.DASHED));
-            BeanUtil.copyProperties(fileInfo.getThMetadata(),metadata,copyOptions);
+            CopyOptions copyOptions = CopyOptions.create()
+                    .ignoreCase()
+                    .setFieldNameEditor(name -> NamingCase.toCamelCase(name, CharUtil.DASHED));
+            BeanUtil.copyProperties(fileInfo.getThMetadata(), metadata, copyOptions);
         }
         return metadata;
     }
@@ -211,17 +220,19 @@ public class BaiduBosFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
+    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
         int expires = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
-        return getClient().generatePresignedUrl(bucketName,getFileKey(fileInfo),expires).toString();
+        return getClient()
+                .generatePresignedUrl(bucketName, getFileKey(fileInfo), expires)
+                .toString();
     }
 
     @Override
-    public String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
+    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
         String key = getThFileKey(fileInfo);
         if (key == null) return null;
         int expires = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
-        return getClient().generatePresignedUrl(bucketName,key,expires).toString();
+        return getClient().generatePresignedUrl(bucketName, key, expires).toString();
     }
 
     @Override
@@ -230,20 +241,20 @@ public class BaiduBosFileStorage implements FileStorage {
     }
 
     @Override
-    public boolean setFileAcl(FileInfo fileInfo,Object acl) {
+    public boolean setFileAcl(FileInfo fileInfo, Object acl) {
         CannedAccessControlList oAcl = getAcl(acl);
         if (oAcl == null) return false;
-        getClient().setObjectAcl(bucketName,getFileKey(fileInfo),oAcl);
+        getClient().setObjectAcl(bucketName, getFileKey(fileInfo), oAcl);
         return true;
     }
 
     @Override
-    public boolean setThFileAcl(FileInfo fileInfo,Object acl) {
+    public boolean setThFileAcl(FileInfo fileInfo, Object acl) {
         CannedAccessControlList oAcl = getAcl(acl);
         if (oAcl == null) return false;
         String key = getThFileKey(fileInfo);
         if (key == null) return false;
-        getClient().setObjectAcl(bucketName,key,oAcl);
+        getClient().setObjectAcl(bucketName, key, oAcl);
         return true;
     }
 
@@ -252,51 +263,49 @@ public class BaiduBosFileStorage implements FileStorage {
         return true;
     }
 
-
     @Override
     public boolean delete(FileInfo fileInfo) {
         BosClient client = getClient();
-        if (fileInfo.getThFilename() != null) {   //删除缩略图
+        if (fileInfo.getThFilename() != null) { // 删除缩略图
             try {
-                client.deleteObject(bucketName,getThFileKey(fileInfo));
+                client.deleteObject(bucketName, getThFileKey(fileInfo));
             } catch (BceServiceException e) {
                 if (!"NoSuchKey".equals(e.getErrorCode())) throw e;
             }
         }
         try {
-            client.deleteObject(bucketName,getFileKey(fileInfo));
+            client.deleteObject(bucketName, getFileKey(fileInfo));
         } catch (BceServiceException e) {
             if (!"NoSuchKey".equals(e.getErrorCode())) throw e;
         }
         return true;
     }
 
-
     @Override
     public boolean exists(FileInfo fileInfo) {
-        return getClient().doesObjectExist(bucketName,getFileKey(fileInfo));
+        return getClient().doesObjectExist(bucketName, getFileKey(fileInfo));
     }
 
     @Override
-    public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
-        BosObject object = getClient().getObject(bucketName,getFileKey(fileInfo));
+    public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
+        BosObject object = getClient().getObject(bucketName, getFileKey(fileInfo));
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo, e);
         }
     }
 
     @Override
-    public void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer) {
+    public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
         if (StrUtil.isBlank(fileInfo.getThFilename())) {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
-        BosObject object = getClient().getObject(bucketName,getThFileKey(fileInfo));
+        BosObject object = getClient().getObject(bucketName, getThFileKey(fileInfo));
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
         }
     }
 }

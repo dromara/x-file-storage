@@ -18,11 +18,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @EnableFileStorage
 @SpringBootApplication
 public class FastDfsTestApplication implements ApplicationRunner {
-    
+
     public static void main(String[] args) {
         SpringApplication.run(FastDfsTestApplication.class, args);
     }
-    
+
     @Override
     public void run(ApplicationArguments args) throws Exception {
         log.info("💦 FastDFS test boot successful.");

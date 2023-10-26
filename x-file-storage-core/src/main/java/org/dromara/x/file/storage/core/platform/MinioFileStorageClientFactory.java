@@ -31,7 +31,10 @@ public class MinioFileStorageClientFactory implements FileStorageClientFactory<M
         if (client == null) {
             synchronized (this) {
                 if (client == null) {
-                    client = new MinioClient.Builder().credentials(accessKey,secretKey).endpoint(endPoint).build();
+                    client = new MinioClient.Builder()
+                            .credentials(accessKey, secretKey)
+                            .endpoint(endPoint)
+                            .build();
                 }
             }
         }

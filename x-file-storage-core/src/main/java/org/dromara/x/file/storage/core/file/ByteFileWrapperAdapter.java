@@ -22,15 +22,15 @@ public class ByteFileWrapperAdapter implements FileWrapperAdapter {
     }
 
     @Override
-    public FileWrapper getFileWrapper(Object source,String name,String contentType,Long size) {
+    public FileWrapper getFileWrapper(Object source, String name, String contentType, Long size) {
         if (source instanceof ByteFileWrapper) {
-            return updateFileWrapper((ByteFileWrapper) source,name,contentType,size);
+            return updateFileWrapper((ByteFileWrapper) source, name, contentType, size);
         } else {
             byte[] bytes = (byte[]) source;
             if (name == null) name = "";
-            if (contentType == null) contentType = contentTypeDetect.detect(bytes,name);
+            if (contentType == null) contentType = contentTypeDetect.detect(bytes, name);
             if (size == null) size = (long) bytes.length;
-            return new ByteFileWrapper(bytes,name,contentType,size);
+            return new ByteFileWrapper(bytes, name, contentType, size);
         }
     }
 }

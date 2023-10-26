@@ -1,5 +1,7 @@
 package org.dromara.x.file.storage.core.copy;
 
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -7,9 +9,6 @@ import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.constant.Constant.CopyMode;
-
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 /**
  * 复制预处理
@@ -53,11 +52,10 @@ public class CopyPretreatment {
      */
     private Boolean notSupportAclThrowException = true;
 
-
     /**
      * 构造文件复制器
      */
-    public CopyPretreatment(FileInfo fileInfo,FileStorageService fileStorageService) {
+    public CopyPretreatment(FileInfo fileInfo, FileStorageService fileStorageService) {
         this.fileStorageService = fileStorageService;
         this.fileInfo = fileInfo;
         this.platform = fileInfo.getPlatform();
@@ -69,7 +67,7 @@ public class CopyPretreatment {
     /**
      * 设置复制模式
      */
-    public CopyPretreatment setCopyMode(boolean flag,CopyMode copyMode) {
+    public CopyPretreatment setCopyMode(boolean flag, CopyMode copyMode) {
         if (flag) this.copyMode = copyMode;
         return this;
     }
@@ -77,7 +75,7 @@ public class CopyPretreatment {
     /**
      * 设置存储平台
      */
-    public CopyPretreatment setPlatform(boolean flag,String platform) {
+    public CopyPretreatment setPlatform(boolean flag, String platform) {
         if (flag) this.platform = platform;
         return this;
     }
@@ -85,7 +83,7 @@ public class CopyPretreatment {
     /**
      * 设置文件存储路径
      */
-    public CopyPretreatment setPath(boolean flag,String path) {
+    public CopyPretreatment setPath(boolean flag, String path) {
         if (flag) this.path = path;
         return this;
     }
@@ -93,7 +91,7 @@ public class CopyPretreatment {
     /**
      * 设置文件名称
      */
-    public CopyPretreatment setFilename(boolean flag,String filename) {
+    public CopyPretreatment setFilename(boolean flag, String filename) {
         if (flag) this.filename = filename;
         return this;
     }
@@ -101,11 +99,10 @@ public class CopyPretreatment {
     /**
      * 设置缩略图名称
      */
-    public CopyPretreatment setThFilename(boolean flag,String thFilename) {
+    public CopyPretreatment setThFilename(boolean flag, String thFilename) {
         if (flag) this.thFilename = thFilename;
         return this;
     }
-
 
     /**
      * 设置复制进度监听器
@@ -113,7 +110,7 @@ public class CopyPretreatment {
      * @param progressListener 提供一个参数，表示已传输字节数
      */
     public CopyPretreatment setProgressListener(Consumer<Long> progressListener) {
-        return setProgressListener((progressSize,allSize) -> progressListener.accept(progressSize));
+        return setProgressListener((progressSize, allSize) -> progressListener.accept(progressSize));
     }
 
     /**
@@ -121,8 +118,8 @@ public class CopyPretreatment {
      *
      * @param progressListener 提供一个参数，表示已传输字节数
      */
-    public CopyPretreatment setProgressListener(boolean flag,Consumer<Long> progressListener) {
-        if (flag) setProgressListener((progressSize,allSize) -> progressListener.accept(progressSize));
+    public CopyPretreatment setProgressListener(boolean flag, Consumer<Long> progressListener) {
+        if (flag) setProgressListener((progressSize, allSize) -> progressListener.accept(progressSize));
         return this;
     }
 
@@ -134,17 +131,15 @@ public class CopyPretreatment {
     public CopyPretreatment setProgressListener(BiConsumer<Long, Long> progressListener) {
         return setProgressListener(new ProgressListener() {
             @Override
-            public void start() {
+            public void start() {}
+
+            @Override
+            public void progress(long progressSize, Long allSize) {
+                progressListener.accept(progressSize, allSize);
             }
 
             @Override
-            public void progress(long progressSize,Long allSize) {
-                progressListener.accept(progressSize,allSize);
-            }
-
-            @Override
-            public void finish() {
-            }
+            public void finish() {}
         });
     }
 
@@ -153,7 +148,7 @@ public class CopyPretreatment {
      *
      * @param progressListener 提供两个参数，第一个是 progressSize已传输字节数，第二个是 allSize总字节数
      */
-    public CopyPretreatment setProgressListener(boolean flag,BiConsumer<Long, Long> progressListener) {
+    public CopyPretreatment setProgressListener(boolean flag, BiConsumer<Long, Long> progressListener) {
         if (flag) setProgressListener(progressListener);
         return this;
     }
@@ -169,7 +164,7 @@ public class CopyPretreatment {
     /**
      * 设置复制进度监听器
      */
-    public CopyPretreatment setProgressListener(boolean flag,ProgressListener progressListener) {
+    public CopyPretreatment setProgressListener(boolean flag, ProgressListener progressListener) {
         if (flag) this.progressListener = progressListener;
         return this;
     }
@@ -177,7 +172,8 @@ public class CopyPretreatment {
     /**
      * 设置不支持元数据时抛出异常
      */
-    public CopyPretreatment setNotSupportMetadataThrowException(boolean flag,Boolean notSupportMetadataThrowException) {
+    public CopyPretreatment setNotSupportMetadataThrowException(
+            boolean flag, Boolean notSupportMetadataThrowException) {
         if (flag) this.notSupportMetadataThrowException = notSupportMetadataThrowException;
         return this;
     }
@@ -185,7 +181,7 @@ public class CopyPretreatment {
     /**
      * 设置不支持 ACL 时抛出异常
      */
-    public CopyPretreatment setNotSupportAclThrowException(boolean flag,Boolean notSupportAclThrowException) {
+    public CopyPretreatment setNotSupportAclThrowException(boolean flag, Boolean notSupportAclThrowException) {
         if (flag) this.notSupportAclThrowException = notSupportAclThrowException;
         return this;
     }

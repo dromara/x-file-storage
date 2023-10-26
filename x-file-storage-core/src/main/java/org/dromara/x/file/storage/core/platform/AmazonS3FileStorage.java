@@ -7,13 +7,6 @@ import com.amazonaws.RequestClientOptions;
 import com.amazonaws.event.ProgressEventType;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.dromara.x.file.storage.core.ProgressListener;
-import org.dromara.x.file.storage.core.*;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
-
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -23,6 +16,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.dromara.x.file.storage.core.*;
+import org.dromara.x.file.storage.core.ProgressListener;
+import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
 /**
  * Amazon S3 存储
@@ -40,7 +39,8 @@ public class AmazonS3FileStorage implements FileStorage {
     private int multipartPartSize;
     private FileStorageClientFactory<AmazonS3> clientFactory;
 
-    public AmazonS3FileStorage(FileStorageProperties.AmazonS3Config config,FileStorageClientFactory<AmazonS3> clientFactory) {
+    public AmazonS3FileStorage(
+            FileStorageProperties.AmazonS3Config config, FileStorageClientFactory<AmazonS3> clientFactory) {
         platform = config.getPlatform();
         bucketName = config.getBucketName();
         domain = config.getDomain();
@@ -55,12 +55,10 @@ public class AmazonS3FileStorage implements FileStorage {
         return clientFactory.getClient();
     }
 
-
     @Override
     public void close() {
         clientFactory.close();
     }
-
 
     public String getFileKey(FileInfo fileInfo) {
         return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
@@ -72,7 +70,7 @@ public class AmazonS3FileStorage implements FileStorage {
     }
 
     @Override
-    public boolean save(FileInfo fileInfo,UploadPretreatment pre) {
+    public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
@@ -83,14 +81,16 @@ public class AmazonS3FileStorage implements FileStorage {
         boolean useMultipartUpload = fileInfo.getSize() == null || fileInfo.getSize() >= multipartThreshold;
         String uploadId = null;
         try (InputStreamPlus in = pre.getInputStreamPlus(false)) {
-            if (useMultipartUpload) {//分片上传
-                uploadId = client.initiateMultipartUpload(new InitiateMultipartUploadRequest(bucketName,newFileKey,metadata)).getUploadId();
+            if (useMultipartUpload) { // 分片上传
+                uploadId = client.initiateMultipartUpload(
+                                new InitiateMultipartUploadRequest(bucketName, newFileKey, metadata))
+                        .getUploadId();
                 List<PartETag> partList = new ArrayList<>();
                 int i = 0;
                 AtomicLong progressSize = new AtomicLong();
                 if (listener != null) listener.start();
                 while (true) {
-                    byte[] bytes = IoUtil.readBytes(in,multipartPartSize);
+                    byte[] bytes = IoUtil.readBytes(in, multipartPartSize);
                     if (bytes == null || bytes.length == 0) break;
                     UploadPartRequest part = new UploadPartRequest();
                     part.setBucketName(bucketName);
@@ -98,22 +98,24 @@ public class AmazonS3FileStorage implements FileStorage {
                     part.setUploadId(uploadId);
                     part.setInputStream(new ByteArrayInputStream(bytes));
                     part.setPartSize(bytes.length); // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为100 KB。
-                    part.setPartNumber(++i); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，AmazonS3将返回InvalidArgument错误码。
+                    part.setPartNumber(
+                            ++i); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，AmazonS3将返回InvalidArgument错误码。
                     if (listener != null) {
                         part.setGeneralProgressListener(e -> {
                             if (e.getEventType() == ProgressEventType.REQUEST_BYTE_TRANSFER_EVENT) {
-                                listener.progress(progressSize.addAndGet(e.getBytes()),fileInfo.getSize());
+                                listener.progress(progressSize.addAndGet(e.getBytes()), fileInfo.getSize());
                             }
                         });
                     }
                     partList.add(client.uploadPart(part).getPartETag());
                 }
-                client.completeMultipartUpload(new CompleteMultipartUploadRequest(bucketName,newFileKey,uploadId,partList));
-                if (fileAcl != null) client.setObjectAcl(bucketName,newFileKey,fileAcl);
+                client.completeMultipartUpload(
+                        new CompleteMultipartUploadRequest(bucketName, newFileKey, uploadId, partList));
+                if (fileAcl != null) client.setObjectAcl(bucketName, newFileKey, fileAcl);
                 if (listener != null) listener.finish();
             } else {
-                BufferedInputStream bin = new BufferedInputStream(in,RequestClientOptions.DEFAULT_STREAM_BUFFER_SIZE);
-                PutObjectRequest request = new PutObjectRequest(bucketName,newFileKey,bin,metadata);
+                BufferedInputStream bin = new BufferedInputStream(in, RequestClientOptions.DEFAULT_STREAM_BUFFER_SIZE);
+                PutObjectRequest request = new PutObjectRequest(bucketName, newFileKey, bin, metadata);
                 request.setCannedAcl(fileAcl);
                 if (listener != null) {
                     AtomicLong progressSize = new AtomicLong();
@@ -121,7 +123,7 @@ public class AmazonS3FileStorage implements FileStorage {
                         if (e.getEventType() == ProgressEventType.TRANSFER_STARTED_EVENT) {
                             listener.start();
                         } else if (e.getEventType() == ProgressEventType.REQUEST_BYTE_TRANSFER_EVENT) {
-                            listener.progress(progressSize.addAndGet(e.getBytes()),fileInfo.getSize());
+                            listener.progress(progressSize.addAndGet(e.getBytes()), fileInfo.getSize());
                         } else if (e.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT) {
                             listener.finish();
                         }
@@ -132,10 +134,14 @@ public class AmazonS3FileStorage implements FileStorage {
             if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
-            if (thumbnailBytes != null) { //上传缩略图
+            if (thumbnailBytes != null) { // 上传缩略图
                 String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
-                PutObjectRequest request = new PutObjectRequest(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),getThObjectMetadata(fileInfo));
+                PutObjectRequest request = new PutObjectRequest(
+                        bucketName,
+                        newThFileKey,
+                        new ByteArrayInputStream(thumbnailBytes),
+                        getThObjectMetadata(fileInfo));
                 request.setCannedAcl(getAcl(fileInfo.getThFileAcl()));
                 client.putObject(request);
             }
@@ -143,11 +149,12 @@ public class AmazonS3FileStorage implements FileStorage {
             return true;
         } catch (IOException e) {
             if (useMultipartUpload) {
-                client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName,newFileKey,uploadId));
+                client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName, newFileKey, uploadId));
             } else {
-                client.deleteObject(bucketName,newFileKey);
+                client.deleteObject(bucketName, newFileKey);
             }
-            throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
+            throw new FileStorageRuntimeException(
+                    "文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
         }
     }
 
@@ -205,15 +212,17 @@ public class AmazonS3FileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
-        return getClient().generatePresignedUrl(bucketName,getFileKey(fileInfo),expiration).toString();
+    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
+        return getClient()
+                .generatePresignedUrl(bucketName, getFileKey(fileInfo), expiration)
+                .toString();
     }
 
     @Override
-    public String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
+    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
         String key = getThFileKey(fileInfo);
         if (key == null) return null;
-        return getClient().generatePresignedUrl(bucketName,key,expiration).toString();
+        return getClient().generatePresignedUrl(bucketName, key, expiration).toString();
     }
 
     @Override
@@ -222,20 +231,20 @@ public class AmazonS3FileStorage implements FileStorage {
     }
 
     @Override
-    public boolean setFileAcl(FileInfo fileInfo,Object acl) {
+    public boolean setFileAcl(FileInfo fileInfo, Object acl) {
         CannedAccessControlList oAcl = getAcl(acl);
         if (oAcl == null) return false;
-        getClient().setObjectAcl(bucketName,getFileKey(fileInfo),oAcl);
+        getClient().setObjectAcl(bucketName, getFileKey(fileInfo), oAcl);
         return true;
     }
 
     @Override
-    public boolean setThFileAcl(FileInfo fileInfo,Object acl) {
+    public boolean setThFileAcl(FileInfo fileInfo, Object acl) {
         CannedAccessControlList oAcl = getAcl(acl);
         if (oAcl == null) return false;
         String key = getThFileKey(fileInfo);
         if (key == null) return false;
-        getClient().setObjectAcl(bucketName,key,oAcl);
+        getClient().setObjectAcl(bucketName, key, oAcl);
         return true;
     }
 
@@ -247,39 +256,38 @@ public class AmazonS3FileStorage implements FileStorage {
     @Override
     public boolean delete(FileInfo fileInfo) {
         AmazonS3 client = getClient();
-        if (fileInfo.getThFilename() != null) {   //删除缩略图
-            client.deleteObject(bucketName,getThFileKey(fileInfo));
+        if (fileInfo.getThFilename() != null) { // 删除缩略图
+            client.deleteObject(bucketName, getThFileKey(fileInfo));
         }
-        client.deleteObject(bucketName,getFileKey(fileInfo));
+        client.deleteObject(bucketName, getFileKey(fileInfo));
         return true;
     }
 
-
     @Override
     public boolean exists(FileInfo fileInfo) {
-        return getClient().doesObjectExist(bucketName,getFileKey(fileInfo));
+        return getClient().doesObjectExist(bucketName, getFileKey(fileInfo));
     }
 
     @Override
-    public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
-        S3Object object = getClient().getObject(bucketName,getFileKey(fileInfo));
+    public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
+        S3Object object = getClient().getObject(bucketName, getFileKey(fileInfo));
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo, e);
         }
     }
 
     @Override
-    public void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer) {
+    public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
         if (StrUtil.isBlank(fileInfo.getThFilename())) {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
-        S3Object object = getClient().getObject(bucketName,getThFileKey(fileInfo));
+        S3Object object = getClient().getObject(bucketName, getThFileKey(fileInfo));
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
         }
     }
 }

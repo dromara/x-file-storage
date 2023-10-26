@@ -1,14 +1,12 @@
 package org.dromara.x.file.storage.core;
 
-
 import cn.hutool.core.lang.Dict;
-import lombok.Data;
-import lombok.experimental.Accessors;
-import org.dromara.x.file.storage.core.constant.Constant;
-
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Map;
+import lombok.Data;
+import lombok.experimental.Accessors;
+import org.dromara.x.file.storage.core.constant.Constant;
 
 @Data
 @Accessors(chain = true)

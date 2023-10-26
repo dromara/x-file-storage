@@ -8,6 +8,8 @@ import cn.hutool.extra.ssh.JschUtil;
 import cn.hutool.extra.ssh.Sftp;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,9 +22,6 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.dromara.x.file.storage.core.FileStorageProperties.SftpConfig;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
-
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 
 /**
  * SFTP 存储平台的 Client 工厂，使用了对象池缓存，性能更高
@@ -61,13 +60,13 @@ public class SftpFileStorageClientFactory implements FileStorageClientFactory<Sf
             if (pool == null) {
                 synchronized (this) {
                     if (pool == null) {
-                        pool = new GenericObjectPool<>(new SftpPooledObjectFactory(this),poolConfig);
+                        pool = new GenericObjectPool<>(new SftpPooledObjectFactory(this), poolConfig);
                     }
                 }
             }
             return pool.borrowObject();
         } catch (Exception e) {
-            throw new FileStorageRuntimeException("获取 SFTP Client 失败！",e);
+            throw new FileStorageRuntimeException("获取 SFTP Client 失败！", e);
         }
     }
 
@@ -76,7 +75,7 @@ public class SftpFileStorageClientFactory implements FileStorageClientFactory<Sf
         try {
             pool.returnObject(sftp);
         } catch (Exception e) {
-            throw new FileStorageRuntimeException("归还 SFTP Client 失败！",e);
+            throw new FileStorageRuntimeException("归还 SFTP Client 失败！", e);
         }
     }
 
@@ -87,7 +86,6 @@ public class SftpFileStorageClientFactory implements FileStorageClientFactory<Sf
             pool = null;
         }
     }
-
 
     /**
      * Sftp 的对象池包装的工厂
@@ -102,20 +100,28 @@ public class SftpFileStorageClientFactory implements FileStorageClientFactory<Sf
             Session session = null;
             try {
                 if (StrUtil.isNotBlank(factory.getPrivateKeyPath())) {
-                    //使用秘钥连接，这里手动读取 byte 进行构造用于兼容Spring的ClassPath路径、文件路径、HTTP路径等
-                    byte[] passphrase = StrUtil.isBlank(factory.getPassword()) ? null : factory.getPassword().getBytes(StandardCharsets.UTF_8);
+                    // 使用秘钥连接，这里手动读取 byte 进行构造用于兼容Spring的ClassPath路径、文件路径、HTTP路径等
+                    byte[] passphrase = StrUtil.isBlank(factory.getPassword())
+                            ? null
+                            : factory.getPassword().getBytes(StandardCharsets.UTF_8);
                     JSch jsch = new JSch();
-                    byte[] privateKey = IoUtil.readBytes(URLUtil.url(factory.getPrivateKeyPath()).openStream());
-                    jsch.addIdentity(factory.getPrivateKeyPath(),privateKey,null,passphrase);
-                    session = JschUtil.createSession(jsch,factory.getHost(),factory.getPort(),factory.getUser());
+                    byte[] privateKey = IoUtil.readBytes(
+                            URLUtil.url(factory.getPrivateKeyPath()).openStream());
+                    jsch.addIdentity(factory.getPrivateKeyPath(), privateKey, null, passphrase);
+                    session = JschUtil.createSession(jsch, factory.getHost(), factory.getPort(), factory.getUser());
                     session.connect(factory.getConnectionTimeout());
                 } else {
-                    session = JschUtil.openSession(factory.getHost(),factory.getPort(),factory.getUser(),factory.getPassword(),factory.getConnectionTimeout());
+                    session = JschUtil.openSession(
+                            factory.getHost(),
+                            factory.getPort(),
+                            factory.getUser(),
+                            factory.getPassword(),
+                            factory.getConnectionTimeout());
                 }
-                return new Sftp(session,factory.getCharset(),factory.getConnectionTimeout());
+                return new Sftp(session, factory.getCharset(), factory.getConnectionTimeout());
             } catch (Exception e) {
                 JschUtil.close(session);
-                throw new FileStorageRuntimeException("SFTP 连接失败！platform：" + factory.getPlatform(),e);
+                throw new FileStorageRuntimeException("SFTP 连接失败！platform：" + factory.getPlatform(), e);
             }
         }
 
@@ -130,7 +136,7 @@ public class SftpFileStorageClientFactory implements FileStorageClientFactory<Sf
                 p.getObject().cd(StrUtil.DOT);
                 return true;
             } catch (FtpException e) {
-                log.warn("验证 Sftp 对象失败",e);
+                log.warn("验证 Sftp 对象失败", e);
                 return false;
             }
         }
@@ -140,6 +146,4 @@ public class SftpFileStorageClientFactory implements FileStorageClientFactory<Sf
             p.getObject().close();
         }
     }
-
-
 }

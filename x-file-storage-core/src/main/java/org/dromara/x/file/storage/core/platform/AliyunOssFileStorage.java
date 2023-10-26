@@ -6,6 +6,14 @@ import cn.hutool.core.util.StrUtil;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.event.ProgressEventType;
 import com.aliyun.oss.model.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -15,15 +23,6 @@ import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 
 /**
  * 阿里云 OSS 存储
@@ -41,8 +40,7 @@ public class AliyunOssFileStorage implements FileStorage {
     private int multipartPartSize;
     private FileStorageClientFactory<OSS> clientFactory;
 
-
-    public AliyunOssFileStorage(AliyunOssConfig config,FileStorageClientFactory<OSS> clientFactory) {
+    public AliyunOssFileStorage(AliyunOssConfig config, FileStorageClientFactory<OSS> clientFactory) {
         platform = config.getPlatform();
         bucketName = config.getBucketName();
         domain = config.getDomain();
@@ -57,12 +55,10 @@ public class AliyunOssFileStorage implements FileStorage {
         return clientFactory.getClient();
     }
 
-
     @Override
     public void close() {
         clientFactory.close();
     }
-
 
     public String getFileKey(FileInfo fileInfo) {
         return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
@@ -74,25 +70,27 @@ public class AliyunOssFileStorage implements FileStorage {
     }
 
     @Override
-    public boolean save(FileInfo fileInfo,UploadPretreatment pre) {
+    public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
         CannedAccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
-        ObjectMetadata metadata = getObjectMetadata(fileInfo,fileAcl);
+        ObjectMetadata metadata = getObjectMetadata(fileInfo, fileAcl);
         ProgressListener listener = pre.getProgressListener();
         OSS client = getClient();
         boolean useMultipartUpload = fileInfo.getSize() == null || fileInfo.getSize() >= multipartThreshold;
         String uploadId = null;
         try (InputStreamPlus in = pre.getInputStreamPlus(false)) {
-            if (useMultipartUpload) {//分片上传
-                uploadId = client.initiateMultipartUpload(new InitiateMultipartUploadRequest(bucketName,newFileKey,metadata)).getUploadId();
+            if (useMultipartUpload) { // 分片上传
+                uploadId = client.initiateMultipartUpload(
+                                new InitiateMultipartUploadRequest(bucketName, newFileKey, metadata))
+                        .getUploadId();
                 List<PartETag> partList = new ArrayList<>();
                 int i = 0;
                 AtomicLong progressSize = new AtomicLong();
                 if (listener != null) listener.start();
                 while (true) {
-                    byte[] bytes = IoUtil.readBytes(in,multipartPartSize);
+                    byte[] bytes = IoUtil.readBytes(in, multipartPartSize);
                     if (bytes == null || bytes.length == 0) break;
                     UploadPartRequest part = new UploadPartRequest();
                     part.setBucketName(bucketName);
@@ -104,24 +102,25 @@ public class AliyunOssFileStorage implements FileStorage {
                     if (listener != null) {
                         part.setProgressListener(e -> {
                             if (e.getEventType() == ProgressEventType.REQUEST_BYTE_TRANSFER_EVENT) {
-                                listener.progress(progressSize.addAndGet(e.getBytes()),fileInfo.getSize());
+                                listener.progress(progressSize.addAndGet(e.getBytes()), fileInfo.getSize());
                             }
                         });
                     }
                     partList.add(client.uploadPart(part).getPartETag());
                 }
-                client.completeMultipartUpload(new CompleteMultipartUploadRequest(bucketName,newFileKey,uploadId,partList));
-                if (fileAcl != null) client.setObjectAcl(bucketName,newFileKey,fileAcl);
+                client.completeMultipartUpload(
+                        new CompleteMultipartUploadRequest(bucketName, newFileKey, uploadId, partList));
+                if (fileAcl != null) client.setObjectAcl(bucketName, newFileKey, fileAcl);
                 if (listener != null) listener.finish();
             } else {
-                PutObjectRequest request = new PutObjectRequest(bucketName,newFileKey,in,metadata);
+                PutObjectRequest request = new PutObjectRequest(bucketName, newFileKey, in, metadata);
                 if (listener != null) {
                     AtomicLong progressSize = new AtomicLong();
                     request.setProgressListener(e -> {
                         if (e.getEventType() == ProgressEventType.TRANSFER_STARTED_EVENT) {
                             listener.start();
                         } else if (e.getEventType() == ProgressEventType.REQUEST_BYTE_TRANSFER_EVENT) {
-                            listener.progress(progressSize.addAndGet(e.getBytes()),fileInfo.getSize());
+                            listener.progress(progressSize.addAndGet(e.getBytes()), fileInfo.getSize());
                         } else if (e.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT) {
                             listener.finish();
                         }
@@ -131,21 +130,26 @@ public class AliyunOssFileStorage implements FileStorage {
             }
             if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
-            //上传缩略图
+            // 上传缩略图
             byte[] thumbnailBytes = pre.getThumbnailBytes();
-            if (thumbnailBytes != null) { //上传缩略图
+            if (thumbnailBytes != null) { // 上传缩略图
                 String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
-                client.putObject(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),getThObjectMetadata(fileInfo));
+                client.putObject(
+                        bucketName,
+                        newThFileKey,
+                        new ByteArrayInputStream(thumbnailBytes),
+                        getThObjectMetadata(fileInfo));
             }
             return true;
         } catch (IOException e) {
             if (useMultipartUpload) {
-                client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName,newFileKey,uploadId));
+                client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName, newFileKey, uploadId));
             } else {
-                client.deleteObject(bucketName,newFileKey);
+                client.deleteObject(bucketName, newFileKey);
             }
-            throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
+            throw new FileStorageRuntimeException(
+                    "文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
         }
     }
 
@@ -172,7 +176,7 @@ public class AliyunOssFileStorage implements FileStorage {
     /**
      * 获取对象的元数据
      */
-    public ObjectMetadata getObjectMetadata(FileInfo fileInfo,CannedAccessControlList fileAcl) {
+    public ObjectMetadata getObjectMetadata(FileInfo fileInfo, CannedAccessControlList fileAcl) {
         ObjectMetadata metadata = new ObjectMetadata();
         if (fileInfo.getSize() != null) metadata.setContentLength(fileInfo.getSize());
         metadata.setContentType(fileInfo.getContentType());
@@ -199,22 +203,23 @@ public class AliyunOssFileStorage implements FileStorage {
         return metadata;
     }
 
-
     @Override
     public boolean isSupportPresignedUrl() {
         return true;
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
-        return getClient().generatePresignedUrl(bucketName,getFileKey(fileInfo),expiration).toString();
+    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
+        return getClient()
+                .generatePresignedUrl(bucketName, getFileKey(fileInfo), expiration)
+                .toString();
     }
 
     @Override
-    public String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
+    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
         String key = getThFileKey(fileInfo);
         if (key == null) return null;
-        return getClient().generatePresignedUrl(bucketName,key,expiration).toString();
+        return getClient().generatePresignedUrl(bucketName, key, expiration).toString();
     }
 
     @Override
@@ -223,20 +228,20 @@ public class AliyunOssFileStorage implements FileStorage {
     }
 
     @Override
-    public boolean setFileAcl(FileInfo fileInfo,Object acl) {
+    public boolean setFileAcl(FileInfo fileInfo, Object acl) {
         CannedAccessControlList oAcl = getAcl(acl);
         if (oAcl == null) return false;
-        getClient().setObjectAcl(bucketName,getFileKey(fileInfo),oAcl);
+        getClient().setObjectAcl(bucketName, getFileKey(fileInfo), oAcl);
         return true;
     }
 
     @Override
-    public boolean setThFileAcl(FileInfo fileInfo,Object acl) {
+    public boolean setThFileAcl(FileInfo fileInfo, Object acl) {
         CannedAccessControlList oAcl = getAcl(acl);
         if (oAcl == null) return false;
         String key = getThFileKey(fileInfo);
         if (key == null) return false;
-        getClient().setObjectAcl(bucketName,key,oAcl);
+        getClient().setObjectAcl(bucketName, key, oAcl);
         return true;
     }
 
@@ -248,40 +253,38 @@ public class AliyunOssFileStorage implements FileStorage {
     @Override
     public boolean delete(FileInfo fileInfo) {
         OSS client = getClient();
-        if (fileInfo.getThFilename() != null) {   //删除缩略图
-            client.deleteObject(bucketName,getThFileKey(fileInfo));
+        if (fileInfo.getThFilename() != null) { // 删除缩略图
+            client.deleteObject(bucketName, getThFileKey(fileInfo));
         }
-        client.deleteObject(bucketName,getFileKey(fileInfo));
+        client.deleteObject(bucketName, getFileKey(fileInfo));
         return true;
     }
 
-
     @Override
     public boolean exists(FileInfo fileInfo) {
-        return getClient().doesObjectExist(bucketName,getFileKey(fileInfo));
+        return getClient().doesObjectExist(bucketName, getFileKey(fileInfo));
     }
 
     @Override
-    public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
-        OSSObject object = getClient().getObject(bucketName,getFileKey(fileInfo));
+    public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
+        OSSObject object = getClient().getObject(bucketName, getFileKey(fileInfo));
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo, e);
         }
-
     }
 
     @Override
-    public void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer) {
+    public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
         if (StrUtil.isBlank(fileInfo.getThFilename())) {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
-        OSSObject object = getClient().getObject(bucketName,getThFileKey(fileInfo));
+        OSSObject object = getClient().getObject(bucketName, getThFileKey(fileInfo));
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
         }
     }
 }

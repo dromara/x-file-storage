@@ -4,6 +4,10 @@ import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
+import java.io.IOException;
+import java.util.Date;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Predicate;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -18,12 +22,6 @@ import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
 import org.dromara.x.file.storage.core.util.Tools;
-
-import java.io.IOException;
-import java.util.Date;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Predicate;
-
 
 /**
  * 用来处理文件存储，对接多个平台
@@ -45,7 +43,6 @@ public class FileStorageService {
     private CopyOnWriteArrayList<FileStorageAspect> aspectList;
     private CopyOnWriteArrayList<FileWrapperAdapter> fileWrapperAdapterList;
     private ContentTypeDetect contentTypeDetect;
-
 
     /**
      * 获取默认的存储平台
@@ -78,7 +75,8 @@ public class FileStorageService {
      */
     public <T extends FileStorage> T getFileStorageVerify(String platform) {
         T fileStorage = self.getFileStorage(platform);
-        if (fileStorage == null) throw new FileStorageRuntimeException(StrUtil.format("没有找到对应的存储平台！platform:{}", platform));
+        if (fileStorage == null)
+            throw new FileStorageRuntimeException(StrUtil.format("没有找到对应的存储平台！platform:{}", platform));
         return fileStorage;
     }
 
@@ -109,7 +107,8 @@ public class FileStorageService {
         if (StrUtil.isNotBlank(pre.getSaveFilename())) {
             fileInfo.setFilename(pre.getSaveFilename());
         } else {
-            fileInfo.setFilename(IdUtil.objectId() + (StrUtil.isEmpty(fileInfo.getExt()) ? StrUtil.EMPTY : "." + fileInfo.getExt()));
+            fileInfo.setFilename(
+                    IdUtil.objectId() + (StrUtil.isEmpty(fileInfo.getExt()) ? StrUtil.EMPTY : "." + fileInfo.getExt()));
         }
         fileInfo.setContentType(file.getContentType());
 
@@ -124,23 +123,25 @@ public class FileStorageService {
             if (StrUtil.isNotBlank(pre.getThContentType())) {
                 fileInfo.setThContentType(pre.getThContentType());
             } else {
-                fileInfo.setThContentType(contentTypeDetect.detect(thumbnailBytes,fileInfo.getThFilename()));
+                fileInfo.setThContentType(contentTypeDetect.detect(thumbnailBytes, fileInfo.getThFilename()));
             }
         }
 
         FileStorage fileStorage = self.getFileStorage(pre.getPlatform());
-        if (fileStorage == null) throw new FileStorageRuntimeException(StrUtil.format("没有找到对应的存储平台！platform:{}", pre.getPlatform()));
+        if (fileStorage == null)
+            throw new FileStorageRuntimeException(StrUtil.format("没有找到对应的存储平台！platform:{}", pre.getPlatform()));
 
-        //处理切面
-        return new UploadAspectChain(aspectList,(_fileInfo,_pre,_fileStorage,_fileRecorder) -> {
-            //真正开始保存
-            if (_fileStorage.save(_fileInfo,_pre)) {
-                if (_fileRecorder.save(_fileInfo)) {
-                    return _fileInfo;
-                }
-            }
-            return null;
-        }).next(fileInfo,pre,fileStorage,fileRecorder);
+        // 处理切面
+        return new UploadAspectChain(aspectList, (_fileInfo, _pre, _fileStorage, _fileRecorder) -> {
+                    // 真正开始保存
+                    if (_fileStorage.save(_fileInfo, _pre)) {
+                        if (_fileRecorder.save(_fileInfo)) {
+                            return _fileInfo;
+                        }
+                    }
+                    return null;
+                })
+                .next(fileInfo, pre, fileStorage, fileRecorder);
     }
 
     /**
@@ -160,32 +161,33 @@ public class FileStorageService {
     /**
      * 根据 url 删除文件
      */
-    public boolean delete(String url,Predicate<FileInfo> predicate) {
-        return self.delete(getFileInfoByUrl(url),predicate);
+    public boolean delete(String url, Predicate<FileInfo> predicate) {
+        return self.delete(getFileInfoByUrl(url), predicate);
     }
 
     /**
      * 根据条件
      */
     public boolean delete(FileInfo fileInfo) {
-        return self.delete(fileInfo,null);
+        return self.delete(fileInfo, null);
     }
 
     /**
      * 根据条件删除文件
      */
-    public boolean delete(FileInfo fileInfo,Predicate<FileInfo> predicate) {
+    public boolean delete(FileInfo fileInfo, Predicate<FileInfo> predicate) {
         if (fileInfo == null) return true;
         if (predicate != null && !predicate.test(fileInfo)) return false;
         FileStorage fileStorage = self.getFileStorage(fileInfo.getPlatform());
         if (fileStorage == null) throw new FileStorageRuntimeException("没有找到对应的存储平台！");
 
-        return new DeleteAspectChain(aspectList,(_fileInfo,_fileStorage,_fileRecorder) -> {
-            if (_fileStorage.delete(_fileInfo)) {   //删除文件
-                return _fileRecorder.delete(_fileInfo.getUrl());  //删除文件记录
-            }
-            return false;
-        }).next(fileInfo,fileStorage,fileRecorder);
+        return new DeleteAspectChain(aspectList, (_fileInfo, _fileStorage, _fileRecorder) -> {
+                    if (_fileStorage.delete(_fileInfo)) { // 删除文件
+                        return _fileRecorder.delete(_fileInfo.getUrl()); // 删除文件记录
+                    }
+                    return false;
+                })
+                .next(fileInfo, fileStorage, fileRecorder);
     }
 
     /**
@@ -200,17 +202,15 @@ public class FileStorageService {
      */
     public boolean exists(FileInfo fileInfo) {
         if (fileInfo == null) return false;
-        return new ExistsAspectChain(aspectList,(_fileInfo,_fileStorage) ->
-                _fileStorage.exists(_fileInfo)
-        ).next(fileInfo,getFileStorageVerify(fileInfo));
+        return new ExistsAspectChain(aspectList, (_fileInfo, _fileStorage) -> _fileStorage.exists(_fileInfo))
+                .next(fileInfo, getFileStorageVerify(fileInfo));
     }
-
 
     /**
      * 获取文件下载器
      */
     public Downloader download(FileInfo fileInfo) {
-        return new Downloader(fileInfo,aspectList,getFileStorageVerify(fileInfo),Downloader.TARGET_FILE);
+        return new Downloader(fileInfo, aspectList, getFileStorageVerify(fileInfo), Downloader.TARGET_FILE);
     }
 
     /**
@@ -224,7 +224,7 @@ public class FileStorageService {
      * 获取缩略图文件下载器
      */
     public Downloader downloadTh(FileInfo fileInfo) {
-        return new Downloader(fileInfo,aspectList,getFileStorageVerify(fileInfo),Downloader.TARGET_TH_FILE);
+        return new Downloader(fileInfo, aspectList, getFileStorageVerify(fileInfo), Downloader.TARGET_TH_FILE);
     }
 
     /**
@@ -247,7 +247,7 @@ public class FileStorageService {
      */
     public boolean isSupportPresignedUrl(FileStorage fileStorage) {
         if (fileStorage == null) return false;
-        return new IsSupportPresignedUrlAspectChain(aspectList,FileStorage::isSupportPresignedUrl).next(fileStorage);
+        return new IsSupportPresignedUrlAspectChain(aspectList, FileStorage::isSupportPresignedUrl).next(fileStorage);
     }
 
     /**
@@ -255,11 +255,13 @@ public class FileStorageService {
      *
      * @param expiration 到期时间
      */
-    public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
+    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
         if (fileInfo == null) return null;
-        return new GeneratePresignedUrlAspectChain(aspectList,(_fileInfo,_expiration,_fileStorage) ->
-                _fileStorage.generatePresignedUrl(_fileInfo,_expiration)
-        ).next(fileInfo,expiration,self.getFileStorageVerify(fileInfo));
+        return new GeneratePresignedUrlAspectChain(
+                        aspectList,
+                        (_fileInfo, _expiration, _fileStorage) ->
+                                _fileStorage.generatePresignedUrl(_fileInfo, _expiration))
+                .next(fileInfo, expiration, self.getFileStorageVerify(fileInfo));
     }
 
     /**
@@ -267,11 +269,13 @@ public class FileStorageService {
      *
      * @param expiration 到期时间
      */
-    public String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
+    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
         if (fileInfo == null) return null;
-        return new GenerateThPresignedUrlAspectChain(aspectList,(_fileInfo,_expiration,_fileStorage) ->
-                _fileStorage.generateThPresignedUrl(_fileInfo,_expiration)
-        ).next(fileInfo,expiration,self.getFileStorageVerify(fileInfo));
+        return new GenerateThPresignedUrlAspectChain(
+                        aspectList,
+                        (_fileInfo, _expiration, _fileStorage) ->
+                                _fileStorage.generateThPresignedUrl(_fileInfo, _expiration))
+                .next(fileInfo, expiration, self.getFileStorageVerify(fileInfo));
     }
 
     /**
@@ -287,29 +291,29 @@ public class FileStorageService {
      */
     public boolean isSupportAcl(FileStorage fileStorage) {
         if (fileStorage == null) return false;
-        return new IsSupportAclAspectChain(aspectList,FileStorage::isSupportAcl).next(fileStorage);
+        return new IsSupportAclAspectChain(aspectList, FileStorage::isSupportAcl).next(fileStorage);
     }
 
     /**
      * 设置文件的访问控制列表，一般情况下只有对象存储支持该功能
      * 详情见{@link FileInfo#setFileAcl}
      */
-    public boolean setFileAcl(FileInfo fileInfo,Object acl) {
+    public boolean setFileAcl(FileInfo fileInfo, Object acl) {
         if (fileInfo == null) return false;
-        return new SetFileAclAspectChain(aspectList,(_fileInfo,_acl,_fileStorage) ->
-                _fileStorage.setFileAcl(_fileInfo,_acl)
-        ).next(fileInfo,acl,self.getFileStorageVerify(fileInfo));
+        return new SetFileAclAspectChain(
+                        aspectList, (_fileInfo, _acl, _fileStorage) -> _fileStorage.setFileAcl(_fileInfo, _acl))
+                .next(fileInfo, acl, self.getFileStorageVerify(fileInfo));
     }
 
     /**
      * 设置缩略图文件的访问控制列表，一般情况下只有对象存储支持该功能
      * 详情见{@link FileInfo#setFileAcl}
      */
-    public boolean setThFileAcl(FileInfo fileInfo,Object acl) {
+    public boolean setThFileAcl(FileInfo fileInfo, Object acl) {
         if (fileInfo == null) return false;
-        return new SetThFileAclAspectChain(aspectList,(_fileInfo,_acl,_fileStorage) ->
-                _fileStorage.setThFileAcl(_fileInfo,_acl)
-        ).next(fileInfo,acl,self.getFileStorageVerify(fileInfo));
+        return new SetThFileAclAspectChain(
+                        aspectList, (_fileInfo, _acl, _fileStorage) -> _fileStorage.setThFileAcl(_fileInfo, _acl))
+                .next(fileInfo, acl, self.getFileStorageVerify(fileInfo));
     }
 
     /**
@@ -325,7 +329,7 @@ public class FileStorageService {
      */
     public boolean isSupportMetadata(FileStorage fileStorage) {
         if (fileStorage == null) return false;
-        return new IsSupportMetadataAspectChain(aspectList,FileStorage::isSupportMetadata).next(fileStorage);
+        return new IsSupportMetadataAspectChain(aspectList, FileStorage::isSupportMetadata).next(fileStorage);
     }
 
     /**
@@ -347,7 +351,7 @@ public class FileStorageService {
      * @param source 源
      */
     public UploadPretreatment of(Object source) {
-        return self.of(source,null,null);
+        return self.of(source, null, null);
     }
 
     /**
@@ -356,8 +360,8 @@ public class FileStorageService {
      * @param source 源
      * @param name   文件名
      */
-    public UploadPretreatment of(Object source,String name) {
-        return self.of(source,name,null);
+    public UploadPretreatment of(Object source, String name) {
+        return self.of(source, name, null);
     }
 
     /**
@@ -367,8 +371,8 @@ public class FileStorageService {
      * @param name        文件名
      * @param contentType 文件的 MIME 类型
      */
-    public UploadPretreatment of(Object source,String name,String contentType) {
-        return self.of(source,name,contentType,null);
+    public UploadPretreatment of(Object source, String name, String contentType) {
+        return self.of(source, name, contentType, null);
     }
 
     /**
@@ -379,14 +383,16 @@ public class FileStorageService {
      * @param contentType 文件的 MIME 类型
      * @param size        文件大小
      */
-    public UploadPretreatment of(Object source,String name,String contentType,Long size) {
-        FileWrapper wrapper = self.wrapper(source,name,contentType,size);
+    public UploadPretreatment of(Object source, String name, String contentType, Long size) {
+        FileWrapper wrapper = self.wrapper(source, name, contentType, size);
         UploadPretreatment up = self.of().setFileWrapper(wrapper);
-        //这里针对 HttpServletRequestFileWrapper 特殊处理，加载读取到的缩略图文件
+        // 这里针对 HttpServletRequestFileWrapper 特殊处理，加载读取到的缩略图文件
         if (wrapper instanceof HttpServletRequestFileWrapper) {
-            MultipartFormDataReader.MultipartFormData data = ((HttpServletRequestFileWrapper) wrapper).getMultipartFormData();
+            MultipartFormDataReader.MultipartFormData data =
+                    ((HttpServletRequestFileWrapper) wrapper).getMultipartFormData();
             if (data.getThFileBytes() != null) {
-                FileWrapper thWrapper = self.wrapper(data.getThFileBytes(),data.getThFileOriginalFilename(),data.getThFileContentType());
+                FileWrapper thWrapper = self.wrapper(
+                        data.getThFileBytes(), data.getThFileOriginalFilename(), data.getThFileContentType());
                 up.thumbnailOf(thWrapper);
             }
         }
@@ -399,7 +405,7 @@ public class FileStorageService {
      * @param source 源
      */
     public FileWrapper wrapper(Object source) {
-        return self.wrapper(source,null);
+        return self.wrapper(source, null);
     }
 
     /**
@@ -408,8 +414,8 @@ public class FileStorageService {
      * @param source 源
      * @param name   文件名
      */
-    public FileWrapper wrapper(Object source,String name) {
-        return self.wrapper(source,name,null);
+    public FileWrapper wrapper(Object source, String name) {
+        return self.wrapper(source, name, null);
     }
 
     /**
@@ -418,8 +424,8 @@ public class FileStorageService {
      * @param source 源
      * @param name   文件名
      */
-    public FileWrapper wrapper(Object source,String name,String contentType) {
-        return self.wrapper(source,name,contentType,null);
+    public FileWrapper wrapper(Object source, String name, String contentType) {
+        return self.wrapper(source, name, contentType, null);
     }
 
     /**
@@ -430,18 +436,18 @@ public class FileStorageService {
      * @param contentType 文件的 MIME 类型
      * @param size        文件大小
      */
-    public FileWrapper wrapper(Object source,String name,String contentType,Long size) {
+    public FileWrapper wrapper(Object source, String name, String contentType, Long size) {
         if (source == null) {
             throw new FileStorageRuntimeException("要包装的文件不能是 null");
         }
         try {
             for (FileWrapperAdapter adapter : fileWrapperAdapterList) {
                 if (adapter.isSupport(source)) {
-                    return adapter.getFileWrapper(source,name,contentType,size);
+                    return adapter.getFileWrapper(source, name, contentType, size);
                 }
             }
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件包装失败",e);
+            throw new FileStorageRuntimeException("文件包装失败", e);
         }
         throw new FileStorageRuntimeException("不支持此文件");
     }
@@ -450,7 +456,7 @@ public class FileStorageService {
      * 复制文件
      */
     public CopyPretreatment copy(FileInfo fileInfo) {
-        return new CopyPretreatment(fileInfo,self)
+        return new CopyPretreatment(fileInfo, self)
                 .setNotSupportMetadataThrowException(copyNotSupportMetadataThrowException)
                 .setNotSupportAclThrowException(copyNotSupportAclThrowException);
     }
@@ -466,27 +472,25 @@ public class FileStorageService {
      * 通过反射调用指定存储平台的方法
      * 详情见{@link ReflectUtil#invoke(Object,String,Object...)}
      */
-    public <T> T invoke(String platform,String method,Object... args) {
-        return self.invoke((FileStorage) self.getFileStorageVerify(platform),method,args);
+    public <T> T invoke(String platform, String method, Object... args) {
+        return self.invoke((FileStorage) self.getFileStorageVerify(platform), method, args);
     }
 
     /**
      * 通过反射调用指定存储平台的方法
      * 详情见{@link ReflectUtil#invoke(Object,String,Object...)}
      */
-    public <T> T invoke(FileStorage platform,String method,Object... args) {
-        return new InvokeAspectChain(aspectList,ReflectUtil::invoke)
-                .next(platform,method,args);
+    public <T> T invoke(FileStorage platform, String method, Object... args) {
+        return new InvokeAspectChain(aspectList, ReflectUtil::invoke).next(platform, method, args);
     }
-
 
     public void destroy() {
         for (FileStorage fileStorage : fileStorageList) {
             try {
                 fileStorage.close();
-                log.info("销毁存储平台 {} 成功",fileStorage.getPlatform());
+                log.info("销毁存储平台 {} 成功", fileStorage.getPlatform());
             } catch (Exception e) {
-                log.error("销毁存储平台 {} 失败，{}",fileStorage.getPlatform(),e.getMessage(),e);
+                log.error("销毁存储平台 {} 失败，{}", fileStorage.getPlatform(), e.getMessage(), e);
             }
         }
     }

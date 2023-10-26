@@ -2,18 +2,17 @@ package org.dromara.x.file.storage.core;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
-import org.dromara.x.file.storage.core.aspect.DownloadAspectChain;
-import org.dromara.x.file.storage.core.aspect.DownloadThAspectChain;
-import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
-import org.dromara.x.file.storage.core.platform.FileStorage;
-
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import org.dromara.x.file.storage.core.aspect.DownloadAspectChain;
+import org.dromara.x.file.storage.core.aspect.DownloadThAspectChain;
+import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
+import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.platform.FileStorage;
 
 /**
  * 下载器
@@ -39,7 +38,7 @@ public class Downloader {
      *
      * @param target 下载目标：{@link Downloader#TARGET_FILE}下载文件，{@link Downloader#TARGET_TH_FILE}下载缩略图文件
      */
-    public Downloader(FileInfo fileInfo,List<FileStorageAspect> aspectList,FileStorage fileStorage,Integer target) {
+    public Downloader(FileInfo fileInfo, List<FileStorageAspect> aspectList, FileStorage fileStorage, Integer target) {
         this.fileStorage = fileStorage;
         this.aspectList = aspectList;
         this.fileInfo = fileInfo;
@@ -51,27 +50,25 @@ public class Downloader {
      * @param progressListener 提供一个参数，表示已传输字节数
      */
     public Downloader setProgressMonitor(Consumer<Long> progressListener) {
-        return setProgressMonitor((progressSize,allSize) -> progressListener.accept(progressSize));
+        return setProgressMonitor((progressSize, allSize) -> progressListener.accept(progressSize));
     }
 
     /**
      * 设置下载进度监听器
      * @param progressListener 提供两个参数，第一个是 progressSize已传输字节数，第二个是 allSize总字节数
      */
-    public Downloader setProgressMonitor(BiConsumer<Long,Long> progressListener) {
+    public Downloader setProgressMonitor(BiConsumer<Long, Long> progressListener) {
         return setProgressMonitor(new ProgressListener() {
             @Override
-            public void start() {
+            public void start() {}
+
+            @Override
+            public void progress(long progressSize, Long allSize) {
+                progressListener.accept(progressSize, allSize);
             }
 
             @Override
-            public void progress(long progressSize,Long allSize) {
-                progressListener.accept(progressSize,allSize);
-            }
-
-            @Override
-            public void finish() {
-            }
+            public void finish() {}
         });
     }
 
@@ -87,18 +84,22 @@ public class Downloader {
      * 获取 InputStream ，在此方法结束后会自动关闭 InputStream
      */
     public void inputStream(Consumer<InputStream> consumer) {
-        if (target == TARGET_FILE) {    //下载文件
-            new DownloadAspectChain(aspectList,(_fileInfo,_fileStorage,_consumer) ->
-                    _fileStorage.download(_fileInfo,_consumer)
-            ).next(fileInfo,fileStorage,in ->
-                    consumer.accept( new InputStreamPlus(in,progressListener,fileInfo.getSize()))
-            );
-        } else if (target == TARGET_TH_FILE) {  //下载缩略图文件
-            new DownloadThAspectChain(aspectList,(_fileInfo,_fileStorage,_consumer) ->
-                    _fileStorage.downloadTh(_fileInfo,_consumer)
-            ).next(fileInfo,fileStorage,in ->
-                    consumer.accept(new InputStreamPlus(in,progressListener,fileInfo.getThSize()))
-            );
+        if (target == TARGET_FILE) { // 下载文件
+            new DownloadAspectChain(
+                            aspectList,
+                            (_fileInfo, _fileStorage, _consumer) -> _fileStorage.download(_fileInfo, _consumer))
+                    .next(
+                            fileInfo,
+                            fileStorage,
+                            in -> consumer.accept(new InputStreamPlus(in, progressListener, fileInfo.getSize())));
+        } else if (target == TARGET_TH_FILE) { // 下载缩略图文件
+            new DownloadThAspectChain(
+                            aspectList,
+                            (_fileInfo, _fileStorage, _consumer) -> _fileStorage.downloadTh(_fileInfo, _consumer))
+                    .next(
+                            fileInfo,
+                            fileStorage,
+                            in -> consumer.accept(new InputStreamPlus(in, progressListener, fileInfo.getThSize())));
         } else {
             throw new FileStorageRuntimeException("没找到对应的下载目标，请设置 target 参数！");
         }
@@ -117,22 +118,20 @@ public class Downloader {
      * 下载到指定文件
      */
     public void file(File file) {
-        inputStream(in -> FileUtil.writeFromStream(in,file));
+        inputStream(in -> FileUtil.writeFromStream(in, file));
     }
 
     /**
      * 下载到指定文件
      */
     public void file(String filename) {
-        inputStream(in -> FileUtil.writeFromStream(in,filename));
+        inputStream(in -> FileUtil.writeFromStream(in, filename));
     }
 
     /**
      * 下载到指定输出流
      */
     public void outputStream(OutputStream out) {
-        inputStream(in -> IoUtil.copy(in,out));
+        inputStream(in -> IoUtil.copy(in, out));
     }
-
-
 }
