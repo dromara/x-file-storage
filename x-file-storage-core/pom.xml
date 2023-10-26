@@ -8,6 +8,7 @@
     </parent>
 
     <artifactId>x-file-storage-core</artifactId>
+    <name>X File Storage Core</name>
 
     <dependencies>
         <!-- javax.servlet-api -->

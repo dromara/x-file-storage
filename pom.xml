@@ -7,7 +7,7 @@
     <version>${revision}</version>
     <packaging>pom</packaging>
 
-    <name>x-file-storage-parent</name>
+    <name>X File Storage</name>
     <description>A File Storage Service</description>
     <url>https://github.com/dromara/x-file-storage</url>
 
@@ -339,7 +339,7 @@
         <profile>
             <id>test</id>
             <modules>
-                <module>x-file-storage-test</module>
+                <module>x-file-storage-tests</module>
             </modules>
         </profile>
         <profile>
