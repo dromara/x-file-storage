@@ -14,7 +14,7 @@
     <description>x-file-storage 的测试和演示模块</description>
 
     <modules>
-        <module>xs-file-storage-general-test</module>
+        <module>x-file-storage-general-test</module>
         <module>x-file-storage-fastdfs-test</module>
     </modules>
 

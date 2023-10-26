@@ -7,9 +7,9 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>xs-file-storage-general-test</artifactId>
+    <artifactId>x-file-storage-general-test</artifactId>
 
-    <name>xs-file-storage-general-test</name>
+    <name>x-file-storage-general-test</name>
     <url>http://maven.apache.org</url>
 
     <dependencies>
