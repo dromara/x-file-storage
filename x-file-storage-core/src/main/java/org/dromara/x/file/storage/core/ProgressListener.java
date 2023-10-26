@@ -35,6 +35,14 @@ public interface ProgressListener {
     }
 
     /**
+     * 快速触发进行中
+     */
+    static void quickProgress(ProgressListener progressListener, long progressSize, Long size) {
+        if (progressListener == null) return;
+        progressListener.progress(progressSize, size);
+    }
+
+    /**
      * 快速触发结束
      */
     static void quickFinish(ProgressListener progressListener, Long size, LongSupplier progressSizeSupplier) {
@@ -49,6 +57,14 @@ public interface ProgressListener {
     static void quickFinish(ProgressListener progressListener, Long size) {
         if (progressListener == null) return;
         progressListener.progress(size, size);
+        progressListener.finish();
+    }
+
+    /**
+     * 快速触发结束
+     */
+    static void quickFinish(ProgressListener progressListener) {
+        if (progressListener == null) return;
         progressListener.finish();
     }
 }
