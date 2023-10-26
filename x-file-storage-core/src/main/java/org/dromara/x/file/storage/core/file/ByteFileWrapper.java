@@ -1,11 +1,10 @@
 package org.dromara.x.file.storage.core.file;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 
 /**
  * byte[] 文件包装类
@@ -20,8 +19,7 @@ public class ByteFileWrapper implements FileWrapper {
     private InputStream inputStream;
     private Long size;
 
-
-    public ByteFileWrapper(byte[] bytes,String name,String contentType,Long size) {
+    public ByteFileWrapper(byte[] bytes, String name, String contentType, Long size) {
         this.bytes = bytes;
         this.name = name;
         this.contentType = contentType;

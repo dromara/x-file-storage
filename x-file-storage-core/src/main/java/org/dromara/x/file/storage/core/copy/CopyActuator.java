@@ -3,14 +3,13 @@ package org.dromara.x.file.storage.core.copy;
 import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.lang.Dict;
 import cn.hutool.core.util.StrUtil;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.constant.Constant.CopyMode;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.platform.FileStorage;
-
-import java.util.Date;
-import java.util.LinkedHashMap;
 
 /**
  * 复制执行器
@@ -70,12 +69,13 @@ public class CopyActuator {
      * 同平台复制
      */
     protected FileInfo sameCopy() {
-        //检查文件名是否与原始的相同
+        // 检查文件名是否与原始的相同
         if ((fileInfo.getPath() + fileInfo.getFilename()).equals(pre.getPath() + pre.getFilename())) {
             throw new FileStorageRuntimeException("源文件与目标文件路径相同");
         }
-        //检查缩略图文件名是否与原始的相同
-        if (StrUtil.isNotBlank(fileInfo.getThFilename()) && (fileInfo.getPath() + fileInfo.getThFilename()).equals(pre.getPath() + pre.getThFilename())) {
+        // 检查缩略图文件名是否与原始的相同
+        if (StrUtil.isNotBlank(fileInfo.getThFilename())
+                && (fileInfo.getPath() + fileInfo.getThFilename()).equals(pre.getPath() + pre.getThFilename())) {
             throw new FileStorageRuntimeException("源缩略图文件与目标缩略图文件路径相同");
         }
 
@@ -115,7 +115,7 @@ public class CopyActuator {
         destFileInfo.setThFileAcl(fileInfo.getThFileAcl());
         destFileInfo.setCreateTime(new Date());
 
-        fileStorage.copy(fileInfo,destFileInfo,pre.getProgressListener());
+        fileStorage.copy(fileInfo, destFileInfo, pre.getProgressListener());
         return destFileInfo;
     }
 
@@ -123,35 +123,41 @@ public class CopyActuator {
      * 跨平台复制，通过从下载并重新上传来实现
      */
     protected FileInfo crossCopy() {
-        //下载缩略图
-        byte[] thBytes = StrUtil.isNotBlank(fileInfo.getThFilename()) ? fileStorageService.downloadTh(fileInfo).bytes() : null;
+        // 下载缩略图
+        byte[] thBytes = StrUtil.isNotBlank(fileInfo.getThFilename())
+                ? fileStorageService.downloadTh(fileInfo).bytes()
+                : null;
 
         final FileInfo[] destFileInfo2 = new FileInfo[1];
         fileStorageService.download(fileInfo).inputStream(in -> {
             String thumbnailSuffix = FileNameUtil.extName(pre.getThFilename());
             if (StrUtil.isNotBlank(thumbnailSuffix)) thumbnailSuffix = "." + thumbnailSuffix;
 
-            destFileInfo2[0] = fileStorageService.of(in,fileInfo.getOriginalFilename(),fileInfo.getContentType(),fileInfo.getSize())
+            destFileInfo2[0] = fileStorageService
+                    .of(in, fileInfo.getOriginalFilename(), fileInfo.getContentType(), fileInfo.getSize())
                     .setPlatform(pre.getPlatform())
                     .setPath(pre.getPath())
                     .setSaveFilename(pre.getFilename())
                     .setContentType(fileInfo.getContentType())
-                    .setSaveThFilename(thBytes != null,FileNameUtil.mainName(pre.getThFilename()))
-                    .setThumbnailSuffix(thBytes != null,thumbnailSuffix)
-                    .thumbnailOf(thBytes != null,thBytes)
+                    .setSaveThFilename(thBytes != null, FileNameUtil.mainName(pre.getThFilename()))
+                    .setThumbnailSuffix(thBytes != null, thumbnailSuffix)
+                    .thumbnailOf(thBytes != null, thBytes)
                     .setThContentType(fileInfo.getThContentType())
                     .setObjectType(fileInfo.getObjectType())
                     .setObjectId(fileInfo.getObjectId())
-                    .setNotSupportAclThrowException(pre.getNotSupportAclThrowException() != null,pre.getNotSupportAclThrowException())
-                    .setFileAcl(fileInfo.getFileAcl() != null,fileInfo.getFileAcl())
-                    .setThFileAcl(fileInfo.getThFileAcl() != null,fileInfo.getThFileAcl())
-                    .setNotSupportMetadataThrowException(pre.getNotSupportMetadataThrowException() != null,pre.getNotSupportMetadataThrowException())
-                    .putMetadataAll(fileInfo.getMetadata() != null,fileInfo.getMetadata())
-                    .putThMetadataAll(fileInfo.getThMetadata() != null,fileInfo.getThMetadata())
-                    .putUserMetadataAll(fileInfo.getMetadata() != null,fileInfo.getUserMetadata())
-                    .putThUserMetadataAll(fileInfo.getThUserMetadata() != null,fileInfo.getThUserMetadata())
+                    .setNotSupportAclThrowException(
+                            pre.getNotSupportAclThrowException() != null, pre.getNotSupportAclThrowException())
+                    .setFileAcl(fileInfo.getFileAcl() != null, fileInfo.getFileAcl())
+                    .setThFileAcl(fileInfo.getThFileAcl() != null, fileInfo.getThFileAcl())
+                    .setNotSupportMetadataThrowException(
+                            pre.getNotSupportMetadataThrowException() != null,
+                            pre.getNotSupportMetadataThrowException())
+                    .putMetadataAll(fileInfo.getMetadata() != null, fileInfo.getMetadata())
+                    .putThMetadataAll(fileInfo.getThMetadata() != null, fileInfo.getThMetadata())
+                    .putUserMetadataAll(fileInfo.getMetadata() != null, fileInfo.getUserMetadata())
+                    .putThUserMetadataAll(fileInfo.getThUserMetadata() != null, fileInfo.getThUserMetadata())
                     .setProgressMonitor(pre.getProgressListener())
-                    .putAttrAll(fileInfo.getAttr() != null,fileInfo.getAttr())
+                    .putAttrAll(fileInfo.getAttr() != null, fileInfo.getAttr())
                     .upload();
         });
         return destFileInfo2[0];

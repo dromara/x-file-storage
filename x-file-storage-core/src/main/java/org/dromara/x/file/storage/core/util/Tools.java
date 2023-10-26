@@ -9,10 +9,10 @@ public class Tools {
      */
     public static String getParent(String path) {
         if (path.endsWith("/") || path.endsWith("\\")) {
-            path = path.substring(0,path.length() - 1);
+            path = path.substring(0, path.length() - 1);
         }
-        int endIndex = Math.max(path.lastIndexOf("/"),path.lastIndexOf("\\"));
-        return endIndex > -1 ? path.substring(0,endIndex) : null;
+        int endIndex = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+        return endIndex > -1 ? path.substring(0, endIndex) : null;
     }
 
     /**

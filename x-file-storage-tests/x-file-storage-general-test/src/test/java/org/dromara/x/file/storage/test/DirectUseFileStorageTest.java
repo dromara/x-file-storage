@@ -1,5 +1,8 @@
 package org.dromara.x.file.storage.test;
 
+import java.io.File;
+import java.io.InputStream;
+import java.util.Collections;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties;
 import org.dromara.x.file.storage.core.FileStorageProperties.FtpConfig;
@@ -7,15 +10,11 @@ import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.FileStorageServiceBuilder;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
-import java.io.InputStream;
-import java.util.Collections;
-
 public class DirectUseFileStorageTest {
     @Test
     public void upload() {
 
-        //配置文件定义存储平台
+        // 配置文件定义存储平台
         FileStorageProperties properties = new FileStorageProperties();
         properties.setDefaultPlatform("ftp-1");
         FtpConfig ftp = new FtpConfig();
@@ -29,14 +28,13 @@ public class DirectUseFileStorageTest {
         ftp.setStoragePath("/");
         properties.setFtp(Collections.singletonList(ftp));
 
-        //创建，自定义存储平台、Client工厂、切面等功能都有对应的添加方法
-        FileStorageService service = FileStorageServiceBuilder.create(properties).useDefault().build();
+        // 创建，自定义存储平台、Client工厂、切面等功能都有对应的添加方法
+        FileStorageService service =
+                FileStorageServiceBuilder.create(properties).useDefault().build();
 
-
-        //初始化完毕，开始上传吧
+        // 初始化完毕，开始上传吧
         FileInfo fileInfo = service.of(new File("D:\\Desktop\\a.png")).upload();
         System.out.println(fileInfo);
-
 
         String filename = "image.jpg";
         InputStream in = this.getClass().getClassLoader().getResourceAsStream(filename);

@@ -1,5 +1,7 @@
 package org.dromara.x.file.storage.test.controller;
 
+import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
@@ -9,10 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
-import javax.servlet.http.HttpServletRequest;
-import java.util.Map;
-
 
 @Slf4j
 @RestController
@@ -26,11 +24,12 @@ public class FileDetailController {
      */
     @PostMapping("/upload")
     public String upload(MultipartFile file) {
-        FileInfo fileInfo = fileStorageService.of(file)
-                .setPath("upload/") //保存到相对路径下，为了方便管理，不需要可以不写
-                .setObjectId("0")   //关联对象id，为了方便管理，不需要可以不写
-                .setObjectType("0") //关联对象类型，为了方便管理，不需要可以不写
-                .upload();  //将文件上传到对应地方
+        FileInfo fileInfo = fileStorageService
+                .of(file)
+                .setPath("upload/") // 保存到相对路径下，为了方便管理，不需要可以不写
+                .setObjectId("0") // 关联对象id，为了方便管理，不需要可以不写
+                .setObjectType("0") // 关联对象类型，为了方便管理，不需要可以不写
+                .upload(); // 将文件上传到对应地方
         return fileInfo == null ? "上传失败！" : fileInfo.getUrl();
     }
 
@@ -40,9 +39,10 @@ public class FileDetailController {
      */
     @PostMapping("/upload-image")
     public FileInfo uploadImage(MultipartFile file) {
-        return fileStorageService.of(file)
-                .image(img -> img.size(1000,1000))  //将图片大小调整到 1000*1000
-                .thumbnail(th -> th.size(200,200))  //再生成一张 200*200 的缩略图
+        return fileStorageService
+                .of(file)
+                .image(img -> img.size(1000, 1000)) // 将图片大小调整到 1000*1000
+                .thumbnail(th -> th.size(200, 200)) // 再生成一张 200*200 的缩略图
                 .upload();
     }
 
@@ -51,8 +51,9 @@ public class FileDetailController {
      */
     @PostMapping("/upload-platform")
     public FileInfo uploadPlatform(MultipartFile file) {
-        return fileStorageService.of(file)
-                .setPlatform("aliyun-oss-1")    //使用指定的存储平台
+        return fileStorageService
+                .of(file)
+                .setPlatform("aliyun-oss-1") // 使用指定的存储平台
                 .upload();
     }
 
@@ -64,7 +65,7 @@ public class FileDetailController {
         HttpServletRequestFileWrapper wrapper = (HttpServletRequestFileWrapper) fileStorageService.wrapper(request);
         MultipartFormDataReader.MultipartFormData formData = wrapper.getMultipartFormData();
         Map<String, String[]> parameterMap = formData.getParameterMap();
-        log.info("parameterMap：{}",parameterMap);
+        log.info("parameterMap：{}", parameterMap);
         return fileStorageService.of(wrapper).upload();
     }
 }

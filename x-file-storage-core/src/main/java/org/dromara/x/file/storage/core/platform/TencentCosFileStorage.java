@@ -6,6 +6,14 @@ import cn.hutool.core.util.StrUtil;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.event.ProgressEventType;
 import com.qcloud.cos.model.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -15,15 +23,6 @@ import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 
 /**
  * 腾讯云 COS 存储
@@ -41,8 +40,7 @@ public class TencentCosFileStorage implements FileStorage {
     private int multipartPartSize;
     private FileStorageClientFactory<COSClient> clientFactory;
 
-
-    public TencentCosFileStorage(TencentCosConfig config,FileStorageClientFactory<COSClient> clientFactory) {
+    public TencentCosFileStorage(TencentCosConfig config, FileStorageClientFactory<COSClient> clientFactory) {
         platform = config.getPlatform();
         bucketName = config.getBucketName();
         domain = config.getDomain();
@@ -56,7 +54,6 @@ public class TencentCosFileStorage implements FileStorage {
     public COSClient getClient() {
         return clientFactory.getClient();
     }
-
 
     @Override
     public void close() {
@@ -73,7 +70,7 @@ public class TencentCosFileStorage implements FileStorage {
     }
 
     @Override
-    public boolean save(FileInfo fileInfo,UploadPretreatment pre) {
+    public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
@@ -84,16 +81,18 @@ public class TencentCosFileStorage implements FileStorage {
         boolean useMultipartUpload = fileInfo.getSize() == null || fileInfo.getSize() >= multipartThreshold;
         String uploadId = null;
         try (InputStreamPlus in = pre.getInputStreamPlus(false)) {
-            if (useMultipartUpload) {//分片上传
-                InitiateMultipartUploadRequest initiateMultipartUploadRequest = new InitiateMultipartUploadRequest(bucketName,newFileKey,metadata);
+            if (useMultipartUpload) { // 分片上传
+                InitiateMultipartUploadRequest initiateMultipartUploadRequest =
+                        new InitiateMultipartUploadRequest(bucketName, newFileKey, metadata);
                 initiateMultipartUploadRequest.setCannedACL(fileAcl);
-                uploadId = client.initiateMultipartUpload(initiateMultipartUploadRequest).getUploadId();
+                uploadId = client.initiateMultipartUpload(initiateMultipartUploadRequest)
+                        .getUploadId();
                 List<PartETag> partList = new ArrayList<>();
                 int i = 0;
                 AtomicLong progressSize = new AtomicLong();
                 if (listener != null) listener.start();
                 while (true) {
-                    byte[] bytes = IoUtil.readBytes(in,multipartPartSize);
+                    byte[] bytes = IoUtil.readBytes(in, multipartPartSize);
                     if (bytes == null || bytes.length == 0) break;
                     UploadPartRequest part = new UploadPartRequest();
                     part.setBucketName(bucketName);
@@ -105,16 +104,17 @@ public class TencentCosFileStorage implements FileStorage {
                     if (listener != null) {
                         part.setGeneralProgressListener(e -> {
                             if (e.getEventType() == ProgressEventType.REQUEST_BYTE_TRANSFER_EVENT) {
-                                listener.progress(progressSize.addAndGet(e.getBytes()),fileInfo.getSize());
+                                listener.progress(progressSize.addAndGet(e.getBytes()), fileInfo.getSize());
                             }
                         });
                     }
                     partList.add(client.uploadPart(part).getPartETag());
                 }
-                client.completeMultipartUpload(new CompleteMultipartUploadRequest(bucketName,newFileKey,uploadId,partList));
+                client.completeMultipartUpload(
+                        new CompleteMultipartUploadRequest(bucketName, newFileKey, uploadId, partList));
                 if (listener != null) listener.finish();
             } else {
-                PutObjectRequest request = new PutObjectRequest(bucketName,newFileKey,in,metadata);
+                PutObjectRequest request = new PutObjectRequest(bucketName, newFileKey, in, metadata);
                 request.setCannedAcl(fileAcl);
                 if (listener != null) {
                     AtomicLong progressSize = new AtomicLong();
@@ -122,7 +122,7 @@ public class TencentCosFileStorage implements FileStorage {
                         if (e.getEventType() == ProgressEventType.TRANSFER_STARTED_EVENT) {
                             listener.start();
                         } else if (e.getEventType() == ProgressEventType.REQUEST_BYTE_TRANSFER_EVENT) {
-                            listener.progress(progressSize.addAndGet(e.getBytes()),fileInfo.getSize());
+                            listener.progress(progressSize.addAndGet(e.getBytes()), fileInfo.getSize());
                         } else if (e.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT) {
                             listener.finish();
                         }
@@ -133,11 +133,12 @@ public class TencentCosFileStorage implements FileStorage {
             if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
-            if (thumbnailBytes != null) { //上传缩略图
+            if (thumbnailBytes != null) { // 上传缩略图
                 String newThFileKey = getThFileKey(fileInfo);
                 fileInfo.setThUrl(domain + newThFileKey);
                 ObjectMetadata thMetadata = getThObjectMetadata(fileInfo);
-                PutObjectRequest request = new PutObjectRequest(bucketName,newThFileKey,new ByteArrayInputStream(thumbnailBytes),thMetadata);
+                PutObjectRequest request = new PutObjectRequest(
+                        bucketName, newThFileKey, new ByteArrayInputStream(thumbnailBytes), thMetadata);
                 request.setCannedAcl(getAcl(fileInfo.getThFileAcl()));
                 client.putObject(request);
             }
@@ -145,11 +146,12 @@ public class TencentCosFileStorage implements FileStorage {
             return true;
         } catch (IOException e) {
             if (useMultipartUpload) {
-                client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName,newFileKey,uploadId));
+                client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName, newFileKey, uploadId));
             } else {
-                client.deleteObject(bucketName,newFileKey);
+                client.deleteObject(bucketName, newFileKey);
             }
-            throw new FileStorageRuntimeException("文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(),e);
+            throw new FileStorageRuntimeException(
+                    "文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
         }
     }
 
@@ -207,15 +209,17 @@ public class TencentCosFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
-        return getClient().generatePresignedUrl(bucketName,getFileKey(fileInfo),expiration).toString();
+    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
+        return getClient()
+                .generatePresignedUrl(bucketName, getFileKey(fileInfo), expiration)
+                .toString();
     }
 
     @Override
-    public String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
+    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
         String key = getThFileKey(fileInfo);
         if (key == null) return null;
-        return getClient().generatePresignedUrl(bucketName,key,expiration).toString();
+        return getClient().generatePresignedUrl(bucketName, key, expiration).toString();
     }
 
     @Override
@@ -224,20 +228,20 @@ public class TencentCosFileStorage implements FileStorage {
     }
 
     @Override
-    public boolean setFileAcl(FileInfo fileInfo,Object acl) {
+    public boolean setFileAcl(FileInfo fileInfo, Object acl) {
         CannedAccessControlList oAcl = getAcl(acl);
         if (oAcl == null) return false;
-        getClient().setObjectAcl(bucketName,getFileKey(fileInfo),oAcl);
+        getClient().setObjectAcl(bucketName, getFileKey(fileInfo), oAcl);
         return true;
     }
 
     @Override
-    public boolean setThFileAcl(FileInfo fileInfo,Object acl) {
+    public boolean setThFileAcl(FileInfo fileInfo, Object acl) {
         CannedAccessControlList oAcl = getAcl(acl);
         if (oAcl == null) return false;
         String key = getThFileKey(fileInfo);
         if (key == null) return false;
-        getClient().setObjectAcl(bucketName,key,oAcl);
+        getClient().setObjectAcl(bucketName, key, oAcl);
         return true;
     }
 
@@ -249,39 +253,41 @@ public class TencentCosFileStorage implements FileStorage {
     @Override
     public boolean delete(FileInfo fileInfo) {
         COSClient client = getClient();
-        if (fileInfo.getThFilename() != null) {   //删除缩略图
-            client.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+        if (fileInfo.getThFilename() != null) { // 删除缩略图
+            client.deleteObject(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
         }
-        client.deleteObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        client.deleteObject(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
         return true;
     }
 
-
     @Override
     public boolean exists(FileInfo fileInfo) {
-        return getClient().doesObjectExist(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+        return getClient()
+                .doesObjectExist(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
     }
 
     @Override
-    public void download(FileInfo fileInfo,Consumer<InputStream> consumer) {
-        COSObject object = getClient().getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+    public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
+        COSObject object =
+                getClient().getObject(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo,e);
+            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo, e);
         }
     }
 
     @Override
-    public void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer) {
+    public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
         if (StrUtil.isBlank(fileInfo.getThFilename())) {
             throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
         }
-        COSObject object = getClient().getObject(bucketName,fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+        COSObject object = getClient()
+                .getObject(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo,e);
+            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
         }
     }
 }

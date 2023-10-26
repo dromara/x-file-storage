@@ -4,6 +4,11 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.text.StrPool;
 import cn.hutool.core.util.StrUtil;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
 import org.csource.common.MyException;
@@ -16,12 +21,6 @@ import org.dromara.x.file.storage.core.constant.FormatTemplate;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
-import java.util.function.Consumer;
-
 /**
  * There is no description.
  *
@@ -32,18 +31,17 @@ import java.util.function.Consumer;
 @Getter
 @Setter
 public class FastDfsFileStorage implements FileStorage {
-    
+
     /**
      * FastDFS Config
      */
     private final FastDfsConfig config;
-    
+
     /**
      * FastDFS Client
      */
     private final FileStorageClientFactory<StorageClient> clientFactory;
-    
-    
+
     /**
      * @param config        {@link FastDfsConfig}
      * @param clientFactory {@link FileStorageClientFactory}
@@ -52,8 +50,7 @@ public class FastDfsFileStorage implements FileStorage {
         this.config = config;
         this.clientFactory = clientFactory;
     }
-    
-    
+
     /**
      * 获取平台
      */
@@ -61,7 +58,7 @@ public class FastDfsFileStorage implements FileStorage {
     public String getPlatform() {
         return config.getPlatform();
     }
-    
+
     /**
      * 设置平台
      *
@@ -71,7 +68,7 @@ public class FastDfsFileStorage implements FileStorage {
     public void setPlatform(String platform) {
         this.config.setPlatform(platform);
     }
-    
+
     /**
      * 保存文件
      *
@@ -87,20 +84,22 @@ public class FastDfsFileStorage implements FileStorage {
         try (InputStream in = fileWrapper.getInputStream()) {
             byte[] bytes = IoUtil.readBytes(in);
             NameValuePair[] metadata = getObjectMetadata(fileInfo);
-            String[] fileUpload = clientFactory.getClient()
-                    .upload_file(config.getGroupName(), bytes, fileInfo.getExt(), metadata);
-            fileInfo.setUrl(StrUtil.format(FormatTemplate.FULL_URL, config.getDomain(),
-                    StrUtil.join(StrPool.SLASH, (Object[]) fileUpload)));
+            String[] fileUpload =
+                    clientFactory.getClient().upload_file(config.getGroupName(), bytes, fileInfo.getExt(), metadata);
+            fileInfo.setUrl(StrUtil.format(
+                    FormatTemplate.FULL_URL, config.getDomain(), StrUtil.join(StrPool.SLASH, (Object[]) fileUpload)));
             fileInfo.setBasePath(fileUpload[0]);
             fileInfo.setFilename(fileUpload[1]);
-            
+
             // 缩略图（若包含）
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) {
-                String[] thumbnailUpload = clientFactory.getClient()
+                String[] thumbnailUpload = clientFactory
+                        .getClient()
                         .upload_file(config.getGroupName(), thumbnailBytes, pre.getThumbnailSuffix(), metadata);
-                fileInfo.setUrl(StrUtil.format(FormatTemplate.FULL_URL, config.getDomain(),
-                        StrUtil.join(StrPool.SLASH, (Object[]) thumbnailUpload)));
+                fileInfo.setUrl(StrUtil.format(
+                        FormatTemplate.FULL_URL, config.getDomain(), StrUtil.join(StrPool.SLASH, (Object[])
+                                thumbnailUpload)));
                 fileInfo.setBasePath(thumbnailUpload[0]);
                 fileInfo.setFilename(thumbnailUpload[1]);
             }
@@ -109,7 +108,7 @@ public class FastDfsFileStorage implements FileStorage {
             throw FileStorageRuntimeException.save(fileInfo, getPlatform(), e);
         }
     }
-    
+
     /**
      * Get object metadata.
      *
@@ -128,7 +127,7 @@ public class FastDfsFileStorage implements FileStorage {
         }
         return null;
     }
-    
+
     /**
      * 删除文件
      *
@@ -143,7 +142,7 @@ public class FastDfsFileStorage implements FileStorage {
             throw FileStorageRuntimeException.delete(fileInfo, getPlatform(), e);
         }
     }
-    
+
     /**
      * 文件是否存在
      *
@@ -152,14 +151,14 @@ public class FastDfsFileStorage implements FileStorage {
     @Override
     public boolean exists(FileInfo fileInfo) {
         try {
-            org.csource.fastdfs.FileInfo fileInfo1 = clientFactory.getClient()
-                    .get_file_info(config.getGroupName(), fileInfo.getFilename());
+            org.csource.fastdfs.FileInfo fileInfo1 =
+                    clientFactory.getClient().get_file_info(config.getGroupName(), fileInfo.getFilename());
             return fileInfo1 != null;
         } catch (IOException | MyException e) {
             throw FileStorageRuntimeException.exists(fileInfo, getPlatform(), e);
         }
     }
-    
+
     /**
      * 下载文件
      *
@@ -177,7 +176,7 @@ public class FastDfsFileStorage implements FileStorage {
             throw FileStorageRuntimeException.download(fileInfo, getPlatform(), e);
         }
     }
-    
+
     /**
      * 下载缩略图文件
      *
@@ -189,7 +188,7 @@ public class FastDfsFileStorage implements FileStorage {
         if (StrUtil.isBlank(fileInfo.getThFilename())) {
             throw FileStorageRuntimeException.downloadThNotFound(fileInfo, getPlatform());
         }
-        
+
         try {
             byte[] bytes = clientFactory.getClient().download_file(config.getGroupName(), fileInfo.getThFilename());
             try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes)) {
@@ -199,7 +198,7 @@ public class FastDfsFileStorage implements FileStorage {
             throw FileStorageRuntimeException.downloadTh(fileInfo, getPlatform(), e);
         }
     }
-    
+
     /**
      * 释放相关资源
      */

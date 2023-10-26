@@ -13,7 +13,7 @@ public interface ContentTypeDetect {
 
     String detect(byte[] bytes);
 
-    String detect(byte[] bytes,String filename);
+    String detect(byte[] bytes, String filename);
 
-    String detect(InputStream in,String filename) throws IOException;
+    String detect(InputStream in, String filename) throws IOException;
 }

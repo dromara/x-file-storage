@@ -18,14 +18,11 @@ public interface FileStorageClientFactory<Client> extends AutoCloseable {
     /**
      * 归还 Client
      */
-    default void returnClient(Client client) {
-    }
+    default void returnClient(Client client) {}
 
     /**
      * 释放相关资源
      */
     @Override
-    default void close() {
-    }
-
+    default void close() {}
 }

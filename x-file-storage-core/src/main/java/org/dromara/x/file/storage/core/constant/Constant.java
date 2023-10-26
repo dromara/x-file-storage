@@ -1,6 +1,5 @@
 package org.dromara.x.file.storage.core.constant;
 
-
 public interface Constant {
 
     /**
@@ -28,7 +27,6 @@ public interface Constant {
     interface AliyunOssACL extends ACL {
         String DEFAULT = "default";
     }
-
 
     /**
      * Aws S3 的 ACL
@@ -60,10 +58,7 @@ public interface Constant {
      * 百度云 BOS 的 ACL
      * {@link com.baidubce.services.bos.model.CannedAccessControlList}
      */
-    interface BaiduBosACL extends ACL {
-
-    }
-
+    interface BaiduBosACL extends ACL {}
 
     /**
      * 腾讯云 COS 的 ACL
@@ -86,7 +81,6 @@ public interface Constant {
         String BUCKET_OWNER_READ = "bucket-owner-read";
         String BUCKET_OWNER_FULL_CONTROL = "bucket-owner-full-control";
     }
-
 
     /**
      * 元数据名称，这里列举的是一些相对通用的名称，但不一定每个存储平台都支持，具体支持情况自行查阅对应存储的相关文档
@@ -111,7 +105,6 @@ public interface Constant {
         String EXPIRES = "Expires";
         String LAST_MODIFIED = "Last-Modified";
     }
-
 
     /**
      * 复制模式

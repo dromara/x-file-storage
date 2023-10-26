@@ -1,12 +1,11 @@
 package org.dromara.x.file.storage.core.platform;
 
-import org.dromara.x.file.storage.core.FileInfo;
-import org.dromara.x.file.storage.core.ProgressListener;
-import org.dromara.x.file.storage.core.UploadPretreatment;
-
 import java.io.InputStream;
 import java.util.Date;
 import java.util.function.Consumer;
+import org.dromara.x.file.storage.core.FileInfo;
+import org.dromara.x.file.storage.core.ProgressListener;
+import org.dromara.x.file.storage.core.UploadPretreatment;
 
 /**
  * 文件存储接口，对应各个平台
@@ -26,7 +25,7 @@ public interface FileStorage extends AutoCloseable {
     /**
      * 保存文件
      */
-    boolean save(FileInfo fileInfo,UploadPretreatment pre);
+    boolean save(FileInfo fileInfo, UploadPretreatment pre);
 
     /**
      * 是否支持对文件生成可以签名访问的 URL
@@ -40,7 +39,7 @@ public interface FileStorage extends AutoCloseable {
      *
      * @param expiration 到期时间
      */
-    default String generatePresignedUrl(FileInfo fileInfo,Date expiration) {
+    default String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
         return null;
     }
 
@@ -49,7 +48,7 @@ public interface FileStorage extends AutoCloseable {
      *
      * @param expiration 到期时间
      */
-    default String generateThPresignedUrl(FileInfo fileInfo,Date expiration) {
+    default String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
         return null;
     }
 
@@ -63,14 +62,14 @@ public interface FileStorage extends AutoCloseable {
     /**
      * 设置文件的访问控制列表，一般情况下只有对象存储支持该功能
      */
-    default boolean setFileAcl(FileInfo fileInfo,Object acl) {
+    default boolean setFileAcl(FileInfo fileInfo, Object acl) {
         return false;
     }
 
     /**
      * 设置缩略图文件的访问控制列表，一般情况下只有对象存储支持该功能
      */
-    default boolean setThFileAcl(FileInfo fileInfo,Object acl) {
+    default boolean setThFileAcl(FileInfo fileInfo, Object acl) {
         return false;
     }
 
@@ -94,12 +93,12 @@ public interface FileStorage extends AutoCloseable {
     /**
      * 下载文件
      */
-    void download(FileInfo fileInfo,Consumer<InputStream> consumer);
+    void download(FileInfo fileInfo, Consumer<InputStream> consumer);
 
     /**
      * 下载缩略图文件
      */
-    void downloadTh(FileInfo fileInfo,Consumer<InputStream> consumer);
+    void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer);
 
     /**
      * 复制复制文件
@@ -111,13 +110,10 @@ public interface FileStorage extends AutoCloseable {
     /**
      * 复制文件
      */
-    default void copy(FileInfo srcFileInfo,FileInfo destFileInfo,ProgressListener progressListener) {
-    }
+    default void copy(FileInfo srcFileInfo, FileInfo destFileInfo, ProgressListener progressListener) {}
 
     /**
      * 释放相关资源
      */
-    default void close() {
-    }
-
+    default void close() {}
 }

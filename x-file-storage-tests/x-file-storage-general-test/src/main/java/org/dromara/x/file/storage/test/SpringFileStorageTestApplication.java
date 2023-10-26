@@ -10,8 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @MapperScan("org.dromara.x.file.storage.test.mapper")
 public class SpringFileStorageTestApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(SpringFileStorageTestApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(SpringFileStorageTestApplication.class, args);
+    }
 }

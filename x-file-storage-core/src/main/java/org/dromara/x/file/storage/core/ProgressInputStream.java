@@ -16,7 +16,7 @@ public class ProgressInputStream extends FilterInputStream {
     private final Long allSize;
     private final ProgressListener listener;
 
-    public ProgressInputStream(InputStream in,ProgressListener listener,Long allSize) {
+    public ProgressInputStream(InputStream in, ProgressListener listener, Long allSize) {
         super(in);
         this.listener = listener;
         this.allSize = allSize;
@@ -29,7 +29,6 @@ public class ProgressInputStream extends FilterInputStream {
         return skip;
     }
 
-
     @Override
     public int read() throws IOException {
         int b = super.read();
@@ -38,12 +37,12 @@ public class ProgressInputStream extends FilterInputStream {
     }
 
     @Override
-    public int read(byte[] b,int off,int len) throws IOException {
+    public int read(byte[] b, int off, int len) throws IOException {
         if (!this.readFlag) {
             this.readFlag = true;
             this.listener.start();
         }
-        int bytes = super.read(b,off,len);
+        int bytes = super.read(b, off, len);
         progress(bytes);
         return bytes;
     }
@@ -55,7 +54,7 @@ public class ProgressInputStream extends FilterInputStream {
 
     protected void progress(long size) {
         if (size > 0) {
-            this.listener.progress(progressSize += size,allSize);
+            this.listener.progress(progressSize += size, allSize);
         } else if (size < 0) {
             if (!this.finishFlag) {
                 this.finishFlag = true;
@@ -63,6 +62,4 @@ public class ProgressInputStream extends FilterInputStream {
             }
         }
     }
-
-
 }

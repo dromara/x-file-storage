@@ -1,10 +1,9 @@
 package org.dromara.x.file.storage.core;
 
-import lombok.Getter;
-
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import lombok.Getter;
 
 /**
  * 增强版本的 InputStream ，可以带进度监听、计算哈希等功能
@@ -18,12 +17,11 @@ public class InputStreamPlus extends FilterInputStream {
     protected final ProgressListener listener;
     protected int markFlag;
 
-    public InputStreamPlus(InputStream in,ProgressListener listener,Long allSize) {
+    public InputStreamPlus(InputStream in, ProgressListener listener, Long allSize) {
         super(in);
         this.listener = listener;
         this.allSize = allSize;
     }
-
 
     @Override
     public long skip(long n) throws IOException {
@@ -31,7 +29,6 @@ public class InputStreamPlus extends FilterInputStream {
         onProgress(skip);
         return skip;
     }
-
 
     @Override
     public int read() throws IOException {
@@ -41,9 +38,9 @@ public class InputStreamPlus extends FilterInputStream {
     }
 
     @Override
-    public int read(byte[] b,int off,int len) throws IOException {
+    public int read(byte[] b, int off, int len) throws IOException {
         onStart();
-        int bytes = super.read(b,off,len);
+        int bytes = super.read(b, off, len);
         onProgress(bytes);
         return bytes;
     }
@@ -82,7 +79,7 @@ public class InputStreamPlus extends FilterInputStream {
         if (this.markFlag > 0) return;
         if (size > 0) {
             progressSize += size;
-            if (this.listener != null) this.listener.progress(progressSize,allSize);
+            if (this.listener != null) this.listener.progress(progressSize, allSize);
         } else if (size < 0) {
             onFinish();
         }
@@ -97,5 +94,4 @@ public class InputStreamPlus extends FilterInputStream {
         this.finishFlag = true;
         if (this.listener != null) this.listener.finish();
     }
-
 }

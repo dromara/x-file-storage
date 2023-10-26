@@ -1,5 +1,8 @@
 package org.dromara.x.file.storage.spring;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.dromara.x.file.storage.core.FileStorageProperties;
@@ -21,10 +24,6 @@ import org.dromara.x.file.storage.core.FileStorageProperties.WebDavConfig;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Data
 @Component
@@ -141,12 +140,11 @@ public class SpringFileStorageProperties {
      * GoogleCloud Storage
      */
     private List<? extends SpringGoogleCloudStorageConfig> googleCloudStorage = new ArrayList<>();
-    
+
     /**
      * FastDFS
      */
     private List<? extends SpringFastDfsConfig> fastdfs = new ArrayList<>();
-
 
     /**
      * 转换成 FileStorageProperties ，并过滤掉没有启用的存储平台
@@ -159,21 +157,41 @@ public class SpringFileStorageProperties {
         properties.setUploadNotSupportAclThrowException(uploadNotSupportAclThrowException);
         properties.setCopyNotSupportMetadataThrowException(copyNotSupportMetadataThrowException);
         properties.setCopyNotSupportAclThrowException(copyNotSupportAclThrowException);
-        properties.setLocal(local.stream().filter(SpringLocalConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setLocalPlus(localPlus.stream().filter(SpringLocalPlusConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setHuaweiObs(huaweiObs.stream().filter(SpringHuaweiObsConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setAliyunOss(aliyunOss.stream().filter(SpringAliyunOssConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setQiniuKodo(qiniuKodo.stream().filter(SpringQiniuKodoConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setTencentCos(tencentCos.stream().filter(SpringTencentCosConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setBaiduBos(baiduBos.stream().filter(SpringBaiduBosConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setUpyunUss(upyunUss.stream().filter(SpringUpyunUssConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setMinio(minio.stream().filter(SpringMinioConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setAmazonS3(amazonS3.stream().filter(SpringAmazonS3Config::getEnableStorage).collect(Collectors.toList()));
+        properties.setLocal(
+                local.stream().filter(SpringLocalConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setLocalPlus(localPlus.stream()
+                .filter(SpringLocalPlusConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setHuaweiObs(huaweiObs.stream()
+                .filter(SpringHuaweiObsConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setAliyunOss(aliyunOss.stream()
+                .filter(SpringAliyunOssConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setQiniuKodo(qiniuKodo.stream()
+                .filter(SpringQiniuKodoConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setTencentCos(tencentCos.stream()
+                .filter(SpringTencentCosConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setBaiduBos(
+                baiduBos.stream().filter(SpringBaiduBosConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setUpyunUss(
+                upyunUss.stream().filter(SpringUpyunUssConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setMinio(
+                minio.stream().filter(SpringMinioConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setAmazonS3(
+                amazonS3.stream().filter(SpringAmazonS3Config::getEnableStorage).collect(Collectors.toList()));
         properties.setFtp(ftp.stream().filter(SpringFtpConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setSftp(sftp.stream().filter(SpringSftpConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setWebdav(webdav.stream().filter(SpringWebDavConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setGoogleCloudStorage(googleCloudStorage.stream().filter(SpringGoogleCloudStorageConfig::getEnableStorage).collect(Collectors.toList()));
-        properties.setFastdfs(fastdfs.stream().filter(SpringFastDfsConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setSftp(
+                sftp.stream().filter(SpringSftpConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setWebdav(
+                webdav.stream().filter(SpringWebDavConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setGoogleCloudStorage(googleCloudStorage.stream()
+                .filter(SpringGoogleCloudStorageConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setFastdfs(
+                fastdfs.stream().filter(SpringFastDfsConfig::getEnableStorage).collect(Collectors.toList()));
         return properties;
     }
 
@@ -360,7 +378,7 @@ public class SpringFileStorageProperties {
          */
         private Boolean enableStorage = false;
     }
-    
+
     /**
      * FastDFS Storage
      * @author XS <wanghaiqi@beeplay123.com>
@@ -374,5 +392,4 @@ public class SpringFileStorageProperties {
          */
         private Boolean enableStorage = false;
     }
-
 }

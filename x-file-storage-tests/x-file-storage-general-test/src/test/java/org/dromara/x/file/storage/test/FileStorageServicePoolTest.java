@@ -1,25 +1,25 @@
-package org.dromara.x.file.storage.test;//package org.dromara.x.file.core.test;
+package org.dromara.x.file.storage.test; // package org.dromara.x.file.core.test;
 //
-//import cn.hutool.core.lang.Assert;
-//import cn.hutool.extra.ssh.Sftp;
-//import org.dromara.x.file.storage.core.FileInfo;
-//import org.dromara.x.file.storage.core.FileStorageService;
-//import org.dromara.x.file.storage.core.platform.SftpFileStorage;
-//import org.dromara.x.file.storage.core.platform.SftpFileStorageClientFactory;
-//import lombok.extern.slf4j.Slf4j;
-//import org.junit.jupiter.api.Test;
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.boot.test.context.SpringBootTest;
+// import cn.hutool.core.lang.Assert;
+// import cn.hutool.extra.ssh.Sftp;
+// import org.dromara.x.file.storage.core.FileInfo;
+// import org.dromara.x.file.storage.core.FileStorageService;
+// import org.dromara.x.file.storage.core.platform.SftpFileStorage;
+// import org.dromara.x.file.storage.core.platform.SftpFileStorageClientFactory;
+// import lombok.extern.slf4j.Slf4j;
+// import org.junit.jupiter.api.Test;
+// import org.springframework.beans.factory.annotation.Autowired;
+// import org.springframework.boot.test.context.SpringBootTest;
 //
-//import java.io.InputStream;
-//import java.util.Arrays;
-//import java.util.List;
-//import java.util.stream.Collectors;
+// import java.io.InputStream;
+// import java.util.Arrays;
+// import java.util.List;
+// import java.util.stream.Collectors;
 //
 //
-//@Slf4j
-//@SpringBootTest
-//class FileStorageServicePoolTest {
+// @Slf4j
+// @SpringBootTest
+// class FileStorageServicePoolTest {
 //
 //    @Autowired
 //    private FileStorageService fileStorageService;
@@ -69,4 +69,4 @@ package org.dromara.x.file.storage.test;//package org.dromara.x.file.core.test;
 //        log.info("文件删除成功：{}",fileInfo);
 //    }
 //
-//}
+// }

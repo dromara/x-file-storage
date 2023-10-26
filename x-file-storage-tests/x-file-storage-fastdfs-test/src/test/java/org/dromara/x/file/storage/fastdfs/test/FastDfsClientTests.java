@@ -1,10 +1,20 @@
 package org.dromara.x.file.storage.fastdfs.test;
 
+import static org.csource.fastdfs.ClientGlobal.PROP_KEY_CHARSET;
+import static org.csource.fastdfs.ClientGlobal.PROP_KEY_CONNECT_TIMEOUT_IN_SECONDS;
+import static org.csource.fastdfs.ClientGlobal.PROP_KEY_HTTP_ANTI_STEAL_TOKEN;
+import static org.csource.fastdfs.ClientGlobal.PROP_KEY_HTTP_SECRET_KEY;
+import static org.csource.fastdfs.ClientGlobal.PROP_KEY_NETWORK_TIMEOUT_IN_SECONDS;
+import static org.csource.fastdfs.ClientGlobal.PROP_KEY_TRACKER_SERVERS;
+
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.Console;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import java.io.File;
+import java.io.IOException;
+import java.util.Properties;
 import lombok.extern.slf4j.Slf4j;
 import org.csource.common.MyException;
 import org.csource.fastdfs.ClientGlobal;
@@ -13,17 +23,6 @@ import org.csource.fastdfs.StorageServer;
 import org.csource.fastdfs.TrackerClient;
 import org.csource.fastdfs.TrackerServer;
 import org.junit.jupiter.api.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Properties;
-
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_CHARSET;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_CONNECT_TIMEOUT_IN_SECONDS;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_HTTP_ANTI_STEAL_TOKEN;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_HTTP_SECRET_KEY;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_NETWORK_TIMEOUT_IN_SECONDS;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_TRACKER_SERVERS;
 
 /**
  * There is no description.
@@ -34,18 +33,18 @@ import static org.csource.fastdfs.ClientGlobal.PROP_KEY_TRACKER_SERVERS;
  */
 @Slf4j
 class FastDfsClientTests {
-    
+
     private static final String TRACKER_SERVER = "172.28.133.14:22122";
-    
+
     private static final String FASTDFS_IP_ADDR = "172.28.133.14";
-    
+
     @Test
     void clientTest() throws MyException, IOException {
         File file = FileUtil.file("fastdfs.txt");
         String[] strings = getStorageClient(true).upload_file(FileUtil.readBytes(file), FileUtil.extName(file), null);
         Console.log(JSONUtil.toJsonPrettyStr(strings));
     }
-    
+
     StorageClient getStorageClient(boolean onlyStorage) {
         TrackerServer trackerServer;
         StorageServer storageServer;
@@ -64,7 +63,7 @@ class FastDfsClientTests {
         }
         return null;
     }
-    
+
     /**
      * 初始化 Tracker Client
      *
@@ -78,10 +77,10 @@ class FastDfsClientTests {
         } catch (Exception e) {
             log.error(StrUtil.format("无法连接TrackerClient:ex={}", e.getMessage()), e);
         }
-        
+
         return null;
     }
-    
+
     /**
      * @return {@link Properties}
      */
