@@ -8,6 +8,7 @@
     </parent>
 
     <artifactId>x-file-storage-core</artifactId>
+    <name>X File Storage Core</name>
 
     <dependencies>
         <!-- javax.servlet-api -->
@@ -62,6 +63,10 @@
                 <exclusion>
                     <groupId>org.springframework</groupId>
                     <artifactId>spring-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>jdk.tools</groupId>
+                    <artifactId>jdk.tools</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

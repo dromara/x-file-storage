@@ -3,11 +3,12 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.dromara.x-file-storage</groupId>
-        <artifactId>x-file-storage-test</artifactId>
+        <artifactId>x-file-storage-tests</artifactId>
         <version>${revision}</version>
     </parent>
 
     <artifactId>x-file-storage-fastdfs-test</artifactId>
+    <name>X File Storage FastDFS Test</name>
 
     <dependencies>
         <dependency>

@@ -7,7 +7,7 @@
     <version>${revision}</version>
     <packaging>pom</packaging>
 
-    <name>x-file-storage-parent</name>
+    <name>X File Storage</name>
     <description>A File Storage Service</description>
     <url>https://github.com/dromara/x-file-storage</url>
 
@@ -104,6 +104,8 @@
         <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
         <maven-enforcer-plugin.version>3.3.0</maven-enforcer-plugin.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
+        <spotless-maven-plugin.version>2.40.0</spotless-maven-plugin.version>
+        <palantir-java-format.version>2.38.0</palantir-java-format.version>
         <!--endregion-->
     </properties>
 
@@ -274,10 +276,10 @@
                         <configuration>
                             <rules>
                                 <requireJavaVersion>
-                                    <version>${java.version}</version>
+                                    <version>[11,)</version>
                                 </requireJavaVersion>
                                 <requireMavenVersion>
-                                    <version>${maven.version}</version>
+                                    <version>[${maven.version},)</version>
                                 </requireMavenVersion>
                             </rules>
                         </configuration>
@@ -311,6 +313,26 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${spotless-maven-plugin.version}</version>
+                <configuration>
+                    <java>
+                        <palantirJavaFormat>
+                            <version>${palantir-java-format.version}</version>
+                        </palantirJavaFormat>
+                    </java>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>apply</goal>
+                        </goals>
+                        <phase>validate</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>${maven-resources-plugin.version}</version>
             </plugin>
@@ -337,9 +359,18 @@
 
     <profiles>
         <profile>
+            <id>jdk9</id>
+            <activation>
+                <jdk>[9,)</jdk>
+            </activation>
+            <properties>
+                <maven.compiler.release>${java.version}</maven.compiler.release>
+            </properties>
+        </profile>
+        <profile>
             <id>test</id>
             <modules>
-                <module>x-file-storage-test</module>
+                <module>x-file-storage-tests</module>
             </modules>
         </profile>
         <profile>
