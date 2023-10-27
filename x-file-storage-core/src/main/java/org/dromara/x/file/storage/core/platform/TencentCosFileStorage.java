@@ -290,4 +290,100 @@ public class TencentCosFileStorage implements FileStorage {
             throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
         }
     }
+
+    @Override
+    public boolean isSupportCopy() {
+        return true;
+    }
+
+    @Override
+    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, ProgressListener progressListener) {
+        if (!basePath.equals(srcFileInfo.getBasePath())) {
+            throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
+                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        COSClient client = getClient();
+
+        // 获取远程文件信息
+        String srcFileKey = getFileKey(srcFileInfo);
+        ObjectMetadata srcFile;
+        try {
+            srcFile = client.getObjectMetadata(bucketName, srcFileKey);
+        } catch (Exception e) {
+            throw new FileStorageRuntimeException(
+                    "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+        }
+
+        // 复制缩略图文件
+        String destThFileKey = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            destThFileKey = getThFileKey(destFileInfo);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            CopyObjectRequest request =
+                    new CopyObjectRequest(bucketName, getThFileKey(srcFileInfo), bucketName, destThFileKey);
+            request.setCannedAccessControlList(getAcl(destFileInfo.getFileAcl()));
+            client.copyObject(request);
+        }
+
+        // 复制文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        long fileSize = srcFile.getContentLength();
+        boolean useMultipartCopy = fileSize >= 1024 * 1024 * 1024; // 小于 1GB，走小文件复制
+        String uploadId = null;
+        try {
+            if (useMultipartCopy) { // 大文件复制，腾讯云 COS 内部不会自动复制 Metadata 和 ACL，需要重新设置
+                CannedAccessControlList fileAcl = getAcl(destFileInfo.getFileAcl());
+                ObjectMetadata metadata = getObjectMetadata(destFileInfo);
+                InitiateMultipartUploadRequest initRequest =
+                        new InitiateMultipartUploadRequest(bucketName, destFileKey, metadata);
+                initRequest.setCannedACL(fileAcl);
+                uploadId = client.initiateMultipartUpload(initRequest).getUploadId();
+                ProgressListener.quickStart(progressListener, fileSize);
+                ArrayList<PartETag> partList = new ArrayList<>();
+                long progressSize = 0;
+                int i = 0;
+                while (progressSize < fileSize) {
+                    // 设置分片大小为 256 MB。单位为字节。
+                    long partSize = Math.min(256 * 1024 * 1024, fileSize - progressSize);
+                    CopyPartRequest part = new CopyPartRequest();
+                    part.setSourceBucketName(bucketName);
+                    part.setSourceKey(srcFileKey);
+                    part.setDestinationBucketName(bucketName);
+                    part.setDestinationKey(destFileKey);
+                    part.setUploadId(uploadId);
+                    part.setFirstByte(progressSize);
+                    part.setLastByte(progressSize + partSize - 1);
+                    part.setPartNumber(++i);
+                    partList.add(client.copyPart(part).getPartETag());
+                    ProgressListener.quickProgress(progressListener, progressSize += partSize, fileSize);
+                }
+                client.completeMultipartUpload(
+                        new CompleteMultipartUploadRequest(bucketName, destFileKey, uploadId, partList));
+                ProgressListener.quickFinish(progressListener);
+            } else { // 小文件复制，腾讯云 COS 内部会自动复制 Metadata ，但是 ACL 需要重新设置
+                ProgressListener.quickStart(progressListener, fileSize);
+                CopyObjectRequest request = new CopyObjectRequest(bucketName, srcFileKey, bucketName, destFileKey);
+                request.setCannedAccessControlList(getAcl(destFileInfo.getFileAcl()));
+                client.copyObject(request);
+                ProgressListener.quickFinish(progressListener, fileSize);
+            }
+        } catch (Exception e) {
+            if (destThFileKey != null)
+                try {
+                    client.deleteObject(bucketName, destThFileKey);
+                } catch (Exception ignored) {
+                }
+            try {
+                if (useMultipartCopy) {
+                    client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName, destFileKey, uploadId));
+                } else {
+                    client.deleteObject(bucketName, destFileKey);
+                }
+            } catch (Exception ignored) {
+            }
+            throw new FileStorageRuntimeException(
+                    "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+        }
+    }
 }
