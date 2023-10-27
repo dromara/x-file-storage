@@ -311,6 +311,7 @@ public class AliyunOssFileStorage implements FileStorage {
                     "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
         }
 
+        // 复制缩略图文件
         String destThFileKey = null;
         if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
             destThFileKey = getThFileKey(destFileInfo);
@@ -318,18 +319,14 @@ public class AliyunOssFileStorage implements FileStorage {
             client.copyObject(bucketName, getThFileKey(srcFileInfo), bucketName, destThFileKey);
         }
 
+        // 复制文件
         String destFileKey = getFileKey(destFileInfo);
         destFileInfo.setUrl(domain + destFileKey);
         long fileSize = srcFile.getContentLength();
-        boolean useMultipartCopy = fileSize < 1024 * 1024 * 1024; // 按照阿里云 OSS 官方文档小于 1GB，走小文件复制
+        boolean useMultipartCopy = fileSize >= 1024 * 1024 * 1024; // 按照阿里云 OSS 官方文档小于 1GB，走小文件复制
         String uploadId = null;
         try {
-            if (useMultipartCopy) { // 小文件复制
-                ProgressListener.quickStart(progressListener, fileSize);
-                client.copyObject(bucketName, srcFileKey, bucketName, destFileKey);
-                ProgressListener.quickFinish(progressListener, fileSize);
-            } else { // 大文件复制
-                // 初始化拷贝任务，拷贝源文件ContentType和UserMetadata，分片拷贝默认不拷贝源文件的ContentType和UserMetadata。
+            if (useMultipartCopy) { // 大文件复制，阿里云 OSS 内部不会自动复制 Metadata 和 ACL，需要重新设置
                 CannedAccessControlList fileAcl = getAcl(destFileInfo.getFileAcl());
                 ObjectMetadata metadata = getObjectMetadata(destFileInfo, fileAcl);
                 uploadId = client.initiateMultipartUpload(
@@ -341,21 +338,25 @@ public class AliyunOssFileStorage implements FileStorage {
                 int i = 0;
                 while (progressSize < fileSize) {
                     // 设置分片大小为 256 MB。单位为字节。
-                    long currentPartSize = Math.min(256 * 1024 * 1024, fileSize - progressSize);
+                    long partSize = Math.min(256 * 1024 * 1024, fileSize - progressSize);
                     UploadPartCopyRequest part =
                             new UploadPartCopyRequest(bucketName, srcFileKey, bucketName, destFileKey);
                     part.setUploadId(uploadId);
-                    part.setPartSize(currentPartSize);
+                    part.setPartSize(partSize);
                     part.setBeginIndex(progressSize);
                     part.setPartNumber(++i);
                     partList.add(client.uploadPartCopy(part).getPartETag());
-                    ProgressListener.quickProgress(progressListener, progressSize += currentPartSize, fileSize);
+                    ProgressListener.quickProgress(progressListener, progressSize += partSize, fileSize);
                 }
                 CompleteMultipartUploadRequest completeRequest =
                         new CompleteMultipartUploadRequest(bucketName, destFileKey, uploadId, partList);
                 completeRequest.setObjectACL(fileAcl);
                 client.completeMultipartUpload(completeRequest);
                 ProgressListener.quickFinish(progressListener);
+            } else { // 小文件复制，阿里云 OSS 内部会自动复制 Metadata 和 ACL
+                ProgressListener.quickStart(progressListener, fileSize);
+                client.copyObject(bucketName, srcFileKey, bucketName, destFileKey);
+                ProgressListener.quickFinish(progressListener, fileSize);
             }
         } catch (Exception e) {
             if (destThFileKey != null)
