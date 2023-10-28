@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.aspect.*;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.springframework.stereotype.Component;
@@ -146,6 +147,33 @@ public class LogFileStorageAspect implements FileStorageAspect {
         boolean res = chain.next(fileInfo, acl, fileStorage);
         log.info("设置缩略图文件的访问控制列表 URL after -> {}", res);
         return res;
+    }
+
+    /**
+     * 是否支持 Metadata
+     */
+    @Override
+    public boolean isSupportMetadataAround(IsSupportMetadataAspectChain chain, FileStorage fileStorage) {
+        log.info("是否支持 Metadata before -> {}", fileStorage.getPlatform());
+        boolean res = chain.next(fileStorage);
+        log.info("是否支持 Metadata -> {}", res);
+        return res;
+    }
+
+    /**
+     * 复制，成功返回文件信息，失败返回 null
+     */
+    @Override
+    public FileInfo copyAround(
+            CopyAspectChain chain,
+            FileInfo fileInfo,
+            CopyPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        log.info("复制文件 before -> {}", fileInfo);
+        fileInfo = chain.next(fileInfo, pre, fileStorage, fileRecorder);
+        log.info("复制文件 after -> {}", fileInfo);
+        return fileInfo;
     }
 
     /**

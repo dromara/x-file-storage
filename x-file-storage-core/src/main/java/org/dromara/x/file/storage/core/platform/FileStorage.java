@@ -4,8 +4,8 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.function.Consumer;
 import org.dromara.x.file.storage.core.FileInfo;
-import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 
 /**
  * 文件存储接口，对应各个平台
@@ -110,7 +110,7 @@ public interface FileStorage extends AutoCloseable {
     /**
      * 复制文件
      */
-    default void copy(FileInfo srcFileInfo, FileInfo destFileInfo, ProgressListener progressListener) {}
+    default void copy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {}
 
     /**
      * 释放相关资源

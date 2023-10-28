@@ -5,11 +5,15 @@ import cn.hutool.core.lang.Dict;
 import cn.hutool.core.util.StrUtil;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
+import org.dromara.x.file.storage.core.aspect.CopyAspectChain;
+import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.constant.Constant.CopyMode;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.platform.FileStorage;
+import org.dromara.x.file.storage.core.recorder.FileRecorder;
 
 /**
  * 复制执行器
@@ -41,14 +45,21 @@ public class CopyActuator {
             throw new FileStorageRuntimeException("目标缩略图文件名不能为空");
         }
 
-        FileInfo destFileInfo;
-        if (isSameCopy()) {
-            destFileInfo = sameCopy();
-            fileStorageService.getFileRecorder().save(destFileInfo);
-        } else {
-            destFileInfo = crossCopy();
-        }
-        return destFileInfo;
+        // 处理切面
+        CopyOnWriteArrayList<FileStorageAspect> aspectList = fileStorageService.getAspectList();
+        FileRecorder fileRecorder = fileStorageService.getFileRecorder();
+        return new CopyAspectChain(aspectList, (_fileInfo, _pre, _fileStorage, _fileRecorder) -> {
+                    // 真正开始复制
+                    FileInfo destFileInfo;
+                    if (isSameCopy()) {
+                        destFileInfo = sameCopy();
+                        _fileRecorder.save(destFileInfo);
+                    } else {
+                        destFileInfo = crossCopy();
+                    }
+                    return destFileInfo;
+                })
+                .next(fileInfo, pre, fileStorage, fileRecorder);
     }
 
     /**
@@ -115,7 +126,7 @@ public class CopyActuator {
         destFileInfo.setThFileAcl(fileInfo.getThFileAcl());
         destFileInfo.setCreateTime(new Date());
 
-        fileStorage.copy(fileInfo, destFileInfo, pre.getProgressListener());
+        fileStorage.copy(fileInfo, destFileInfo, pre);
         return destFileInfo;
     }
 
