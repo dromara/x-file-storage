@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.function.Consumer;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 
@@ -106,6 +107,18 @@ public interface FileStorageAspect {
      */
     default boolean isSupportMetadataAround(IsSupportMetadataAspectChain chain, FileStorage fileStorage) {
         return chain.next(fileStorage);
+    }
+
+    /**
+     * 复制，成功返回文件信息，失败返回 null
+     */
+    default FileInfo copyAround(
+            CopyAspectChain chain,
+            FileInfo fileInfo,
+            CopyPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        return chain.next(fileInfo, pre, fileStorage, fileRecorder);
     }
 
     /**

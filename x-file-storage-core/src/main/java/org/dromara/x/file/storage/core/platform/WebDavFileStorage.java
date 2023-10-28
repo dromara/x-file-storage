@@ -17,6 +17,7 @@ import org.dromara.x.file.storage.core.FileStorageProperties.WebDavConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.util.Tools;
 
@@ -190,7 +191,15 @@ public class WebDavFileStorage implements FileStorage {
     }
 
     @Override
-    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, ProgressListener progressListener) {
+    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
+        if (srcFileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
+            throw new FileStorageRuntimeException(
+                    "文件复制失败，不支持设置 ACL！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        if (CollUtil.isNotEmpty(srcFileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
+            throw new FileStorageRuntimeException(
+                    "文件复制失败，不支持设置 Metadata！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
         if (!basePath.equals(srcFileInfo.getBasePath())) {
             throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
                     + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
@@ -234,9 +243,9 @@ public class WebDavFileStorage implements FileStorage {
         destFileInfo.setUrl(domain + destFileKey);
         String destFileUrl = getUrl(destFileKey);
         try {
-            ProgressListener.quickStart(progressListener, srcFile.getContentLength());
+            ProgressListener.quickStart(pre.getProgressListener(), srcFile.getContentLength());
             client.copy(srcFileUrl, destFileUrl);
-            ProgressListener.quickFinish(progressListener, srcFile.getContentLength());
+            ProgressListener.quickFinish(pre.getProgressListener(), srcFile.getContentLength());
         } catch (Exception e) {
             try {
                 if (destThFileUrl != null) client.delete(destThFileUrl);

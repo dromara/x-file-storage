@@ -22,6 +22,7 @@ import org.dromara.x.file.storage.core.FileStorageProperties.TencentCosConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
 /**
@@ -297,7 +298,7 @@ public class TencentCosFileStorage implements FileStorage {
     }
 
     @Override
-    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, ProgressListener progressListener) {
+    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
         if (!basePath.equals(srcFileInfo.getBasePath())) {
             throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
                     + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
@@ -339,7 +340,7 @@ public class TencentCosFileStorage implements FileStorage {
                         new InitiateMultipartUploadRequest(bucketName, destFileKey, metadata);
                 initRequest.setCannedACL(fileAcl);
                 uploadId = client.initiateMultipartUpload(initRequest).getUploadId();
-                ProgressListener.quickStart(progressListener, fileSize);
+                ProgressListener.quickStart(pre.getProgressListener(), fileSize);
                 ArrayList<PartETag> partList = new ArrayList<>();
                 long progressSize = 0;
                 int i = 0;
@@ -356,17 +357,17 @@ public class TencentCosFileStorage implements FileStorage {
                     part.setLastByte(progressSize + partSize - 1);
                     part.setPartNumber(++i);
                     partList.add(client.copyPart(part).getPartETag());
-                    ProgressListener.quickProgress(progressListener, progressSize += partSize, fileSize);
+                    ProgressListener.quickProgress(pre.getProgressListener(), progressSize += partSize, fileSize);
                 }
                 client.completeMultipartUpload(
                         new CompleteMultipartUploadRequest(bucketName, destFileKey, uploadId, partList));
-                ProgressListener.quickFinish(progressListener);
+                ProgressListener.quickFinish(pre.getProgressListener());
             } else { // 小文件复制，腾讯云 COS 内部会自动复制 Metadata ，但是 ACL 需要重新设置
-                ProgressListener.quickStart(progressListener, fileSize);
+                ProgressListener.quickStart(pre.getProgressListener(), fileSize);
                 CopyObjectRequest request = new CopyObjectRequest(bucketName, srcFileKey, bucketName, destFileKey);
                 request.setCannedAccessControlList(getAcl(destFileInfo.getFileAcl()));
                 client.copyObject(request);
-                ProgressListener.quickFinish(progressListener, fileSize);
+                ProgressListener.quickFinish(pre.getProgressListener(), fileSize);
             }
         } catch (Exception e) {
             if (destThFileKey != null)

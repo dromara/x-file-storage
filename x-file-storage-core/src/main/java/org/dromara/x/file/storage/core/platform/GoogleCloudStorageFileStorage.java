@@ -8,6 +8,7 @@ import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.*;
+import com.google.cloud.storage.Storage.CopyRequest;
 import com.google.cloud.storage.Storage.PredefinedAcl;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -24,7 +25,9 @@ import lombok.Setter;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.GoogleCloudStorageConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
+import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
 /**
@@ -325,6 +328,71 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
 
         public AclWrapper(PredefinedAcl predefinedAcl) {
             this.predefinedAcl = predefinedAcl;
+        }
+    }
+
+    @Override
+    public boolean isSupportCopy() {
+        return true;
+    }
+
+    @Override
+    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
+        if (!basePath.equals(srcFileInfo.getBasePath())) {
+            throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
+                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        Storage client = getClient();
+
+        // 获取远程文件信息
+        String srcFileKey = getFileKey(srcFileInfo);
+        Blob srcFile;
+        try {
+            srcFile = client.get(bucketName, srcFileKey);
+            if (srcFile == null) {
+                throw new FileStorageRuntimeException(
+                        "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+            }
+        } catch (Exception e) {
+            throw new FileStorageRuntimeException(
+                    "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+        }
+
+        // 复制缩略图文件
+        String destThFileKey = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            destThFileKey = getThFileKey(destFileInfo);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            client.copy(CopyRequest.newBuilder()
+                            .setSource(BlobId.of(bucketName, getThFileKey(srcFileInfo)))
+                            .setTarget(BlobId.of(bucketName, destThFileKey))
+                            .build())
+                    .getResult();
+        }
+
+        // 复制文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        try {
+            ProgressListener.quickStart(pre.getProgressListener(), srcFile.getSize());
+            client.copy(CopyRequest.newBuilder()
+                            .setSource(BlobId.of(bucketName, srcFileKey))
+                            .setTarget(BlobId.of(bucketName, destFileKey))
+                            .build())
+                    .getResult();
+            ProgressListener.quickFinish(pre.getProgressListener(), srcFile.getSize());
+        } catch (Exception e) {
+            if (destThFileKey != null)
+                try {
+                    checkAndDelete(destThFileKey);
+                } catch (Exception ignored) {
+                }
+            try {
+                checkAndDelete(destFileKey);
+            } catch (Exception ignored) {
+            }
+            throw new FileStorageRuntimeException(
+                    "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
         }
     }
 }

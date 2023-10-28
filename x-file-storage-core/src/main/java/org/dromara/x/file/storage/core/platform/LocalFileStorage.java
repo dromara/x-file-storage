@@ -16,6 +16,7 @@ import org.dromara.x.file.storage.core.FileStorageProperties.LocalConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 
@@ -141,7 +142,15 @@ public class LocalFileStorage implements FileStorage {
     }
 
     @Override
-    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, ProgressListener progressListener) {
+    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
+        if (srcFileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
+            throw new FileStorageRuntimeException(
+                    "文件复制失败，不支持设置 ACL！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        if (CollUtil.isNotEmpty(srcFileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
+            throw new FileStorageRuntimeException(
+                    "文件复制失败，不支持设置 Metadata！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
         if (!basePath.equals(srcFileInfo.getBasePath())) {
             throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
                     + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
@@ -179,11 +188,11 @@ public class LocalFileStorage implements FileStorage {
         File destFile = null;
         try {
             destFile = FileUtil.touch(getAbsolutePath(destFileKey));
-            if (progressListener == null) {
+            if (pre == null) {
                 FileUtil.copyFile(srcFile, destFile, StandardCopyOption.REPLACE_EXISTING);
             } else {
-                InputStreamPlus in =
-                        new InputStreamPlus(FileUtil.getInputStream(srcFile), progressListener, srcFile.length());
+                InputStreamPlus in = new InputStreamPlus(
+                        FileUtil.getInputStream(srcFile), pre.getProgressListener(), srcFile.length());
                 FileUtil.writeFromStream(in, destFile);
             }
         } catch (Exception e) {

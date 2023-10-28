@@ -22,6 +22,7 @@ import org.dromara.x.file.storage.core.FileStorageProperties.AliyunOssConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
 /**
@@ -294,7 +295,7 @@ public class AliyunOssFileStorage implements FileStorage {
     }
 
     @Override
-    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, ProgressListener progressListener) {
+    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
         if (!basePath.equals(srcFileInfo.getBasePath())) {
             throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
                     + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
@@ -332,7 +333,7 @@ public class AliyunOssFileStorage implements FileStorage {
                 uploadId = client.initiateMultipartUpload(
                                 new InitiateMultipartUploadRequest(bucketName, destFileKey, metadata))
                         .getUploadId();
-                ProgressListener.quickStart(progressListener, fileSize);
+                ProgressListener.quickStart(pre.getProgressListener(), fileSize);
                 ArrayList<PartETag> partList = new ArrayList<>();
                 long progressSize = 0;
                 int i = 0;
@@ -346,17 +347,17 @@ public class AliyunOssFileStorage implements FileStorage {
                     part.setBeginIndex(progressSize);
                     part.setPartNumber(++i);
                     partList.add(client.uploadPartCopy(part).getPartETag());
-                    ProgressListener.quickProgress(progressListener, progressSize += partSize, fileSize);
+                    ProgressListener.quickProgress(pre.getProgressListener(), progressSize += partSize, fileSize);
                 }
                 CompleteMultipartUploadRequest completeRequest =
                         new CompleteMultipartUploadRequest(bucketName, destFileKey, uploadId, partList);
                 completeRequest.setObjectACL(fileAcl);
                 client.completeMultipartUpload(completeRequest);
-                ProgressListener.quickFinish(progressListener);
+                ProgressListener.quickFinish(pre.getProgressListener());
             } else { // 小文件复制，阿里云 OSS 内部会自动复制 Metadata 和 ACL
-                ProgressListener.quickStart(progressListener, fileSize);
+                ProgressListener.quickStart(pre.getProgressListener(), fileSize);
                 client.copyObject(bucketName, srcFileKey, bucketName, destFileKey);
-                ProgressListener.quickFinish(progressListener, fileSize);
+                ProgressListener.quickFinish(pre.getProgressListener(), fileSize);
             }
         } catch (Exception e) {
             if (destThFileKey != null)

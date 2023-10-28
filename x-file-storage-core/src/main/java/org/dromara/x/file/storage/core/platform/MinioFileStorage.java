@@ -9,7 +9,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,7 +20,10 @@ import lombok.Setter;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.MinioConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
+import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.constant.Constant;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
 /**
@@ -281,6 +287,112 @@ public class MinioFileStorage implements FileStorage {
                 | NoSuchAlgorithmException
                 | XmlParserException e) {
             throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
+        }
+    }
+
+    @Override
+    public boolean isSupportCopy() {
+        return true;
+    }
+
+    @Override
+    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
+        if (srcFileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
+            throw new FileStorageRuntimeException(
+                    "文件复制失败，不支持设置 ACL！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        if (!basePath.equals(srcFileInfo.getBasePath())) {
+            throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
+                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        MinioClient client = getClient();
+
+        // 获取远程文件信息
+        String srcFileKey = getFileKey(srcFileInfo);
+        StatObjectResponse srcFile;
+        try {
+            srcFile = client.statObject(StatObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(srcFileKey)
+                    .build());
+        } catch (Exception e) {
+            throw new FileStorageRuntimeException(
+                    "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+        }
+
+        // 复制缩略图文件
+        String destThFileKey = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            destThFileKey = getThFileKey(destFileInfo);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            try {
+                client.copyObject(CopyObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(destThFileKey)
+                        .source(CopySource.builder()
+                                .bucket(bucketName)
+                                .object(getThFileKey(srcFileInfo))
+                                .build())
+                        .build());
+            } catch (Exception e) {
+                throw new FileStorageRuntimeException(
+                        "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            }
+        }
+
+        // 复制文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        long fileSize = srcFile.size();
+        boolean useMultipartCopy = fileSize >= 1024 * 1024 * 1024; // 小于 1GB，走小文件复制
+        try {
+            ProgressListener.quickStart(pre.getProgressListener(), fileSize);
+            if (useMultipartCopy) { // 大文件复制，MinIO 内部会自动走分片上传，不会自动复制 Metadata，需要重新设置
+                Map<String, String> headers = new HashMap<>();
+                headers.put(Constant.Metadata.CONTENT_TYPE, destFileInfo.getContentType());
+                headers.putAll(destFileInfo.getMetadata());
+                client.composeObject(ComposeObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(destFileKey)
+                        .headers(headers)
+                        .userMetadata(destFileInfo.getUserMetadata())
+                        .sources(Collections.singletonList(ComposeSource.builder()
+                                .bucket(bucketName)
+                                .object(srcFileKey)
+                                .offset(0L)
+                                .length(fileSize)
+                                .build()))
+                        .build());
+            } else { // 小文件复制，MinIO 内部会自动复制 Metadata
+                client.copyObject(CopyObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(destFileKey)
+                        .source(CopySource.builder()
+                                .bucket(bucketName)
+                                .object(srcFileKey)
+                                .build())
+                        .build());
+            }
+            ProgressListener.quickFinish(pre.getProgressListener(), fileSize);
+        } catch (Exception e) {
+            if (destThFileKey != null) {
+                try {
+                    client.removeObject(RemoveObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(destThFileKey)
+                            .build());
+                } catch (Exception ignored) {
+                }
+            }
+            try {
+                client.removeObject(RemoveObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(destFileKey)
+                        .build());
+            } catch (Exception ignored) {
+            }
+            throw new FileStorageRuntimeException(
+                    "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
         }
     }
 }
