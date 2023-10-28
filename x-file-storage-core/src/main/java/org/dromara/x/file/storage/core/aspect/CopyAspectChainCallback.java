@@ -1,7 +1,6 @@
 package org.dromara.x.file.storage.core.aspect;
 
 import org.dromara.x.file.storage.core.FileInfo;
-import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;

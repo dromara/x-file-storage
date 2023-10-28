@@ -1,13 +1,12 @@
 package org.dromara.x.file.storage.core.aspect;
 
+import java.util.Iterator;
 import lombok.Getter;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
-
-import java.util.Iterator;
 
 /**
  * 复制的切面调用链
