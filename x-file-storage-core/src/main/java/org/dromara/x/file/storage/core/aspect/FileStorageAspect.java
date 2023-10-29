@@ -110,6 +110,13 @@ public interface FileStorageAspect {
     }
 
     /**
+     * 是否支持同存储平台复制
+     */
+    default boolean isSupportSameCopyAround(IsSupportSameCopyAspectChain chain,FileStorage fileStorage) {
+        return chain.next(fileStorage);
+    }
+
+    /**
      * 复制，成功返回文件信息，失败返回 null
      */
     default FileInfo copyAround(

@@ -208,7 +208,7 @@ public class UpyunUssFileStorage implements FileStorage {
     }
 
     @Override
-    public boolean isSupportCopy() {
+    public boolean isSupportSameCopy() {
         return true;
     }
 
@@ -226,7 +226,7 @@ public class UpyunUssFileStorage implements FileStorage {
     }
 
     @Override
-    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
+    public void sameCopy(FileInfo srcFileInfo,FileInfo destFileInfo,CopyPretreatment pre) {
         if (srcFileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
             throw new FileStorageRuntimeException(
                     "文件复制失败，不支持设置 ACL！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);

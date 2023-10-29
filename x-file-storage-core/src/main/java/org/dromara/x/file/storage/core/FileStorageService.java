@@ -453,6 +453,22 @@ public class FileStorageService {
     }
 
     /**
+     * 是否支持同存储平台复制文件
+     */
+    public boolean isSupportSameCopy(String platform) {
+        FileStorage storage = self.getFileStorageVerify(platform);
+        return self.isSupportSameCopy(storage);
+    }
+
+    /**
+     * 是否支持同存储平台复制文件
+     */
+    public boolean isSupportSameCopy(FileStorage fileStorage) {
+        if (fileStorage == null) return false;
+        return new IsSupportSameCopyAspectChain(aspectList, FileStorage::isSupportSameCopy).next(fileStorage);
+    }
+
+    /**
      * 复制文件
      */
     public CopyPretreatment copy(FileInfo fileInfo) {

@@ -63,7 +63,7 @@ public class CopyActuator {
     }
 
     /**
-     * 判断是否使用同平台复制
+     * 判断是否使用同存储平台复制
      */
     protected boolean isSameCopy() {
         CopyMode copyMode = pre.getCopyMode();
@@ -72,12 +72,13 @@ public class CopyActuator {
         } else if (copyMode == CopyMode.CROSS) {
             return false;
         } else {
-            return fileInfo.getPlatform().equals(pre.getPlatform()) && fileStorage.isSupportCopy();
+            return fileInfo.getPlatform().equals(pre.getPlatform())
+                    && fileStorageService.isSupportSameCopy(fileInfo.getPlatform());
         }
     }
 
     /**
-     * 同平台复制
+     * 同存储平台复制
      */
     protected FileInfo sameCopy() {
         // 检查文件名是否与原始的相同
@@ -126,12 +127,12 @@ public class CopyActuator {
         destFileInfo.setThFileAcl(fileInfo.getThFileAcl());
         destFileInfo.setCreateTime(new Date());
 
-        fileStorage.copy(fileInfo, destFileInfo, pre);
+        fileStorage.sameCopy(fileInfo, destFileInfo, pre);
         return destFileInfo;
     }
 
     /**
-     * 跨平台复制，通过从下载并重新上传来实现
+     * 跨存储平台复制，通过从下载并重新上传来实现
      */
     protected FileInfo crossCopy() {
         // 下载缩略图
