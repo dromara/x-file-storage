@@ -1,5 +1,6 @@
 package org.dromara.x.file.storage.spring;
 
+import java.util.ArrayList;
 import java.util.List;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -92,11 +93,16 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     @Bean(destroyMethod = "destroy")
     public FileStorageService fileStorageService(
             FileRecorder fileRecorder,
-            List<List<? extends FileStorage>> fileStorageLists,
-            List<FileStorageAspect> aspectList,
-            List<FileWrapperAdapter> fileWrapperAdapterList,
+            @Autowired(required = false) List<List<? extends FileStorage>> fileStorageLists,
+            @Autowired(required = false) List<FileStorageAspect> aspectList,
+            @Autowired(required = false) List<FileWrapperAdapter> fileWrapperAdapterList,
             ContentTypeDetect contentTypeDetect,
-            List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+            @Autowired(required = false) List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+
+        if (fileStorageLists == null) fileStorageLists = new ArrayList<>();
+        if (aspectList == null) aspectList = new ArrayList<>();
+        if (fileWrapperAdapterList == null) fileWrapperAdapterList = new ArrayList<>();
+        if (clientFactoryList == null) clientFactoryList = new ArrayList<>();
 
         FileStorageServiceBuilder builder = FileStorageServiceBuilder.create(properties.toFileStorageProperties())
                 .setFileRecorder(fileRecorder)
