@@ -101,16 +101,16 @@ public interface FileStorage extends AutoCloseable {
     void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer);
 
     /**
-     * 复制复制文件
+     * 是否支持同存储平台复制文件
      */
-    default boolean isSupportCopy() {
+    default boolean isSupportSameCopy() {
         return false;
     }
 
     /**
-     * 复制文件
+     * 同存储平台复制文件
      */
-    default void copy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {}
+    default void sameCopy(FileInfo srcFileInfo,FileInfo destFileInfo,CopyPretreatment pre) {}
 
     /**
      * 释放相关资源

@@ -119,7 +119,7 @@ class FileStorageServiceCopyTest {
     }
 
     /**
-     * 测试跨平台复制
+     * 测试跨存储平台复制
      */
     @Test
     public void cross() {
