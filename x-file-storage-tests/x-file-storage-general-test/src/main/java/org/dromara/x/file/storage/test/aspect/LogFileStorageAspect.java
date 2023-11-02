@@ -161,19 +161,47 @@ public class LogFileStorageAspect implements FileStorageAspect {
     }
 
     /**
-     * 复制，成功返回文件信息，失败返回 null
+     * 是否支持同存储平台复制
+     */
+    @Override
+    public boolean isSupportSameCopyAround(IsSupportSameCopyAspectChain chain, FileStorage fileStorage) {
+        log.info("是否支持同存储平台复制 before -> {}", fileStorage.getPlatform());
+        boolean res = chain.next(fileStorage);
+        log.info("是否支持同存储平台复制 -> {}", res);
+        return res;
+    }
+
+    /**
+     * 同存储平台复制，成功返回文件信息
+     */
+    @Override
+    public FileInfo sameCopyAround(
+            SameCopyAspectChain chain,
+            FileInfo srcFileInfo,
+            FileInfo destFileInfo,
+            CopyPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        log.info("同存储平台复制文件 before -> srcFileInfo：{}，destFileInfo：{}", srcFileInfo, destFileInfo);
+        destFileInfo = chain.next(srcFileInfo, destFileInfo, pre, fileStorage, fileRecorder);
+        log.info("同存储平台复制文件 after -> srcFileInfo：{}，destFileInfo：{}", srcFileInfo, destFileInfo);
+        return destFileInfo;
+    }
+
+    /**
+     * 复制，成功返回文件信息
      */
     @Override
     public FileInfo copyAround(
             CopyAspectChain chain,
-            FileInfo fileInfo,
+            FileInfo srcFileInfo,
             CopyPretreatment pre,
             FileStorage fileStorage,
             FileRecorder fileRecorder) {
-        log.info("复制文件 before -> {}", fileInfo);
-        fileInfo = chain.next(fileInfo, pre, fileStorage, fileRecorder);
-        log.info("复制文件 after -> {}", fileInfo);
-        return fileInfo;
+        log.info("复制文件 before -> {}", srcFileInfo);
+        srcFileInfo = chain.next(srcFileInfo, pre, fileStorage, fileRecorder);
+        log.info("复制文件 after -> {}", srcFileInfo);
+        return srcFileInfo;
     }
 
     /**

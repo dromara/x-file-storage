@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -15,8 +16,11 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.coobird.thumbnailator.Thumbnails;
+import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.platform.FileStorage;
+import org.dromara.x.file.storage.core.recorder.FileRecorder;
 
 /**
  * 文件上传预处理对象
@@ -806,6 +810,13 @@ public class UploadPretreatment {
      */
     public FileInfo upload() {
         return fileStorageService.upload(this);
+    }
+
+    /**
+     * 上传文件，成功返回文件信息，失败返回null。此方法仅限内部使用
+     */
+    public FileInfo upload(FileStorage fileStorage, FileRecorder fileRecorder, List<FileStorageAspect> aspectList) {
+        return fileStorageService.upload(this, fileStorage, fileRecorder, aspectList);
     }
 
     /**

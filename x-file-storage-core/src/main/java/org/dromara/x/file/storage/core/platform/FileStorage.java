@@ -110,7 +110,7 @@ public interface FileStorage extends AutoCloseable {
     /**
      * 同存储平台复制文件
      */
-    default void sameCopy(FileInfo srcFileInfo,FileInfo destFileInfo,CopyPretreatment pre) {}
+    default void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {}
 
     /**
      * 释放相关资源

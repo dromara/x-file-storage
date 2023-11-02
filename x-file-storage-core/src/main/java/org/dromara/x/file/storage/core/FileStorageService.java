@@ -6,6 +6,7 @@ import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 import lombok.Getter;
@@ -84,6 +85,20 @@ public class FileStorageService {
      * 上传文件，成功返回文件信息，失败返回 null
      */
     public FileInfo upload(UploadPretreatment pre) {
+        return upload(pre, self.getFileStorage(pre.getPlatform()), fileRecorder, aspectList);
+    }
+
+    /**
+     * 上传文件，成功返回文件信息，失败返回 null。此方法仅限内部使用
+     */
+    public FileInfo upload(
+            UploadPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder,
+            List<FileStorageAspect> aspectList) {
+        if (fileStorage == null)
+            throw new FileStorageRuntimeException(StrUtil.format("没有找到对应的存储平台！platform:{}", pre.getPlatform()));
+
         FileWrapper file = pre.getFileWrapper();
         if (file == null) throw new FileStorageRuntimeException("文件不允许为 null ！");
         if (pre.getPlatform() == null) throw new FileStorageRuntimeException("platform 不允许为 null ！");
@@ -126,10 +141,6 @@ public class FileStorageService {
                 fileInfo.setThContentType(contentTypeDetect.detect(thumbnailBytes, fileInfo.getThFilename()));
             }
         }
-
-        FileStorage fileStorage = self.getFileStorage(pre.getPlatform());
-        if (fileStorage == null)
-            throw new FileStorageRuntimeException(StrUtil.format("没有找到对应的存储平台！platform:{}", pre.getPlatform()));
 
         // 处理切面
         return new UploadAspectChain(aspectList, (_fileInfo, _pre, _fileStorage, _fileRecorder) -> {

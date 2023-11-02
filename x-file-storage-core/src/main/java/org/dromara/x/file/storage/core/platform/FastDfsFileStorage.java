@@ -4,7 +4,6 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.text.StrPool;
 import cn.hutool.core.util.StrUtil;
-
 import java.io.*;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -86,13 +85,20 @@ public class FastDfsFileStorage implements FileStorage {
             byte[] bytes = IoUtil.readBytes(in);
             NameValuePair[] metadata = getObjectMetadata(fileInfo);
 
-            clientFactory.getClient().upload_file(config.getGroupName(),fileInfo.getSize(),new UploadCallback() {
-                @Override
-                public int send(OutputStream out) throws IOException {
-                     out.write(in.read());
-                     return 0;
-                }
-            }, fileInfo.getExt(), metadata);
+            clientFactory
+                    .getClient()
+                    .upload_file(
+                            config.getGroupName(),
+                            fileInfo.getSize(),
+                            new UploadCallback() {
+                                @Override
+                                public int send(OutputStream out) throws IOException {
+                                    out.write(in.read());
+                                    return 0;
+                                }
+                            },
+                            fileInfo.getExt(),
+                            metadata);
 
             String[] fileUpload =
                     clientFactory.getClient().upload_file(config.getGroupName(), bytes, fileInfo.getExt(), metadata);
@@ -178,22 +184,24 @@ public class FastDfsFileStorage implements FileStorage {
     @Override
     public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
         try {
-            PipedInputStream pis  = new PipedInputStream();
-            PipedOutputStream pos  = new PipedOutputStream();
+            PipedInputStream pis = new PipedInputStream();
+            PipedOutputStream pos = new PipedOutputStream();
             pis.connect(pos);
             pos.close();
 
-            clientFactory.getClient().download_file(config.getGroupName(),fileInfo.getFilename(),new DownloadCallback() {
-                @Override
-                public int recv(long file_size,byte[] data,int bytes) {
-                    try{
-                        pos.write(data,0,bytes);
-                    }catch (Exception e){
-                        return 1;
-                    }
-                    return 0;
-                }
-            });
+            clientFactory
+                    .getClient()
+                    .download_file(config.getGroupName(), fileInfo.getFilename(), new DownloadCallback() {
+                        @Override
+                        public int recv(long file_size, byte[] data, int bytes) {
+                            try {
+                                pos.write(data, 0, bytes);
+                            } catch (Exception e) {
+                                return 1;
+                            }
+                            return 0;
+                        }
+                    });
             consumer.accept(pis);
             byte[] bytes = clientFactory.getClient().download_file(config.getGroupName(), fileInfo.getFilename());
             try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes)) {
