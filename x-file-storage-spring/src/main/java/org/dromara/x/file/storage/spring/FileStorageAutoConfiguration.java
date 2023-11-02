@@ -1,5 +1,7 @@
 package org.dromara.x.file.storage.spring;
 
+import static org.dromara.x.file.storage.core.FileStorageServiceBuilder.doesNotExistClass;
+
 import java.util.ArrayList;
 import java.util.List;
 import lombok.NonNull;
@@ -20,6 +22,7 @@ import org.dromara.x.file.storage.spring.SpringFileStorageProperties.SpringLocal
 import org.dromara.x.file.storage.spring.SpringFileStorageProperties.SpringLocalPlusConfig;
 import org.dromara.x.file.storage.spring.file.MultipartFileWrapperAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -32,7 +35,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Slf4j
 @Configuration
 @ConditionalOnMissingBean(FileStorageService.class)
-public class FileStorageAutoConfiguration implements WebMvcConfigurer {
+public class FileStorageAutoConfiguration {
 
     @Autowired
     private SpringFileStorageProperties properties;
@@ -43,20 +46,26 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
     /**
      * 配置本地存储的访问地址
      */
-    @Override
-    public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
-        for (SpringLocalConfig local : properties.getLocal()) {
-            if (local.getEnableStorage() && local.getEnableAccess()) {
-                registry.addResourceHandler(local.getPathPatterns())
-                        .addResourceLocations("file:" + local.getBasePath());
+    @Bean
+    @ConditionalOnClass(name = "org.springframework.web.servlet.config.annotation.WebMvcConfigurer")
+    public Object fileStorageWebMvcConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
+                for (SpringLocalConfig local : properties.getLocal()) {
+                    if (local.getEnableStorage() && local.getEnableAccess()) {
+                        registry.addResourceHandler(local.getPathPatterns())
+                                .addResourceLocations("file:" + local.getBasePath());
+                    }
+                }
+                for (SpringLocalPlusConfig local : properties.getLocalPlus()) {
+                    if (local.getEnableStorage() && local.getEnableAccess()) {
+                        registry.addResourceHandler(local.getPathPatterns())
+                                .addResourceLocations("file:" + local.getStoragePath());
+                    }
+                }
             }
-        }
-        for (SpringLocalPlusConfig local : properties.getLocalPlus()) {
-            if (local.getEnableStorage() && local.getEnableAccess()) {
-                registry.addResourceHandler(local.getPathPatterns())
-                        .addResourceLocations("file:" + local.getStoragePath());
-            }
-        }
+        };
     }
 
     /**
@@ -126,11 +135,38 @@ public class FileStorageAutoConfiguration implements WebMvcConfigurer {
             builder.addLocalFileWrapperAdapter();
         }
         if (properties.getEnableHttpServletRequestFileWrapper()) {
-            builder.addHttpServletRequestFileWrapperAdapter();
+            if (doesNotExistClass("javax.servlet.http.HttpServletRequest")
+                    && doesNotExistClass("jakarta.servlet.http.HttpServletRequest")) {
+                log.warn(
+                        "当前未检测到 Servlet 环境，无法加载 HttpServletRequest 的文件包装适配器，请将参数【dromara.x-file-storage.enable-http-servlet-request-file-wrapper】设置为 【false】来消除此警告");
+            } else {
+                builder.addHttpServletRequestFileWrapperAdapter();
+            }
         }
         if (properties.getEnableMultipartFileWrapper()) {
-            builder.addFileWrapperAdapter(new MultipartFileWrapperAdapter());
+            if (doesNotExistClass("org.springframework.web.multipart.MultipartFile")) {
+                log.warn(
+                        "当前未检测到 SpringWeb 环境，无法加载 MultipartFile 的文件包装适配器，请将参数【dromara.x-file-storage.enable-multipart-file-wrapper】设置为 【false】来消除此警告");
+            } else {
+                builder.addFileWrapperAdapter(new MultipartFileWrapperAdapter());
+            }
         }
+
+        if (doesNotExistClass("org.springframework.web.servlet.config.annotation.WebMvcConfigurer")) {
+            long localAccessNum = properties.getLocal().stream()
+                    .filter(SpringLocalConfig::getEnableStorage)
+                    .filter(SpringLocalConfig::getEnableAccess)
+                    .count();
+            long localPlusAccessNum = properties.getLocalPlus().stream()
+                    .filter(SpringLocalPlusConfig::getEnableStorage)
+                    .filter(SpringLocalPlusConfig::getEnableAccess)
+                    .count();
+
+            if (localAccessNum + localPlusAccessNum > 0) {
+                log.warn("当前未检测到 SpringWeb 环境，无法开启本地存储平台的本地访问功能，请将关闭本地访问来消除此警告");
+            }
+        }
+
         return builder.build();
     }
 
