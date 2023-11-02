@@ -1,10 +1,9 @@
 package org.dromara.x.file.storage.core.aspect;
 
+import java.util.Iterator;
 import lombok.Getter;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.platform.FileStorage;
-
-import java.util.Iterator;
 
 /**
  * 是否支持同存储平台复制的切面调用链
@@ -16,7 +15,8 @@ public class IsSupportSameCopyAspectChain {
     private IsSupportSameCopyAspectChainCallback callback;
     private Iterator<FileStorageAspect> aspectIterator;
 
-    public IsSupportSameCopyAspectChain(Iterable<FileStorageAspect> aspects,IsSupportSameCopyAspectChainCallback callback) {
+    public IsSupportSameCopyAspectChain(
+            Iterable<FileStorageAspect> aspects, IsSupportSameCopyAspectChainCallback callback) {
         this.aspectIterator = aspects.iterator();
         this.callback = callback;
     }

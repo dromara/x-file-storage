@@ -9,16 +9,16 @@ import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 
 /**
- * 复制的切面调用链
+ * 同存储平台复制的切面调用链
  */
 @Getter
 @Setter
-public class CopyAspectChain {
+public class SameCopyAspectChain {
 
-    private CopyAspectChainCallback callback;
+    private SameCopyAspectChainCallback callback;
     private Iterator<FileStorageAspect> aspectIterator;
 
-    public CopyAspectChain(Iterable<FileStorageAspect> aspects, CopyAspectChainCallback callback) {
+    public SameCopyAspectChain(Iterable<FileStorageAspect> aspects, SameCopyAspectChainCallback callback) {
         this.aspectIterator = aspects.iterator();
         this.callback = callback;
     }
@@ -27,11 +27,17 @@ public class CopyAspectChain {
      * 调用下一个切面
      */
     public FileInfo next(
-            FileInfo srcFileInfo, CopyPretreatment pre, FileStorage fileStorage, FileRecorder fileRecorder) {
+            FileInfo srcFileInfo,
+            FileInfo destFileInfo,
+            CopyPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
         if (aspectIterator.hasNext()) { // 还有下一个
-            return aspectIterator.next().copyAround(this, srcFileInfo, pre, fileStorage, fileRecorder);
+            return aspectIterator
+                    .next()
+                    .sameCopyAround(this, srcFileInfo, destFileInfo, pre, fileStorage, fileRecorder);
         } else {
-            return callback.run(srcFileInfo, pre, fileStorage, fileRecorder);
+            return callback.run(srcFileInfo, destFileInfo, pre, fileStorage, fileRecorder);
         }
     }
 }

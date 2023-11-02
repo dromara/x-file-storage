@@ -9,5 +9,5 @@ import org.dromara.x.file.storage.core.recorder.FileRecorder;
  * 复制切面调用链结束回调
  */
 public interface CopyAspectChainCallback {
-    FileInfo run(FileInfo fileInfo, CopyPretreatment pre, FileStorage fileStorage, FileRecorder fileRecorder);
+    FileInfo run(FileInfo srcFileInfo, CopyPretreatment pre, FileStorage fileStorage, FileRecorder fileRecorder);
 }
