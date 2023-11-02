@@ -14,7 +14,7 @@ import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Multipart 文件包装类
+ * MultipartFile 文件包装类
  */
 @Getter
 @Setter
