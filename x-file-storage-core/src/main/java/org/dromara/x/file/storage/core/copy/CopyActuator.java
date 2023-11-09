@@ -69,6 +69,9 @@ public class CopyActuator {
     protected boolean isSameCopy(FileInfo srcFileInfo, CopyPretreatment pre, FileStorage fileStorage) {
         CopyMode copyMode = pre.getCopyMode();
         if (copyMode == CopyMode.SAME) {
+            if (!fileStorageService.isSupportSameCopy(fileStorage)) {
+                throw new FileStorageRuntimeException("存储平台【" + fileStorage.getPlatform() + "】不支持同存储平台复制");
+            }
             return true;
         } else if (copyMode == CopyMode.CROSS) {
             return false;
