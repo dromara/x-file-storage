@@ -56,6 +56,14 @@ public class SpringFileStorageProperties {
      */
     private Boolean copyNotSupportAclThrowException = true;
     /**
+     * 移动时不支持元数据时抛出异常
+     */
+    private Boolean moveNotSupportMetadataThrowException = true;
+    /**
+     * 移动时不支持 ACL 时抛出异常
+     */
+    private Boolean moveNotSupportAclThrowException = true;
+    /**
      * 启用 byte[] 文件包装适配器
      */
     private Boolean enableByteFileWrapper = true;
@@ -157,6 +165,8 @@ public class SpringFileStorageProperties {
         properties.setUploadNotSupportAclThrowException(uploadNotSupportAclThrowException);
         properties.setCopyNotSupportMetadataThrowException(copyNotSupportMetadataThrowException);
         properties.setCopyNotSupportAclThrowException(copyNotSupportAclThrowException);
+        properties.setMoveNotSupportMetadataThrowException(moveNotSupportMetadataThrowException);
+        properties.setMoveNotSupportAclThrowException(moveNotSupportAclThrowException);
         properties.setLocal(
                 local.stream().filter(SpringLocalConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setLocalPlus(localPlus.stream()

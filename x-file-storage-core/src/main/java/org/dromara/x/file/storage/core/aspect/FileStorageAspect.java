@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 
@@ -136,6 +137,38 @@ public interface FileStorageAspect {
             FileInfo srcFileInfo,
             FileInfo destFileInfo,
             CopyPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        return chain.next(srcFileInfo, destFileInfo, pre, fileStorage, fileRecorder);
+    }
+
+    /**
+     * 是否支持同存储平台移动
+     */
+    default boolean isSupportSameMoveAround(IsSupportSameMoveAspectChain chain, FileStorage fileStorage) {
+        return chain.next(fileStorage);
+    }
+
+    /**
+     * 移动，成功返回文件信息
+     */
+    default FileInfo moveAround(
+            MoveAspectChain chain,
+            FileInfo srcFileInfo,
+            MovePretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        return chain.next(srcFileInfo, pre, fileStorage, fileRecorder);
+    }
+
+    /**
+     * 同存储平台移动，成功返回文件信息
+     */
+    default FileInfo sameMoveAround(
+            SameMoveAspectChain chain,
+            FileInfo srcFileInfo,
+            FileInfo destFileInfo,
+            MovePretreatment pre,
             FileStorage fileStorage,
             FileRecorder fileRecorder) {
         return chain.next(srcFileInfo, destFileInfo, pre, fileStorage, fileRecorder);

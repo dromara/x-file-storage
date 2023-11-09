@@ -5,7 +5,7 @@ import cn.hutool.core.lang.Dict;
 import cn.hutool.core.util.StrUtil;
 import java.util.Date;
 import java.util.LinkedHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.List;
 import org.dromara.x.file.storage.core.Downloader;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
@@ -22,7 +22,6 @@ import org.dromara.x.file.storage.core.recorder.FileRecorder;
  */
 public class CopyActuator {
     private final FileStorageService fileStorageService;
-    private final FileStorage fileStorage;
     private final FileInfo fileInfo;
     private final CopyPretreatment pre;
 
@@ -30,13 +29,22 @@ public class CopyActuator {
         this.pre = pre;
         this.fileStorageService = pre.getFileStorageService();
         this.fileInfo = pre.getFileInfo();
-        this.fileStorage = fileStorageService.getFileStorageVerify(fileInfo.getPlatform());
     }
 
     /**
      * 复制文件，成功后返回新的 FileInfo
      */
     public FileInfo execute() {
+        return execute(
+                fileStorageService.getFileStorageVerify(fileInfo.getPlatform()),
+                fileStorageService.getFileRecorder(),
+                fileStorageService.getAspectList());
+    }
+
+    /**
+     * 复制文件，成功后返回新的 FileInfo
+     */
+    public FileInfo execute(FileStorage fileStorage, FileRecorder fileRecorder, List<FileStorageAspect> aspectList) {
         if (fileInfo == null) throw new FileStorageRuntimeException("fileInfo 不能为 null");
         if (fileInfo.getPlatform() == null) throw new FileStorageRuntimeException("fileInfo 的 platform 不能为 null");
         if (fileInfo.getPath() == null) throw new FileStorageRuntimeException("fileInfo 的 path 不能为 null");
@@ -48,8 +56,6 @@ public class CopyActuator {
         }
 
         // 处理切面
-        CopyOnWriteArrayList<FileStorageAspect> aspectList = fileStorageService.getAspectList();
-        FileRecorder fileRecorder = fileStorageService.getFileRecorder();
         return new CopyAspectChain(aspectList, (_srcFileInfo, _pre, _fileStorage, _fileRecorder) -> {
                     // 真正开始复制
                     FileInfo destFileInfo;
@@ -69,6 +75,9 @@ public class CopyActuator {
     protected boolean isSameCopy(FileInfo srcFileInfo, CopyPretreatment pre, FileStorage fileStorage) {
         CopyMode copyMode = pre.getCopyMode();
         if (copyMode == CopyMode.SAME) {
+            if (!fileStorageService.isSupportSameCopy(fileStorage)) {
+                throw new FileStorageRuntimeException("存储平台【" + fileStorage.getPlatform() + "】不支持同存储平台复制");
+            }
             return true;
         } else if (copyMode == CopyMode.CROSS) {
             return false;
@@ -86,7 +95,7 @@ public class CopyActuator {
             CopyPretreatment pre,
             FileStorage fileStorage,
             FileRecorder fileRecorder,
-            CopyOnWriteArrayList<FileStorageAspect> aspectList) {
+            List<FileStorageAspect> aspectList) {
         // 检查文件名是否与原始的相同
         if ((srcFileInfo.getPath() + srcFileInfo.getFilename()).equals(pre.getPath() + pre.getFilename())) {
             throw new FileStorageRuntimeException("源文件与目标文件路径相同");
@@ -146,7 +155,7 @@ public class CopyActuator {
             CopyPretreatment pre,
             FileStorage fileStorage,
             FileRecorder fileRecorder,
-            CopyOnWriteArrayList<FileStorageAspect> aspectList) {
+            List<FileStorageAspect> aspectList) {
         // 下载缩略图
         byte[] thBytes = StrUtil.isNotBlank(srcFileInfo.getThFilename())
                 ? new Downloader(srcFileInfo, aspectList, fileStorage, Downloader.TARGET_TH_FILE).bytes()
