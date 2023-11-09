@@ -492,7 +492,7 @@ public class FileStorageService {
      * 复制文件
      */
     public CopyPretreatment copy(String url) {
-        return self.copy(getFileInfoByUrl(url));
+        return self.copy(self.getFileInfoByUrl(url));
     }
 
     /**
