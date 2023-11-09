@@ -190,7 +190,7 @@ public class LocalPlusFileStorage implements FileStorage {
         File destFile = null;
         try {
             destFile = FileUtil.touch(getAbsolutePath(destFileKey));
-            if (pre == null) {
+            if (pre.getProgressListener() == null) {
                 FileUtil.copyFile(srcFile, destFile, StandardCopyOption.REPLACE_EXISTING);
             } else {
                 InputStreamPlus in = new InputStreamPlus(
