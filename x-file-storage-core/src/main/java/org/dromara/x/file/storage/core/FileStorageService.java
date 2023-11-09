@@ -19,6 +19,7 @@ import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.file.FileWrapperAdapter;
 import org.dromara.x.file.storage.core.file.HttpServletRequestFileWrapper;
 import org.dromara.x.file.storage.core.file.MultipartFormDataReader;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
@@ -41,6 +42,8 @@ public class FileStorageService {
     private Boolean uploadNotSupportAclThrowException;
     private Boolean copyNotSupportMetadataThrowException;
     private Boolean copyNotSupportAclThrowException;
+    private Boolean moveNotSupportMetadataThrowException;
+    private Boolean moveNotSupportAclThrowException;
     private CopyOnWriteArrayList<FileStorageAspect> aspectList;
     private CopyOnWriteArrayList<FileWrapperAdapter> fileWrapperAdapterList;
     private ContentTypeDetect contentTypeDetect;
@@ -493,6 +496,38 @@ public class FileStorageService {
      */
     public CopyPretreatment copy(String url) {
         return self.copy(self.getFileInfoByUrl(url));
+    }
+
+    /**
+     * 是否支持同存储平台移动文件
+     */
+    public boolean isSupportSameMove(String platform) {
+        FileStorage storage = self.getFileStorageVerify(platform);
+        return self.isSupportSameMove(storage);
+    }
+
+    /**
+     * 是否支持同存储平台移动文件
+     */
+    public boolean isSupportSameMove(FileStorage fileStorage) {
+        if (fileStorage == null) return false;
+        return new IsSupportSameMoveAspectChain(aspectList, FileStorage::isSupportSameMove).next(fileStorage);
+    }
+
+    /**
+     * 移动文件
+     */
+    public MovePretreatment move(FileInfo fileInfo) {
+        return new MovePretreatment(fileInfo, self)
+                .setNotSupportMetadataThrowException(moveNotSupportMetadataThrowException)
+                .setNotSupportAclThrowException(moveNotSupportAclThrowException);
+    }
+
+    /**
+     * 移动文件
+     */
+    public MovePretreatment move(String url) {
+        return self.move(self.getFileInfoByUrl(url));
     }
 
     /**

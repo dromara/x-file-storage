@@ -47,6 +47,17 @@ public class FileStorageProperties {
      * 复制时不支持 ACL 时抛出异常
      */
     private Boolean copyNotSupportAclThrowException = true;
+
+    /**
+     * 移动时不支持元数据时抛出异常
+     */
+    private Boolean moveNotSupportMetadataThrowException = true;
+
+    /**
+     * 移动时不支持 ACL 时抛出异常
+     */
+    private Boolean moveNotSupportAclThrowException = true;
+
     /**
      * 本地存储
      */

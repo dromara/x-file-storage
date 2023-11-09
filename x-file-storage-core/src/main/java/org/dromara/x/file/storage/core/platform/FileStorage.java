@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
 
 /**
  * 文件存储接口，对应各个平台
@@ -111,6 +112,18 @@ public interface FileStorage extends AutoCloseable {
      * 同存储平台复制文件
      */
     default void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {}
+
+    /**
+     * 是否支持同存储平台移动文件
+     */
+    default boolean isSupportSameMove() {
+        return false;
+    }
+
+    /**
+     * 同存储平台移动文件
+     */
+    default void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {}
 
     /**
      * 释放相关资源
