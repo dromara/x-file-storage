@@ -201,7 +201,7 @@ public class FileStorageService {
      * 删除文件，仅限内部使用
      */
     public boolean delete(
-            FileInfo fileInfo,FileStorage fileStorage,FileRecorder fileRecorder,List<FileStorageAspect> aspectList) {
+            FileInfo fileInfo, FileStorage fileStorage, FileRecorder fileRecorder, List<FileStorageAspect> aspectList) {
         return new DeleteAspectChain(aspectList, (_fileInfo, _fileStorage, _fileRecorder) -> {
                     if (_fileStorage.delete(_fileInfo)) { // 删除文件
                         return _fileRecorder.delete(_fileInfo.getUrl()); // 删除文件记录
