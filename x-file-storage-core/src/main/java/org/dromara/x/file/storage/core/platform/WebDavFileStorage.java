@@ -19,6 +19,7 @@ import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.util.Tools;
 
 /**
@@ -257,6 +258,89 @@ public class WebDavFileStorage implements FileStorage {
             }
             throw new FileStorageRuntimeException(
                     "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+        }
+    }
+
+    @Override
+    public boolean isSupportSameMove() {
+        return true;
+    }
+
+    @Override
+    public void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {
+        if (srcFileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
+            throw new FileStorageRuntimeException(
+                    "文件移动失败，不支持设置 ACL！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        if (CollUtil.isNotEmpty(srcFileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
+            throw new FileStorageRuntimeException(
+                    "文件移动失败，不支持设置 Metadata！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        if (!basePath.equals(srcFileInfo.getBasePath())) {
+            throw new FileStorageRuntimeException("文件移动失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
+                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        Sardine client = getClient();
+
+        // 获取远程文件信息
+        String srcFileUrl = getUrl(getFileKey(srcFileInfo));
+        DavResource srcFile;
+        try {
+            srcFile = client.list(srcFileUrl, 0, false).get(0);
+        } catch (Exception e) {
+            throw new FileStorageRuntimeException(
+                    "文件移动失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+        }
+
+        // 检查并创建父路径
+        try {
+            createDirectory(client, getUrl(destFileInfo.getBasePath() + destFileInfo.getPath()));
+        } catch (Exception e) {
+            throw new FileStorageRuntimeException(
+                    "文件移动失败，检查并创建父路径失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+        }
+
+        // 移动缩略图文件
+        String srcThFileUrl = null;
+        String destThFileUrl = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            srcThFileUrl = getUrl(getThFileKey(srcFileInfo));
+            String destThFileKey = getThFileKey(destFileInfo);
+            destThFileUrl = getUrl(destThFileKey);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            try {
+                client.move(srcThFileUrl, destThFileUrl);
+            } catch (Exception e) {
+                throw new FileStorageRuntimeException(
+                        "缩略图文件移动失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            }
+        }
+
+        // 移动文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        String destFileUrl = getUrl(destFileKey);
+        try {
+            ProgressListener.quickStart(pre.getProgressListener(), srcFile.getContentLength());
+            client.move(srcFileUrl, destFileUrl);
+            ProgressListener.quickFinish(pre.getProgressListener(), srcFile.getContentLength());
+        } catch (Exception e) {
+            try {
+                if (destThFileUrl != null) {
+                    client.move(destThFileUrl, srcThFileUrl);
+                }
+            } catch (Exception ignored) {
+            }
+            try {
+                if (client.exists(srcFileUrl)) {
+                    client.delete(destFileUrl);
+                } else {
+                    client.move(destFileUrl, srcFileUrl);
+                }
+            } catch (Exception ignored) {
+            }
+            throw new FileStorageRuntimeException(
+                    "文件移动失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
         }
     }
 }
