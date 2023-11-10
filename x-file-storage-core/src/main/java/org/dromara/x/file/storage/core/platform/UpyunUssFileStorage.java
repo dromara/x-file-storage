@@ -25,6 +25,7 @@ import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
 
 /**
  * 又拍云 USS 存储
@@ -163,11 +164,16 @@ public class UpyunUssFileStorage implements FileStorage {
 
     @Override
     public boolean exists(FileInfo fileInfo) {
-        try (Response response = getClient().getFileInfo(getFileKey(fileInfo))) {
-            return StrUtil.isNotBlank(response.header("x-upyun-file-size"));
+        try {
+            return exists(getFileKey(fileInfo));
         } catch (IOException | UpException e) {
             throw new FileStorageRuntimeException("判断文件是否存在失败！fileInfo：" + fileInfo, e);
         }
+    }
+
+    public boolean exists(String fileKey) throws UpException, IOException {
+        Response response = checkResponse(getClient().getFileInfo(fileKey));
+        return StrUtil.isNotBlank(response.header("x-upyun-file-size"));
     }
 
     @Override
@@ -283,6 +289,77 @@ public class UpyunUssFileStorage implements FileStorage {
             }
             throw new FileStorageRuntimeException(
                     "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+        }
+    }
+
+    @Override
+    public boolean isSupportSameMove() {
+        return true;
+    }
+
+    @Override
+    public void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {
+        if (srcFileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
+            throw new FileStorageRuntimeException(
+                    "文件移动失败，不支持设置 ACL！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+
+        if (!basePath.equals(srcFileInfo.getBasePath())) {
+            throw new FileStorageRuntimeException("文件移动失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
+                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        RestManager client = getClient();
+
+        // 获取远程文件信息
+        String srcFileKey = getFileKey(srcFileInfo);
+        long srcFileSize;
+        try {
+            Response response = checkResponse(client.getFileInfo(srcFileKey));
+            srcFileSize = Long.parseLong(
+                    Objects.requireNonNull(response.header(RestManager.PARAMS.X_UPYUN_FILE_SIZE.getValue())));
+        } catch (Exception e) {
+            throw new FileStorageRuntimeException(
+                    "文件移动失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+        }
+
+        // 移动缩略图文件
+        String srcThFileKey = null;
+        String destThFileKey = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            srcThFileKey = getThFileKey(srcFileInfo);
+            destThFileKey = getThFileKey(destFileInfo);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            try {
+                checkResponse(client.moveFile(destThFileKey, UpYunUtils.formatPath(bucketName, srcThFileKey), null));
+            } catch (Exception e) {
+                throw new FileStorageRuntimeException(
+                        "缩略图文件移动失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            }
+        }
+
+        // 移动文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        try {
+            ProgressListener.quickStart(pre.getProgressListener(), srcFileSize);
+            checkResponse(client.moveFile(destFileKey, UpYunUtils.formatPath(bucketName, srcFileKey), null));
+            ProgressListener.quickFinish(pre.getProgressListener(), srcFileSize);
+        } catch (Exception e) {
+            if (destThFileKey != null)
+                try {
+                    IoUtil.close(client.moveFile(srcThFileKey, UpYunUtils.formatPath(bucketName, destThFileKey), null));
+                } catch (Exception ignored) {
+                }
+            try {
+                if (exists(srcFileKey)) {
+                    IoUtil.close(client.deleteFile(destFileKey, null));
+                } else {
+                    IoUtil.close(client.moveFile(srcFileKey, UpYunUtils.formatPath(bucketName, destFileKey), null));
+                }
+            } catch (Exception ignored) {
+            }
+            throw new FileStorageRuntimeException(
+                    "文件移动失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
         }
     }
 }
