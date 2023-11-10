@@ -19,6 +19,7 @@ import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
 
 /**
  * 本地文件存储升级版
@@ -202,6 +203,86 @@ public class LocalPlusFileStorage implements FileStorage {
             FileUtil.del(destFile);
             throw new FileStorageRuntimeException(
                     "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+    }
+
+    @Override
+    public boolean isSupportSameMove() {
+        return true;
+    }
+
+    @Override
+    public void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {
+        if (srcFileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
+            throw new FileStorageRuntimeException(
+                    "文件移动失败，不支持设置 ACL！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        if (CollUtil.isNotEmpty(srcFileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
+            throw new FileStorageRuntimeException(
+                    "文件移动失败，不支持设置 Metadata！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+        if (!basePath.equals(srcFileInfo.getBasePath())) {
+            throw new FileStorageRuntimeException("文件移动失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
+                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+
+        File srcFile = new File(getAbsolutePath(getFileKey(srcFileInfo)));
+        if (!srcFile.exists()) {
+            throw new FileStorageRuntimeException(
+                    "文件移动失败，源文件不存在！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+        }
+
+        // 移动缩略图文件
+        File srcThFile = null;
+        File destThFile = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            srcThFile = new File(getAbsolutePath(getThFileKey(srcFileInfo)));
+            if (!srcThFile.exists()) {
+                throw new FileStorageRuntimeException(
+                        "缩略图文件移动失败，源缩略图文件不存在！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+            }
+            String destThFileKey = getThFileKey(destFileInfo);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            try {
+                destThFile = FileUtil.touch(getAbsolutePath(destThFileKey));
+                FileUtil.move(srcThFile, destThFile, true);
+            } catch (Exception e) {
+                FileUtil.del(destThFile);
+                throw new FileStorageRuntimeException(
+                        "缩略图文件移动失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+            }
+        }
+
+        // 移动文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        File destFile = null;
+        try {
+            // 这里还有优化空间，例如跨存储设备或跨分区移动大文件时，会耗时很久且无法监听到进度，
+            // 可以使用复制+删除源文件来实现，这样可以监听到进度。
+            // 但是正常来说，不应该在单个存储平台使用的存储路径下挂载不同的分区，这会造成维护上的困难，
+            // 不同的分区最好用配置成不同的存储平台，除非你明确知道为什么要这么做及可能会出现的问题。
+            destFile = FileUtil.touch(getAbsolutePath(destFileKey));
+            ProgressListener.quickStart(pre.getProgressListener(), srcFile.length());
+            FileUtil.move(srcFile, destFile, true);
+            ProgressListener.quickFinish(pre.getProgressListener(), srcFile.length());
+        } catch (Exception e) {
+            if (destThFile != null) {
+                try {
+                    FileUtil.move(destThFile, srcThFile, true);
+                } catch (Exception ignored) {
+                }
+            }
+            try {
+                if (srcFile.exists()) {
+                    FileUtil.del(destFile);
+                } else if (destFile != null) {
+                    FileUtil.move(destFile, srcFile, true);
+                }
+            } catch (Exception ignored) {
+            }
+            throw new FileStorageRuntimeException(
+                    "文件移动失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
         }
     }
 }
