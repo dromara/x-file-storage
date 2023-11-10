@@ -8,7 +8,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
-import org.dromara.x.file.storage.core.aspect.DeleteAspectChain;
 import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.aspect.MoveAspectChain;
 import org.dromara.x.file.storage.core.aspect.SameMoveAspectChain;
@@ -134,9 +133,15 @@ public class MoveActuator {
         destFileInfo.setThFileAcl(srcFileInfo.getThFileAcl());
         destFileInfo.setCreateTime(new Date());
 
-        return new SameMoveAspectChain(aspectList, (_srcfileInfo, _destFileInfo, _pre, _fileStorage, _fileRecorder) -> {
-                    _fileStorage.sameMove(_srcfileInfo, _destFileInfo, _pre);
+        return new SameMoveAspectChain(aspectList, (_srcFileInfo, _destFileInfo, _pre, _fileStorage, _fileRecorder) -> {
+                    _fileStorage.sameMove(_srcFileInfo, _destFileInfo, _pre);
                     _fileRecorder.save(_destFileInfo);
+
+                    // 如果源文件删除失败，则表示移动失败
+                    if (!fileStorageService.delete(_srcFileInfo, _fileStorage, _fileRecorder, aspectList)) {
+                        throw new FileStorageRuntimeException("移动文件失败，源文件删除失败");
+                    }
+
                     return _destFileInfo;
                 })
                 .next(srcFileInfo, destFileInfo, pre, fileStorage, fileRecorder);
@@ -171,17 +176,8 @@ public class MoveActuator {
             throw new FileStorageRuntimeException("移动文件失败，源文件复制失败");
         }
 
-        // 删除源文件
-        boolean deleted = new DeleteAspectChain(aspectList, (_fileInfo, _fileStorage, _fileRecorder) -> {
-                    if (_fileStorage.delete(_fileInfo)) { // 删除文件
-                        return _fileRecorder.delete(_fileInfo.getUrl()); // 删除文件记录
-                    }
-                    return false;
-                })
-                .next(srcFileInfo, fileStorage, fileRecorder);
-
         // 如果源文件删除失败，则表示移动失败
-        if (!deleted) {
+        if (!fileStorageService.delete(srcFileInfo, fileStorage, fileRecorder, aspectList)) {
             throw new FileStorageRuntimeException("移动文件失败，源文件删除失败");
         }
 
