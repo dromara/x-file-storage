@@ -2,14 +2,11 @@ package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IORuntimeException;
-import cn.hutool.core.io.file.FileNameUtil;
-import cn.hutool.core.io.file.PathUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.ftp.Ftp;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Consumer;
 import lombok.Getter;
