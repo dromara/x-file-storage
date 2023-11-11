@@ -143,7 +143,8 @@ AccessControlList acl = client.getObjectAcl(fileStorage.getBucketName(),fileStor
 dromara:
   x-file-storage:
     upload-not-support-alc-throw-exception: false # 上传时
-    copy-not-support-alc-throw-exception: false # 上传时
+    copy-not-support-alc-throw-exception: false # 复制时
+    move-not-support-alc-throw-exception: false # 移动时
 ```
 
 **第二种（仅当前）**
@@ -157,6 +158,12 @@ FileInfo fileInfo = fileStorageService.of(file)
 //复制时
 FileInfo fileInfo = fileStorageService.copy(fileInfo)
         .setNotSupportAclThrowException(false) //在不支持 ACL 的存储平台不抛出异常
-        .setPath("copy/")
+        .setPlatform("local-plus-1")
         .copy();
+
+//移动时
+FileInfo fileInfo = fileStorageService.move(fileInfo)
+        .setNotSupportAclThrowException(false) //在不支持 ACL 的存储平台不抛出异常
+        .setPlatform("local-plus-1")
+        .move();
 ```
