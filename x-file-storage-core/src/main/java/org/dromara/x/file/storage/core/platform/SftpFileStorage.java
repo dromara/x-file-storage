@@ -189,7 +189,6 @@ public class SftpFileStorage implements FileStorage {
         }
     }
 
-
     @Override
     public boolean isSupportSameMove() {
         return true;
