@@ -1,25 +1,26 @@
 package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.text.StrPool;
 import cn.hutool.core.util.StrUtil;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
-import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
 import org.csource.common.MyException;
 import org.csource.common.NameValuePair;
 import org.csource.fastdfs.StorageClient;
+import org.csource.fastdfs.UploadStream;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.FastDfsConfig;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.constant.FormatTemplate;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
-import org.dromara.x.file.storage.core.file.FileWrapper;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * There is no description.
@@ -80,12 +81,15 @@ public class FastDfsFileStorage implements FileStorage {
         if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
             throw FileStorageRuntimeException.acl(fileInfo, getPlatform());
         }
-        FileWrapper fileWrapper = pre.getFileWrapper();
-        try (InputStream in = fileWrapper.getInputStream()) {
-            byte[] bytes = IoUtil.readBytes(in);
-            NameValuePair[] metadata = getObjectMetadata(fileInfo);
-            String[] fileUpload =
-                    clientFactory.getClient().upload_file(config.getGroupName(), bytes, fileInfo.getExt(), metadata);
+        try (InputStream in = pre.getInputStreamPlus()) {
+            String[] fileUpload = clientFactory
+                    .getClient()
+                    .upload_file(
+                            config.getGroupName(),
+                            fileInfo.getSize(),
+                            new UploadStream(in, fileInfo.getSize()),
+                            fileInfo.getExt(),
+                            getObjectMetadata(fileInfo, FileInfo::getMetadata));
             fileInfo.setUrl(StrUtil.format(
                     FormatTemplate.FULL_URL, config.getDomain(), StrUtil.join(StrPool.SLASH, (Object[]) fileUpload)));
             fileInfo.setBasePath(fileUpload[0]);
@@ -96,7 +100,11 @@ public class FastDfsFileStorage implements FileStorage {
             if (thumbnailBytes != null) {
                 String[] thumbnailUpload = clientFactory
                         .getClient()
-                        .upload_file(config.getGroupName(), thumbnailBytes, pre.getThumbnailSuffix(), metadata);
+                        .upload_file(
+                                config.getGroupName(),
+                                thumbnailBytes,
+                                pre.getThumbnailSuffix(),
+                                getObjectMetadata(fileInfo, FileInfo::getThMetadata));
                 fileInfo.setUrl(StrUtil.format(
                         FormatTemplate.FULL_URL, config.getDomain(), StrUtil.join(StrPool.SLASH, (Object[])
                                 thumbnailUpload)));
@@ -115,8 +123,8 @@ public class FastDfsFileStorage implements FileStorage {
      * @param fileInfo
      * @return {@link NameValuePair[]}
      */
-    private NameValuePair[] getObjectMetadata(FileInfo fileInfo) {
-        Map<String, String> metadata = fileInfo.getMetadata();
+    private NameValuePair[] getObjectMetadata(FileInfo fileInfo, Function<FileInfo, Map<String, String>> function) {
+        Map<String, String> metadata = function.apply(fileInfo);
         if (CollUtil.isNotEmpty(metadata)) {
             NameValuePair[] nameValuePairs = new NameValuePair[metadata.size()];
             int index = 0;
@@ -125,7 +133,7 @@ public class FastDfsFileStorage implements FileStorage {
             }
             return nameValuePairs;
         }
-        return null;
+        return new NameValuePair[0];
     }
 
     /**
