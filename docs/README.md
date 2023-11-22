@@ -22,10 +22,10 @@
 	<a target="_blank" href='https://github.com/dromara/x-file-storage'>
 		<img src="https://img.shields.io/github/stars/dromara/x-file-storage.svg?style=social" alt="github star"/>
 	</a>
-    <a href='https://gitee.com/dromara/x-file-storage'>
+    <a target="_blank" href='https://gitee.com/dromara/x-file-storage'>
         <img src='https://gitee.com/dromara/x-file-storage/badge/star.svg?theme=dark' alt='star' />
     </a>
-    <a href='https://jq.qq.com/?_wv=1027&k=eGfeNqka'>
+    <a target="_blank" href='https://jq.qq.com/?_wv=1027&k=eGfeNqka'>
         <img src='https://img.shields.io/badge/QQ%E7%BE%A4-515706495-orange' alt='' />
     </a>
 </p>
