@@ -2,7 +2,6 @@ package org.dromara.x.file.storage.core.platform;
 
 import static com.jcraft.jsch.ChannelSftp.SSH_FX_NO_SUCH_FILE;
 
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.ssh.JschRuntimeException;
 import cn.hutool.extra.ssh.Sftp;
@@ -22,6 +21,7 @@ import org.dromara.x.file.storage.core.FileStorageProperties.SftpConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 
@@ -86,14 +86,8 @@ public class SftpFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
-            throw new FileStorageRuntimeException(
-                    "文件上传失败，SFTP 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
-        }
-        if (CollUtil.isNotEmpty(fileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
-            throw new FileStorageRuntimeException(
-                    "文件上传失败，SFTP 不支持设置 Metadata！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
-        }
+        Check.uploadNotSupportedAcl(platform, fileInfo, pre);
+        Check.uploadNotSupportedMetadata(platform, fileInfo, pre);
 
         Sftp client = getClient();
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
@@ -196,18 +190,9 @@ public class SftpFileStorage implements FileStorage {
 
     @Override
     public void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {
-        if (srcFileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
-            throw new FileStorageRuntimeException(
-                    "文件移动失败，不支持设置 ACL！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
-        }
-        if (CollUtil.isNotEmpty(srcFileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
-            throw new FileStorageRuntimeException(
-                    "文件移动失败，不支持设置 Metadata！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
-        }
-        if (!basePath.equals(srcFileInfo.getBasePath())) {
-            throw new FileStorageRuntimeException("文件移动失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
-                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
-        }
+        Check.sameMoveNotSupportedAcl(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameMoveNotSupportedMetadata(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameMoveBasePath(platform, basePath, srcFileInfo, destFileInfo);
 
         String srcPath = getAbsolutePath(srcFileInfo.getBasePath() + srcFileInfo.getPath());
         String destPath = getAbsolutePath(destFileInfo.getBasePath() + destFileInfo.getPath());

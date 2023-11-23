@@ -24,6 +24,7 @@ import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
 /**
@@ -74,10 +75,7 @@ public class MinioFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
-            throw new FileStorageRuntimeException(
-                    "文件上传失败，MinIO 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
-        }
+        Check.uploadNotSupportedAcl(platform, fileInfo, pre);
         MinioClient client = getClient();
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
             // MinIO 的 SDK 内部会自动分片上传
@@ -297,14 +295,8 @@ public class MinioFileStorage implements FileStorage {
 
     @Override
     public void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
-        if (srcFileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
-            throw new FileStorageRuntimeException(
-                    "文件复制失败，不支持设置 ACL！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
-        }
-        if (!basePath.equals(srcFileInfo.getBasePath())) {
-            throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
-                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
-        }
+        Check.sameCopyNotSupportedAcl(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameCopyBasePath(platform, basePath, srcFileInfo, destFileInfo);
         MinioClient client = getClient();
 
         // 获取远程文件信息
