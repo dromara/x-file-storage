@@ -68,16 +68,9 @@ public class LocalPlusFileStorage implements FileStorage {
             File newFile = FileUtil.touch(getAbsolutePath(newFileKey));
             FileWrapper fileWrapper = pre.getFileWrapper();
             if (fileWrapper.supportTransfer()) { // 移动文件，速度较快
-                ProgressListener listener = pre.getProgressListener();
-                if (listener != null) {
-                    listener.start();
-                    listener.progress(0, fileWrapper.getSize());
-                }
+                ProgressListener.quickStart(pre.getProgressListener(), fileWrapper.getSize());
                 fileWrapper.transferTo(newFile);
-                if (listener != null) {
-                    listener.progress(newFile.length(), fileWrapper.getSize());
-                    listener.finish();
-                }
+                ProgressListener.quickFinish(pre.getProgressListener(), fileWrapper.getSize());
                 if (fileInfo.getSize() == null) fileInfo.setSize(newFile.length());
             } else { // 通过输入流写入文件
                 InputStreamPlus in = pre.getInputStreamPlus();
