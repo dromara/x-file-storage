@@ -22,10 +22,10 @@
 	<a target="_blank" href='https://github.com/dromara/x-file-storage'>
 		<img src="https://img.shields.io/github/stars/dromara/x-file-storage.svg?style=social" alt="github star"/>
 	</a>
-    <a href='https://gitee.com/dromara/x-file-storage'>
+    <a target="_blank" href='https://gitee.com/dromara/x-file-storage'>
         <img src='https://gitee.com/dromara/x-file-storage/badge/star.svg?theme=dark' alt='star' />
     </a>
-    <a href='https://jq.qq.com/?_wv=1027&k=eGfeNqka'>
+    <a target="_blank" href='https://jq.qq.com/?_wv=1027&k=eGfeNqka'>
         <img src='https://img.shields.io/badge/QQ%E7%BE%A4-515706495-orange' alt='' />
     </a>
 </p>
@@ -287,6 +287,15 @@ X File Storage 感谢各位小伙伴的信任与支持，如果您已经在项�
     </a>
     <a href="https://x-file-storage.xuyanwu.cn" target="_blank">
         <img src="https://x-file-storage.xuyanwu.cn/assets/logo3.svg" alt="x-file-storage" title="">
+    </a>
+    <a href="https://wemq.nicholasld.cn" target="_blank">
+        <img src="https://x-file-storage.xuyanwu.cn/assets/link/WeMQ.png" alt="WeMQAQ" title="开源、高性能、安全、功能强大的物联网调试和管理解决方案。">
+    </a>
+    <a href="https://www.yuque.com/may-fly/mayfly-go" target="_blank">
+        <img src="https://x-file-storage.xuyanwu.cn/assets/link/mayfly-go.png" alt="Mayfly-Go" title="web版 linux、数据库、redis、mongo统一管理操作平台。">
+    </a>
+    <a href="https://akali.yomahub.com" target="_blank">
+        <img src="https://x-file-storage.xuyanwu.cn/assets/link/Akali.png" alt="Akali" title="Akali(阿卡丽)，轻量级本地化热点检测/降级框架，10秒钟即可接入使用！大流量下的神器">
     </a>
     <a href="https://dromara.org/zh/projects/" target="_blank">
         <img src="https://x-file-storage.xuyanwu.cn/assets/link/dromara.png" alt="dromara" title="让每一位开源爱好者，体会到开源的快乐。">
