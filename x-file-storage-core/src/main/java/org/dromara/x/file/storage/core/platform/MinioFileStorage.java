@@ -5,10 +5,7 @@ import io.minio.*;
 import io.minio.errors.*;
 import io.minio.http.Method;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -25,7 +22,7 @@ import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 
 /**
  * MinIO 存储
@@ -75,7 +72,7 @@ public class MinioFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        Check.uploadNotSupportedAcl(platform, fileInfo, pre);
+        Check.uploadNotSupportAcl(platform, fileInfo, pre);
         MinioClient client = getClient();
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
             // MinIO 的 SDK 内部会自动分片上传
@@ -107,15 +104,7 @@ public class MinioFileStorage implements FileStorage {
             }
 
             return true;
-        } catch (ErrorResponseException
-                | InsufficientDataException
-                | InternalException
-                | ServerException
-                | InvalidKeyException
-                | InvalidResponseException
-                | IOException
-                | NoSuchAlgorithmException
-                | XmlParserException e) {
+        } catch (Exception e) {
             try {
                 client.removeObject(RemoveObjectArgs.builder()
                         .bucket(bucketName)
@@ -123,8 +112,7 @@ public class MinioFileStorage implements FileStorage {
                         .build());
             } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
+            throw ExceptionFactory.upload(fileInfo, platform, e);
         }
     }
 
@@ -136,24 +124,16 @@ public class MinioFileStorage implements FileStorage {
     @Override
     public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
         int expiry = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
-        GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
-                .bucket(bucketName)
-                .object(getFileKey(fileInfo))
-                .method(Method.GET)
-                .expiry(expiry)
-                .build();
         try {
+            GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
+                    .bucket(bucketName)
+                    .object(getFileKey(fileInfo))
+                    .method(Method.GET)
+                    .expiry(expiry)
+                    .build();
             return getClient().getPresignedObjectUrl(args);
-        } catch (ErrorResponseException
-                | InsufficientDataException
-                | InternalException
-                | InvalidKeyException
-                | InvalidResponseException
-                | IOException
-                | NoSuchAlgorithmException
-                | XmlParserException
-                | ServerException e) {
-            throw new FileStorageRuntimeException("对文件生成可以签名访问的 URL 失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
         }
     }
 
@@ -162,24 +142,16 @@ public class MinioFileStorage implements FileStorage {
         String key = getThFileKey(fileInfo);
         if (key == null) return null;
         int expiry = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
-        GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
-                .bucket(bucketName)
-                .object(key)
-                .method(Method.GET)
-                .expiry(expiry)
-                .build();
         try {
+            GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
+                    .bucket(bucketName)
+                    .object(key)
+                    .method(Method.GET)
+                    .expiry(expiry)
+                    .build();
             return getClient().getPresignedObjectUrl(args);
-        } catch (ErrorResponseException
-                | InsufficientDataException
-                | InternalException
-                | InvalidKeyException
-                | InvalidResponseException
-                | IOException
-                | NoSuchAlgorithmException
-                | XmlParserException
-                | ServerException e) {
-            throw new FileStorageRuntimeException("对文件生成可以签名访问的 URL 失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
         }
     }
 
@@ -203,16 +175,8 @@ public class MinioFileStorage implements FileStorage {
                     .object(getFileKey(fileInfo))
                     .build());
             return true;
-        } catch (ErrorResponseException
-                | InsufficientDataException
-                | InternalException
-                | ServerException
-                | InvalidKeyException
-                | InvalidResponseException
-                | IOException
-                | NoSuchAlgorithmException
-                | XmlParserException e) {
-            throw new FileStorageRuntimeException("文件删除失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.delete(fileInfo, platform, e);
         }
     }
 
@@ -230,16 +194,9 @@ public class MinioFileStorage implements FileStorage {
             if ("NoSuchKey".equals(code)) {
                 return false;
             }
-            throw new FileStorageRuntimeException("查询文件是否存在失败！", e);
-        } catch (InsufficientDataException
-                | InternalException
-                | ServerException
-                | InvalidKeyException
-                | InvalidResponseException
-                | IOException
-                | NoSuchAlgorithmException
-                | XmlParserException e) {
-            throw new FileStorageRuntimeException("查询文件是否存在失败！", e);
+            throw ExceptionFactory.exists(fileInfo, platform, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.exists(fileInfo, platform, e);
         }
     }
 
@@ -251,40 +208,23 @@ public class MinioFileStorage implements FileStorage {
                 .object(getFileKey(fileInfo))
                 .build())) {
             consumer.accept(in);
-        } catch (ErrorResponseException
-                | InsufficientDataException
-                | InternalException
-                | ServerException
-                | InvalidKeyException
-                | InvalidResponseException
-                | IOException
-                | NoSuchAlgorithmException
-                | XmlParserException e) {
-            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.download(fileInfo, platform, e);
         }
     }
 
     @Override
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
-        if (StrUtil.isBlank(fileInfo.getThFilename())) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
-        }
+        Check.downloadThBlankThFilename(platform, fileInfo);
+
         MinioClient client = getClient();
         try (InputStream in = client.getObject(GetObjectArgs.builder()
                 .bucket(bucketName)
                 .object(getThFileKey(fileInfo))
                 .build())) {
             consumer.accept(in);
-        } catch (ErrorResponseException
-                | InsufficientDataException
-                | InternalException
-                | ServerException
-                | InvalidKeyException
-                | InvalidResponseException
-                | IOException
-                | NoSuchAlgorithmException
-                | XmlParserException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.downloadTh(fileInfo, platform, e);
         }
     }
 
@@ -295,7 +235,7 @@ public class MinioFileStorage implements FileStorage {
 
     @Override
     public void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
-        Check.sameCopyNotSupportedAcl(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameCopyNotSupportAcl(platform, srcFileInfo, destFileInfo, pre);
         Check.sameCopyBasePath(platform, basePath, srcFileInfo, destFileInfo);
         MinioClient client = getClient();
 
@@ -308,8 +248,7 @@ public class MinioFileStorage implements FileStorage {
                     .object(srcFileKey)
                     .build());
         } catch (Exception e) {
-            throw new FileStorageRuntimeException(
-                    "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, e);
         }
 
         // 复制缩略图文件
@@ -327,8 +266,7 @@ public class MinioFileStorage implements FileStorage {
                                 .build())
                         .build());
             } catch (Exception e) {
-                throw new FileStorageRuntimeException(
-                        "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+                throw ExceptionFactory.sameCopyTh(srcFileInfo, destFileInfo, platform, e);
             }
         }
 
@@ -383,8 +321,7 @@ public class MinioFileStorage implements FileStorage {
                         .build());
             } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopy(srcFileInfo, destFileInfo, platform, e);
         }
     }
 }

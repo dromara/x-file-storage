@@ -25,7 +25,7 @@ import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 
 /**
@@ -72,7 +72,7 @@ public class UpyunUssFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        Check.uploadNotSupportedAcl(platform, fileInfo, pre);
+        Check.uploadNotSupportAcl(platform, fileInfo, pre);
 
         RestManager manager = getClient();
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
@@ -97,13 +97,12 @@ public class UpyunUssFileStorage implements FileStorage {
             }
 
             return true;
-        } catch (IOException | UpException e) {
+        } catch (Exception e) {
             try {
                 manager.deleteFile(newFileKey, null).close();
-            } catch (IOException | UpException ignored) {
+            } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
+            throw ExceptionFactory.upload(fileInfo, platform, e);
         }
     }
 
@@ -155,8 +154,8 @@ public class UpyunUssFileStorage implements FileStorage {
         try (Response ignored = fileInfo.getThFilename() != null ? manager.deleteFile(thFile, null) : null;
                 Response ignored2 = manager.deleteFile(file, null)) {
             return true;
-        } catch (IOException | UpException e) {
-            throw new FileStorageRuntimeException("文件删除失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.delete(fileInfo, platform, e);
         }
     }
 
@@ -164,8 +163,8 @@ public class UpyunUssFileStorage implements FileStorage {
     public boolean exists(FileInfo fileInfo) {
         try {
             return exists(getFileKey(fileInfo));
-        } catch (IOException | UpException e) {
-            throw new FileStorageRuntimeException("判断文件是否存在失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.exists(fileInfo, platform, e);
         }
     }
 
@@ -180,34 +179,33 @@ public class UpyunUssFileStorage implements FileStorage {
                 ResponseBody body = response.body();
                 InputStream in = body == null ? null : body.byteStream()) {
             if (body == null) {
-                throw new FileStorageRuntimeException("文件下载失败，结果为 null ！fileInfo：" + fileInfo);
+                throw new NullPointerException("body is null");
             }
             if (!response.isSuccessful()) {
                 throw new UpException(IoUtil.read(in, StandardCharsets.UTF_8));
             }
             consumer.accept(in);
-        } catch (IOException | UpException e) {
-            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.download(fileInfo, platform, e);
         }
     }
 
     @Override
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
-        if (StrUtil.isBlank(fileInfo.getThFilename())) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
-        }
+        Check.downloadThBlankThFilename(platform, fileInfo);
+
         try (Response response = getClient().readFile(getThFileKey(fileInfo));
                 ResponseBody body = response.body();
                 InputStream in = body == null ? null : body.byteStream()) {
             if (body == null) {
-                throw new FileStorageRuntimeException("缩略图文件下载失败，结果为 null ！fileInfo：" + fileInfo);
+                throw new NullPointerException("body is null");
             }
             if (!response.isSuccessful()) {
                 throw new UpException(IoUtil.read(in, StandardCharsets.UTF_8));
             }
             consumer.accept(in);
-        } catch (IOException | UpException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.downloadTh(fileInfo, platform, e);
         }
     }
 
@@ -231,7 +229,7 @@ public class UpyunUssFileStorage implements FileStorage {
 
     @Override
     public void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
-        Check.sameCopyNotSupportedAcl(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameCopyNotSupportAcl(platform, srcFileInfo, destFileInfo, pre);
         Check.sameCopyBasePath(platform, basePath, srcFileInfo, destFileInfo);
 
         RestManager client = getClient();
@@ -244,8 +242,7 @@ public class UpyunUssFileStorage implements FileStorage {
             srcFileSize = Long.parseLong(
                     Objects.requireNonNull(response.header(RestManager.PARAMS.X_UPYUN_FILE_SIZE.getValue())));
         } catch (Exception e) {
-            throw new FileStorageRuntimeException(
-                    "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, e);
         }
 
         // 复制缩略图文件
@@ -257,8 +254,7 @@ public class UpyunUssFileStorage implements FileStorage {
                 checkResponse(client.copyFile(
                         destThFileKey, UpYunUtils.formatPath(bucketName, getThFileKey(srcFileInfo)), null));
             } catch (Exception e) {
-                throw new FileStorageRuntimeException(
-                        "缩略图文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+                throw ExceptionFactory.sameCopyTh(srcFileInfo, destFileInfo, platform, e);
             }
         }
 
@@ -279,8 +275,7 @@ public class UpyunUssFileStorage implements FileStorage {
                 IoUtil.close(client.deleteFile(destFileKey, null));
             } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopy(srcFileInfo, destFileInfo, platform, e);
         }
     }
 
@@ -291,7 +286,7 @@ public class UpyunUssFileStorage implements FileStorage {
 
     @Override
     public void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {
-        Check.sameMoveNotSupportedAcl(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameMoveNotSupportAcl(platform, srcFileInfo, destFileInfo, pre);
         Check.sameMoveBasePath(platform, basePath, srcFileInfo, destFileInfo);
 
         RestManager client = getClient();
@@ -304,8 +299,7 @@ public class UpyunUssFileStorage implements FileStorage {
             srcFileSize = Long.parseLong(
                     Objects.requireNonNull(response.header(RestManager.PARAMS.X_UPYUN_FILE_SIZE.getValue())));
         } catch (Exception e) {
-            throw new FileStorageRuntimeException(
-                    "文件移动失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameMoveNotFound(srcFileInfo, destFileInfo, platform, e);
         }
 
         // 移动缩略图文件
@@ -318,8 +312,7 @@ public class UpyunUssFileStorage implements FileStorage {
             try {
                 checkResponse(client.moveFile(destThFileKey, UpYunUtils.formatPath(bucketName, srcThFileKey), null));
             } catch (Exception e) {
-                throw new FileStorageRuntimeException(
-                        "缩略图文件移动失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+                throw ExceptionFactory.sameMoveTh(srcFileInfo, destFileInfo, platform, e);
             }
         }
 
@@ -344,8 +337,7 @@ public class UpyunUssFileStorage implements FileStorage {
                 }
             } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件移动失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameMove(srcFileInfo, destFileInfo, platform, e);
         }
     }
 }
