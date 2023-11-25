@@ -1,6 +1,5 @@
 package org.dromara.x.file.storage.core.platform;
 
-import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.util.StrUtil;
 import com.github.sardine.DavResource;
 import com.github.sardine.Sardine;
@@ -18,7 +17,7 @@ import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.util.Tools;
 
@@ -95,8 +94,8 @@ public class WebDavFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        Check.uploadNotSupportedAcl(platform, fileInfo, pre);
-        Check.uploadNotSupportedMetadata(platform, fileInfo, pre);
+        Check.uploadNotSupportAcl(platform, fileInfo, pre);
+        Check.uploadNotSupportMetadata(platform, fileInfo, pre);
 
         Sardine client = getClient();
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
@@ -117,13 +116,12 @@ public class WebDavFileStorage implements FileStorage {
             }
 
             return true;
-        } catch (IOException | IORuntimeException e) {
+        } catch (Exception e) {
             try {
                 client.delete(getUrl(newFileKey));
-            } catch (IOException ignored) {
+            } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
+            throw ExceptionFactory.upload(fileInfo, platform, e);
         }
     }
 
@@ -144,8 +142,8 @@ public class WebDavFileStorage implements FileStorage {
                 if (e.getStatusCode() != 404) throw e;
             }
             return true;
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件删除失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.delete(fileInfo, platform, e);
         }
     }
 
@@ -153,8 +151,8 @@ public class WebDavFileStorage implements FileStorage {
     public boolean exists(FileInfo fileInfo) {
         try {
             return getClient().exists(getUrl(getFileKey(fileInfo)));
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("查询文件是否存在失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.exists(fileInfo, platform, e);
         }
     }
 
@@ -162,21 +160,19 @@ public class WebDavFileStorage implements FileStorage {
     public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
         try (InputStream in = getClient().get(getUrl(getFileKey(fileInfo)))) {
             consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.download(fileInfo, platform, e);
         }
     }
 
     @Override
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
-        if (StrUtil.isBlank(fileInfo.getThFilename())) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
-        }
+        Check.downloadThBlankThFilename(platform, fileInfo);
 
         try (InputStream in = getClient().get(getUrl(getThFileKey(fileInfo)))) {
             consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.downloadTh(fileInfo, platform, e);
         }
     }
 
@@ -187,8 +183,8 @@ public class WebDavFileStorage implements FileStorage {
 
     @Override
     public void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
-        Check.sameCopyNotSupportedAcl(platform, srcFileInfo, destFileInfo, pre);
-        Check.sameCopyNotSupportedMetadata(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameCopyNotSupportAcl(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameCopyNotSupportMetadata(platform, srcFileInfo, destFileInfo, pre);
         Check.sameCopyBasePath(platform, basePath, srcFileInfo, destFileInfo);
 
         Sardine client = getClient();
@@ -199,16 +195,14 @@ public class WebDavFileStorage implements FileStorage {
         try {
             srcFile = client.list(srcFileUrl, 0, false).get(0);
         } catch (Exception e) {
-            throw new FileStorageRuntimeException(
-                    "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, e);
         }
 
         // 检查并创建父路径
         try {
             createDirectory(client, getUrl(destFileInfo.getBasePath() + destFileInfo.getPath()));
         } catch (Exception e) {
-            throw new FileStorageRuntimeException(
-                    "文件复制失败，检查并创建父路径失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopyCreatePath(srcFileInfo, destFileInfo, platform, e);
         }
 
         // 复制缩略图文件
@@ -220,8 +214,7 @@ public class WebDavFileStorage implements FileStorage {
             try {
                 client.copy(getUrl(getThFileKey(srcFileInfo)), destThFileUrl);
             } catch (Exception e) {
-                throw new FileStorageRuntimeException(
-                        "缩略图文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+                throw ExceptionFactory.sameCopyTh(srcFileInfo, destFileInfo, platform, e);
             }
         }
 
@@ -242,8 +235,7 @@ public class WebDavFileStorage implements FileStorage {
                 client.delete(destFileUrl);
             } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopy(srcFileInfo, destFileInfo, platform, e);
         }
     }
 
@@ -254,8 +246,8 @@ public class WebDavFileStorage implements FileStorage {
 
     @Override
     public void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {
-        Check.sameMoveNotSupportedAcl(platform, srcFileInfo, destFileInfo, pre);
-        Check.sameMoveNotSupportedMetadata(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameMoveNotSupportAcl(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameMoveNotSupportMetadata(platform, srcFileInfo, destFileInfo, pre);
         Check.sameMoveBasePath(platform, basePath, srcFileInfo, destFileInfo);
 
         Sardine client = getClient();
@@ -266,16 +258,14 @@ public class WebDavFileStorage implements FileStorage {
         try {
             srcFile = client.list(srcFileUrl, 0, false).get(0);
         } catch (Exception e) {
-            throw new FileStorageRuntimeException(
-                    "文件移动失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameMoveNotFound(srcFileInfo, destFileInfo, platform, e);
         }
 
         // 检查并创建父路径
         try {
             createDirectory(client, getUrl(destFileInfo.getBasePath() + destFileInfo.getPath()));
         } catch (Exception e) {
-            throw new FileStorageRuntimeException(
-                    "文件移动失败，检查并创建父路径失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameMoveCreatePath(srcFileInfo, destFileInfo, platform, e);
         }
 
         // 移动缩略图文件
@@ -289,8 +279,7 @@ public class WebDavFileStorage implements FileStorage {
             try {
                 client.move(srcThFileUrl, destThFileUrl);
             } catch (Exception e) {
-                throw new FileStorageRuntimeException(
-                        "缩略图文件移动失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+                throw ExceptionFactory.sameMoveTh(srcFileInfo, destFileInfo, platform, e);
             }
         }
 
@@ -317,8 +306,7 @@ public class WebDavFileStorage implements FileStorage {
                 }
             } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件移动失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameMove(srcFileInfo, destFileInfo, platform, e);
         }
     }
 }

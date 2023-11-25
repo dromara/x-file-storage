@@ -1,13 +1,14 @@
 package org.dromara.x.file.storage.core.exception;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 
 /**
- * 用于检查条件并抛出对应异常
+ * 用于检查条件并抛出对应异常，主要用于存储平台的实现类中
  */
 public class Check {
 
@@ -17,21 +18,33 @@ public class Check {
      * @param fileInfo 文件信息
      * @param pre 文件上传预处理对象
      */
-    public static void uploadNotSupportedAcl(String platform, FileInfo fileInfo, UploadPretreatment pre) {
+    public static void uploadNotSupportAcl(String platform, FileInfo fileInfo, UploadPretreatment pre) {
         if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
-            throw new FileStorageRuntimeException("文件上传失败，【" + platform + "】不支持设置 ACL！，" + fileInfo);
+            throw ExceptionFactory.uploadNotSupportAcl(fileInfo, platform);
         }
     }
+
     /**
      * 上传文件时，检查是否传入 Metadata，如果传入则按要求抛出异常
      * @param platform 存储平台名称
      * @param fileInfo 文件信息
      * @param pre 文件上传预处理对象
      */
-    public static void uploadNotSupportedMetadata(String platform, FileInfo fileInfo, UploadPretreatment pre) {
+    public static void uploadNotSupportMetadata(String platform, FileInfo fileInfo, UploadPretreatment pre) {
         if ((CollUtil.isNotEmpty(fileInfo.getMetadata()) || CollUtil.isNotEmpty(fileInfo.getUserMetadata()))
                 && pre.getNotSupportMetadataThrowException()) {
-            throw new FileStorageRuntimeException("文件上传失败，【" + platform + "】不支持设置 Metadata！，" + fileInfo);
+            throw ExceptionFactory.uploadNotSupportMetadata(fileInfo, platform);
+        }
+    }
+
+    /**
+     * 下载文件缩略图时，检查是否传入缩略图文件名，如果没有则按要求抛出异常
+     * @param platform 存储平台名称
+     * @param fileInfo 文件信息
+     */
+    public static void downloadThBlankThFilename(String platform, FileInfo fileInfo) {
+        if (StrUtil.isBlank(fileInfo.getThFilename())) {
+            throw ExceptionFactory.downloadThNotFound(fileInfo, platform);
         }
     }
 
@@ -42,11 +55,10 @@ public class Check {
      * @param destFileInfo 目标文件信息
      * @param pre 文件上传预处理对象
      */
-    public static void sameCopyNotSupportedAcl(
+    public static void sameCopyNotSupportAcl(
             String platform, FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
         if (srcFileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
-            throw new FileStorageRuntimeException(
-                    "文件复制失败，【" + platform + "】不支持设置 ACL！，srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+            throw ExceptionFactory.sameCopyNotSupportAcl(srcFileInfo, destFileInfo, platform);
         }
     }
     /**
@@ -56,25 +68,24 @@ public class Check {
      * @param destFileInfo 目标文件信息
      * @param pre 文件上传预处理对象
      */
-    public static void sameCopyNotSupportedMetadata(
+    public static void sameCopyNotSupportMetadata(
             String platform, FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
         if ((CollUtil.isNotEmpty(srcFileInfo.getMetadata()) || CollUtil.isNotEmpty(srcFileInfo.getUserMetadata()))
                 && pre.getNotSupportMetadataThrowException()) {
-            throw new FileStorageRuntimeException("文件复制失败，【" + platform + "】不支持设置 Metadata！，srcFileInfo：" + srcFileInfo
-                    + "，destFileInfo：" + destFileInfo);
+            throw ExceptionFactory.sameCopyNotSupportMetadata(srcFileInfo, destFileInfo, platform);
         }
     }
 
     /**
      * 同存储平台复制文件时，检查源文件 basePath 与当前存储平台的 basePath 是否一致，不一致则抛出异常
      * @param platform 存储平台名称
+     * @param basePath 存储平台的基础路径
      * @param srcFileInfo 源文件信息
      * @param destFileInfo 目标文件信息
      */
     public static void sameCopyBasePath(String platform, String basePath, FileInfo srcFileInfo, FileInfo destFileInfo) {
         if (!basePath.equals(srcFileInfo.getBasePath())) {
-            throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
-                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+            throw ExceptionFactory.sameCopyBasePath(basePath, srcFileInfo, destFileInfo, platform);
         }
     }
 
@@ -85,11 +96,10 @@ public class Check {
      * @param destFileInfo 目标文件信息
      * @param pre 文件上传预处理对象
      */
-    public static void sameMoveNotSupportedAcl(
+    public static void sameMoveNotSupportAcl(
             String platform, FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {
         if (srcFileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
-            throw new FileStorageRuntimeException(
-                    "文件移动失败，【" + platform + "】不支持设置 ACL！，srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+            throw ExceptionFactory.sameMoveNotSupportAcl(srcFileInfo, destFileInfo, platform);
         }
     }
     /**
@@ -99,12 +109,11 @@ public class Check {
      * @param destFileInfo 目标文件信息
      * @param pre 文件上传预处理对象
      */
-    public static void sameMoveNotSupportedMetadata(
+    public static void sameMoveNotSupportMetadata(
             String platform, FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {
         if ((CollUtil.isNotEmpty(srcFileInfo.getMetadata()) || CollUtil.isNotEmpty(srcFileInfo.getUserMetadata()))
                 && pre.getNotSupportMetadataThrowException()) {
-            throw new FileStorageRuntimeException("文件移动失败，【" + platform + "】不支持设置 Metadata！，srcFileInfo：" + srcFileInfo
-                    + "，destFileInfo：" + destFileInfo);
+            throw ExceptionFactory.sameMoveNotSupportMetadata(srcFileInfo, destFileInfo, platform);
         }
     }
 
@@ -116,8 +125,7 @@ public class Check {
      */
     public static void sameMoveBasePath(String platform, String basePath, FileInfo srcFileInfo, FileInfo destFileInfo) {
         if (!basePath.equals(srcFileInfo.getBasePath())) {
-            throw new FileStorageRuntimeException("文件移动失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
-                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+            throw ExceptionFactory.sameMoveBasePath(basePath, srcFileInfo, destFileInfo, platform);
         }
     }
 }

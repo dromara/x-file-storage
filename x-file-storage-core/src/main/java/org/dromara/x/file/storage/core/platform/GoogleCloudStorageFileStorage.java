@@ -11,7 +11,6 @@ import com.google.cloud.storage.*;
 import com.google.cloud.storage.Storage.CopyRequest;
 import com.google.cloud.storage.Storage.PredefinedAcl;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.util.*;
@@ -29,6 +28,7 @@ import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
+import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
 /**
@@ -108,10 +108,12 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
                         thOptionList.toArray(new Storage.BlobWriteOption[] {}));
             }
             return true;
-        } catch (IOException e) {
-            checkAndDelete(newFileKey);
-            throw new FileStorageRuntimeException(
-                    "文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
+        } catch (Exception e) {
+            try {
+                checkAndDelete(newFileKey);
+            } catch (Exception ignored) {
+            }
+            throw ExceptionFactory.upload(fileInfo, platform, e);
         }
     }
 
@@ -147,7 +149,7 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
                             .collect(Collectors.toList());
             return new AclWrapper(aclList);
         } else {
-            throw new FileStorageRuntimeException("不支持的ACL：" + acl);
+            throw ExceptionFactory.unrecognizedAcl(acl, platform);
         }
     }
 
@@ -204,32 +206,40 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
     public boolean setFileAcl(FileInfo fileInfo, Object acl) {
         AclWrapper oAcl = getAcl(acl);
         if (oAcl == null) return false;
-        BlobInfo.Builder builder = BlobInfo.newBuilder(bucketName, getFileKey(fileInfo));
-        if (oAcl.getAclList() != null) {
-            builder.setAcl(oAcl.getAclList());
-            getClient().update(builder.build());
-            return true;
-        } else if (oAcl.getPredefinedAcl() != null) {
-            getClient().update(builder.build(), Storage.BlobTargetOption.predefinedAcl(oAcl.getPredefinedAcl()));
-            return true;
+        try {
+            BlobInfo.Builder builder = BlobInfo.newBuilder(bucketName, getFileKey(fileInfo));
+            if (oAcl.getAclList() != null) {
+                builder.setAcl(oAcl.getAclList());
+                getClient().update(builder.build());
+                return true;
+            } else if (oAcl.getPredefinedAcl() != null) {
+                getClient().update(builder.build(), Storage.BlobTargetOption.predefinedAcl(oAcl.getPredefinedAcl()));
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            throw ExceptionFactory.setFileAcl(fileInfo, oAcl, platform, e);
         }
-        return false;
     }
 
     @Override
     public boolean setThFileAcl(FileInfo fileInfo, Object acl) {
         AclWrapper oAcl = getAcl(acl);
         if (oAcl == null) return false;
-        BlobInfo.Builder builder = BlobInfo.newBuilder(bucketName, getThFileKey(fileInfo));
-        if (oAcl.getAclList() != null) {
-            builder.setAcl(oAcl.getAclList());
-            getClient().update(builder.build());
-            return true;
-        } else if (oAcl.getPredefinedAcl() != null) {
-            getClient().update(builder.build(), Storage.BlobTargetOption.predefinedAcl(oAcl.getPredefinedAcl()));
-            return true;
+        try {
+            BlobInfo.Builder builder = BlobInfo.newBuilder(bucketName, getThFileKey(fileInfo));
+            if (oAcl.getAclList() != null) {
+                builder.setAcl(oAcl.getAclList());
+                getClient().update(builder.build());
+                return true;
+            } else if (oAcl.getPredefinedAcl() != null) {
+                getClient().update(builder.build(), Storage.BlobTargetOption.predefinedAcl(oAcl.getPredefinedAcl()));
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            throw ExceptionFactory.setThFileAcl(fileInfo, oAcl, platform, e);
         }
-        return false;
     }
 
     @Override
@@ -239,18 +249,30 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
 
     @Override
     public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
-        BlobInfo blobInfo =
-                BlobInfo.newBuilder(bucketName, getFileKey(fileInfo)).build();
-        long duration = expiration.getTime() - System.currentTimeMillis();
-        return getClient().signUrl(blobInfo, duration, TimeUnit.MILLISECONDS).toString();
+        try {
+            BlobInfo blobInfo =
+                    BlobInfo.newBuilder(bucketName, getFileKey(fileInfo)).build();
+            long duration = expiration.getTime() - System.currentTimeMillis();
+            return getClient()
+                    .signUrl(blobInfo, duration, TimeUnit.MILLISECONDS)
+                    .toString();
+        } catch (Exception e) {
+            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
+        }
     }
 
     @Override
     public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        BlobInfo blobInfo =
-                BlobInfo.newBuilder(bucketName, getThFileKey(fileInfo)).build();
-        long duration = expiration.getTime() - System.currentTimeMillis();
-        return getClient().signUrl(blobInfo, duration, TimeUnit.MILLISECONDS).toString();
+        try {
+            BlobInfo blobInfo =
+                    BlobInfo.newBuilder(bucketName, getThFileKey(fileInfo)).build();
+            long duration = expiration.getTime() - System.currentTimeMillis();
+            return getClient()
+                    .signUrl(blobInfo, duration, TimeUnit.MILLISECONDS)
+                    .toString();
+        } catch (Exception e) {
+            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+        }
     }
 
     @Override
@@ -275,19 +297,26 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
 
     @Override
     public boolean delete(FileInfo fileInfo) {
-        // 删除缩略图
-        if (fileInfo.getThFilename() != null) {
-            checkAndDelete(getThFileKey(fileInfo));
+        try {
+            if (fileInfo.getThFilename() != null) { // 删除缩略图
+                checkAndDelete(getThFileKey(fileInfo));
+            }
+            checkAndDelete(getFileKey(fileInfo));
+            return true;
+        } catch (Exception e) {
+            throw ExceptionFactory.delete(fileInfo, platform, e);
         }
-        checkAndDelete(getFileKey(fileInfo));
-        return true;
     }
 
     @Override
     public boolean exists(FileInfo fileInfo) {
-        Storage client = getClient();
-        BlobId blobId = BlobId.of(bucketName, getFileKey(fileInfo));
-        return client.get(blobId) != null;
+        try {
+            Storage client = getClient();
+            BlobId blobId = BlobId.of(bucketName, getFileKey(fileInfo));
+            return client.get(blobId) != null;
+        } catch (Exception e) {
+            throw ExceptionFactory.exists(fileInfo, platform, e);
+        }
     }
 
     @Override
@@ -298,8 +327,8 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
         try (ReadChannel readChannel = client.reader(blobId);
                 InputStream in = Channels.newInputStream(readChannel)) {
             consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.download(fileInfo, platform, e);
         }
     }
 
@@ -313,8 +342,8 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
         try (ReadChannel readChannel = client.reader(thBlobId);
                 InputStream in = Channels.newInputStream(readChannel)) {
             consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.downloadTh(fileInfo, platform, e);
         }
     }
 
@@ -349,12 +378,10 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
         try {
             srcFile = client.get(bucketName, srcFileKey);
             if (srcFile == null) {
-                throw new FileStorageRuntimeException(
-                        "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+                throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, null);
             }
         } catch (Exception e) {
-            throw new FileStorageRuntimeException(
-                    "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, e);
         }
 
         // 复制缩略图文件
@@ -362,11 +389,15 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
         if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
             destThFileKey = getThFileKey(destFileInfo);
             destFileInfo.setThUrl(domain + destThFileKey);
-            client.copy(CopyRequest.newBuilder()
-                            .setSource(BlobId.of(bucketName, getThFileKey(srcFileInfo)))
-                            .setTarget(BlobId.of(bucketName, destThFileKey))
-                            .build())
-                    .getResult();
+            try {
+                client.copy(CopyRequest.newBuilder()
+                                .setSource(BlobId.of(bucketName, getThFileKey(srcFileInfo)))
+                                .setTarget(BlobId.of(bucketName, destThFileKey))
+                                .build())
+                        .getResult();
+            } catch (Exception e) {
+                throw ExceptionFactory.sameCopyTh(srcFileInfo, destFileInfo, platform, e);
+            }
         }
 
         // 复制文件
@@ -390,8 +421,7 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
                 checkAndDelete(destFileKey);
             } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopy(srcFileInfo, destFileInfo, platform, e);
         }
     }
 }
