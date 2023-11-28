@@ -78,6 +78,7 @@
         <thumbnailator.version>0.4.20</thumbnailator.version>
         <tika-core.version>2.4.1</tika-core.version>
         <upyun-java-sdk.version>4.2.3</upyun-java-sdk.version>
+        <azure-storage-blob-sdk.version>12.23.1</azure-storage-blob-sdk.version>
     </properties>
 
     <dependencyManagement>
@@ -260,6 +261,15 @@
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-storage</artifactId>
                 <version>${google-cloud-storage.version}</version>
+                <scope>provided</scope>
+                <optional>true</optional>
+            </dependency>
+
+            <!-- 微软 Azure blob-->
+            <dependency>
+                <groupId>com.azure</groupId>
+                <artifactId>azure-storage-blob</artifactId>
+                <version>${azure-storage-blob-sdk.version}</version>
                 <scope>provided</scope>
                 <optional>true</optional>
             </dependency>

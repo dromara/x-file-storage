@@ -142,6 +142,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- 微软 Azure blob-->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!--糊涂工具类核心-->
         <dependency>
             <groupId>cn.hutool</groupId>

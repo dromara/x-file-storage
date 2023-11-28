@@ -120,6 +120,11 @@ public class SpringFileStorageProperties {
      */
     private List<? extends SpringGoogleCloudStorageConfig> googleCloudStorage = new ArrayList<>();
 
+    /**
+     * 微软Azure Blob
+     */
+    private List<? extends SpringAzureBlobStorageConfig> azureBlob = new ArrayList<>();
+
 
     /**
      * 转换成 FileStorageProperties ，并过滤掉没有启用的存储平台
@@ -144,6 +149,7 @@ public class SpringFileStorageProperties {
         properties.setSftp(sftp.stream().filter(SpringSftpConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setWebDav(WebDav.stream().filter(SpringWebDavConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setGoogleCloudStorage(googleCloudStorage.stream().filter(SpringGoogleCloudStorageConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setAzureBlob(azureBlob.stream().filter(SpringAzureBlobStorageConfig::getEnableStorage).collect(Collectors.toList()));
         return properties;
     }
 
@@ -331,4 +337,16 @@ public class SpringFileStorageProperties {
         private Boolean enableStorage = false;
     }
 
+
+    /**
+     * GoogleCloud Storage
+     */
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    public static class SpringAzureBlobStorageConfig extends AzureBlobStorageConfig {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
 }

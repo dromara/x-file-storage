@@ -97,6 +97,11 @@ public class FileStorageProperties {
     private List<? extends GoogleCloudStorageConfig> googleCloudStorage = new ArrayList<>();
 
     /**
+     * 微软Azure Blob
+     */
+    private List<? extends AzureBlobStorageConfig> azureBlob = new ArrayList<>();
+
+    /**
      * 基本的存储平台配置
      */
     @Data
@@ -589,6 +594,66 @@ public class FileStorageProperties {
          */
         private Map<String,Object> attr = new LinkedHashMap<>();
     }
+
+
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    public static class AzureBlobStorageConfig extends BaseConfig {
+
+        private String endPoint;
+
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+
+        /**
+         * 容器名称，类似于s3的bucketName
+         */
+        private String containerName;
+
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+
+
+        /**
+         * 连接字符串
+         */
+        private String connectionString;
+
+        /**
+         * 自动分片上传阈值，超过此大小则使用分片上传，默认值256M
+         */
+        private long multipartThreshold = 256 * 1024 * 1024L;
+        /**
+         * 自动分片上传时每个分片大小，默认 4MB
+         */
+        private long multipartPartSize = 4 * 1024 * 1024L;
+
+
+        /**
+         * 最大上传并行度
+         * 分片后 同时进行上传的 数量
+         * 数量太大会占用大量缓冲区
+         * 默认 8
+         */
+        private int maxConcurrency = 8;
+
+        /**
+         * 预签名 默认过期时间 单位 秒
+         * 默认15分钟
+         */
+        private long defaultExpirationTime = 15 * 60L;
+
+        /**
+         * 其它自定义配置
+         */
+        private Map<String,Object> attr = new LinkedHashMap<>();
+    }
+
+
 
     /**
      * 通用的 Client 对象池配置，详情见 {@link org.apache.commons.pool2.impl.GenericObjectPoolConfig}
