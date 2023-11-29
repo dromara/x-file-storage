@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,6 +25,8 @@ import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.upload.*;
 
 /**
  * 阿里云 OSS 存储
@@ -153,6 +156,131 @@ public class AliyunOssFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.upload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public boolean isSupportMultipartUpload() {
+        return true;
+    }
+
+    @Override
+    public void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
+        fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
+        fileInfo.setUrl(domain + newFileKey);
+        CannedAccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
+        ObjectMetadata metadata = getObjectMetadata(fileInfo, fileAcl);
+        OSS client = getClient();
+        try {
+            String uploadId = client.initiateMultipartUpload(
+                            new InitiateMultipartUploadRequest(bucketName, newFileKey, metadata))
+                    .getUploadId();
+
+            fileInfo.setUploadId(uploadId);
+        } catch (Exception e) {
+            throw ExceptionFactory.initiateMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public FilePartInfo uploadPart(UploadPartPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        ProgressListener listener = pre.getProgressListener();
+        OSS client = getClient();
+        FileWrapper partFileWrapper = pre.getPartFileWrapper();
+        Long partSize = partFileWrapper.getSize();
+        if (partSize == null) partSize = -1L;
+        try (InputStreamPlus in = pre.getInputStreamPlus(false)) {
+
+            UploadPartRequest part = new UploadPartRequest();
+            part.setBucketName(bucketName);
+            part.setKey(newFileKey);
+            part.setUploadId(fileInfo.getUploadId());
+            part.setInputStream(in);
+            part.setPartSize(partSize); // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为100 KB。
+            part.setPartNumber(
+                    pre.getPartNumber()); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，OSS将返回InvalidArgument错误码。
+            if (listener != null) {
+                AtomicLong progressSize = new AtomicLong();
+                part.setProgressListener(e -> {
+                    if (e.getEventType() == ProgressEventType.TRANSFER_STARTED_EVENT) {
+                        listener.start();
+                    } else if (e.getEventType() == ProgressEventType.REQUEST_BYTE_TRANSFER_EVENT) {
+                        listener.progress(progressSize.addAndGet(e.getBytes()), partFileWrapper.getSize());
+                    } else if (e.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT) {
+                        listener.finish();
+                    }
+                });
+            }
+            PartETag partETag = client.uploadPart(part).getPartETag();
+            FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+            filePartInfo.setETag(partETag.getETag());
+            filePartInfo.setPartNumber(partETag.getPartNumber());
+            filePartInfo.setPartSize(partETag.getPartSize());
+            return filePartInfo;
+        } catch (Exception e) {
+            throw ExceptionFactory.uploadPart(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        CannedAccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
+        OSS client = getClient();
+        try {
+            List<PartETag> partList = pre.getPartInfoList().stream()
+                    .map(part -> new PartETag(part.getPartNumber(), part.getETag()))
+                    .collect(Collectors.toList());
+
+            client.completeMultipartUpload(
+                    new CompleteMultipartUploadRequest(bucketName, newFileKey, fileInfo.getUploadId(), partList));
+            if (fileAcl != null) client.setObjectAcl(bucketName, newFileKey, fileAcl);
+
+        } catch (Exception e) {
+            throw ExceptionFactory.completeMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        CannedAccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
+        OSS client = getClient();
+        try {
+            client.abortMultipartUpload(
+                    new AbortMultipartUploadRequest(bucketName, newFileKey, fileInfo.getUploadId()));
+            if (fileAcl != null) client.setObjectAcl(bucketName, newFileKey, fileAcl);
+
+        } catch (Exception e) {
+            throw ExceptionFactory.abortMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public List<FilePartInfo> listParts(ListPartsPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        OSS client = getClient();
+        try {
+            PartListing partListing =
+                    client.listParts(new ListPartsRequest(bucketName, newFileKey, fileInfo.getUploadId()));
+            return partListing.getParts().stream()
+                    .map(p -> {
+                        FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+                        filePartInfo.setETag(p.getETag());
+                        filePartInfo.setPartNumber(p.getPartNumber());
+                        filePartInfo.setPartSize(p.getSize());
+                        filePartInfo.setLastModified(p.getLastModified());
+                        return filePartInfo;
+                    })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw ExceptionFactory.listParts(fileInfo, platform, e);
         }
     }
 

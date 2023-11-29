@@ -23,6 +23,7 @@ import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
+import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
 
 /**
@@ -394,6 +395,60 @@ public class FileStorageService {
      */
     public UploadPretreatment of(Object source, String name, String contentType) {
         return self.of(source, name, contentType, null);
+    }
+
+    /**
+     * 手动分片上传-初始化
+     */
+    public InitiateMultipartUploadPretreatment initiateMultipartUpload() {
+        InitiateMultipartUploadPretreatment pre = new InitiateMultipartUploadPretreatment();
+        pre.setFileStorageService(self);
+        pre.setPlatform(defaultPlatform);
+        return pre;
+    }
+
+    /**
+     * 手动分片上传-上传分片
+     * @param fileInfo 文件信息
+     * @param partNumber 分片号。每一个上传的分片都有一个分片号，一般情况下取值范围是1~10000
+     * @return 手动分片上传-上传分片预处理器
+     */
+    public UploadPartPretreatment uploadPart(FileInfo fileInfo, int partNumber) {
+        UploadPartPretreatment pre = new UploadPartPretreatment();
+        pre.setFileStorageService(self);
+        pre.setFileInfo(fileInfo);
+        pre.setPartNumber(partNumber);
+        return pre;
+    }
+
+    /**
+     * 手动分片上传-完成
+     */
+    public CompleteMultipartUploadPretreatment completeMultipartUpload(FileInfo fileInfo) {
+        CompleteMultipartUploadPretreatment pre = new CompleteMultipartUploadPretreatment();
+        pre.setFileStorageService(self);
+        pre.setFileInfo(fileInfo);
+        return pre;
+    }
+
+    /**
+     * 手动分片上传-取消
+     */
+    public AbortMultipartUploadPretreatment abortMultipartUpload(FileInfo fileInfo) {
+        AbortMultipartUploadPretreatment pre = new AbortMultipartUploadPretreatment();
+        pre.setFileStorageService(self);
+        pre.setFileInfo(fileInfo);
+        return pre;
+    }
+
+    /**
+     * 手动分片上传-列举已上传的分片
+     */
+    public ListPartsPretreatment listParts(FileInfo fileInfo) {
+        ListPartsPretreatment pre = new ListPartsPretreatment();
+        pre.setFileStorageService(self);
+        pre.setFileInfo(fileInfo);
+        return pre;
     }
 
     /**
