@@ -145,6 +145,11 @@ public class FileInfo implements Serializable {
     private Object thFileAcl;
 
     /**
+     * 上传ID，手动分片上传时使用
+     */
+    private String uploadId;
+
+    /**
      * 创建时间
      */
     private Date createTime;

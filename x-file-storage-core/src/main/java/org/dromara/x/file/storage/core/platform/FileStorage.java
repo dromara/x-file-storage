@@ -2,11 +2,13 @@ package org.dromara.x.file.storage.core.platform;
 
 import java.io.InputStream;
 import java.util.Date;
+import java.util.List;
 import java.util.function.Consumer;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
+import org.dromara.x.file.storage.core.upload.*;
 
 /**
  * 文件存储接口，对应各个平台
@@ -27,6 +29,42 @@ public interface FileStorage extends AutoCloseable {
      * 保存文件
      */
     boolean save(FileInfo fileInfo, UploadPretreatment pre);
+
+    /**
+     * 是否支持手动分片上传
+     */
+    default boolean isSupportMultipartUpload() {
+        return false;
+    }
+
+    /**
+     * 手动分片上传-初始化
+     */
+    default void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {}
+
+    /**
+     * 手动分片上传-上传分片
+     */
+    default FilePartInfo uploadPart(UploadPartPretreatment pre) {
+        return null;
+    }
+
+    /**
+     * 手动分片上传-完成
+     */
+    default void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {}
+
+    /**
+     * 手动分片上传-取消
+     */
+    default void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {}
+
+    /**
+     * 手动分片上传-列举已上传的分片
+     */
+    default List<FilePartInfo> listParts(ListPartsPretreatment pre) {
+        return null;
+    }
 
     /**
      * 是否支持对文件生成可以签名访问的 URL
