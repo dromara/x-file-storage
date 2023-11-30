@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.dromara.x.file.storage.test.mapper.FilePartDetailMapper">
+  <resultMap id="BaseResultMap" type="org.dromara.x.file.storage.test.model.FilePartDetail">
+    <!--@mbg.generated-->
+    <!--@Table file_part_detail-->
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="platform" jdbcType="VARCHAR" property="platform" />
+    <result column="upload_id" jdbcType="VARCHAR" property="uploadId" />
+    <result column="e_tag" jdbcType="VARCHAR" property="eTag" />
+    <result column="part_number" jdbcType="INTEGER" property="partNumber" />
+    <result column="part_size" jdbcType="BIGINT" property="partSize" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, platform, upload_id, e_tag, part_number, part_size, create_time
+  </sql>
+</mapper>

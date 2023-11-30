@@ -205,11 +205,11 @@ public class AliyunOssFileStorage implements FileStorage {
             if (listener != null) {
                 AtomicLong progressSize = new AtomicLong();
                 part.setProgressListener(e -> {
-                    if (e.getEventType() == ProgressEventType.TRANSFER_STARTED_EVENT) {
+                    if (e.getEventType() == ProgressEventType.TRANSFER_PART_STARTED_EVENT) {
                         listener.start();
                     } else if (e.getEventType() == ProgressEventType.REQUEST_BYTE_TRANSFER_EVENT) {
                         listener.progress(progressSize.addAndGet(e.getBytes()), partFileWrapper.getSize());
-                    } else if (e.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT) {
+                    } else if (e.getEventType() == ProgressEventType.TRANSFER_PART_COMPLETED_EVENT) {
                         listener.finish();
                     }
                 });
@@ -219,6 +219,7 @@ public class AliyunOssFileStorage implements FileStorage {
             filePartInfo.setETag(partETag.getETag());
             filePartInfo.setPartNumber(partETag.getPartNumber());
             filePartInfo.setPartSize(partETag.getPartSize());
+            filePartInfo.setCreateTime(new Date());
             return filePartInfo;
         } catch (Exception e) {
             throw ExceptionFactory.uploadPart(fileInfo, platform, e);
@@ -232,9 +233,18 @@ public class AliyunOssFileStorage implements FileStorage {
         CannedAccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
         OSS client = getClient();
         try {
-            List<PartETag> partList = pre.getPartInfoList().stream()
-                    .map(part -> new PartETag(part.getPartNumber(), part.getETag()))
-                    .collect(Collectors.toList());
+            List<PartETag> partList;
+            if (pre.getPartInfoList() != null) {
+                partList = pre.getPartInfoList().stream()
+                        .map(part -> new PartETag(part.getPartNumber(), part.getETag()))
+                        .collect(Collectors.toList());
+            } else {
+                PartListing partListing =
+                        client.listParts(new ListPartsRequest(bucketName, newFileKey, fileInfo.getUploadId()));
+                partList = partListing.getParts().stream()
+                        .map(part -> new PartETag(part.getPartNumber(), part.getETag()))
+                        .collect(Collectors.toList());
+            }
 
             client.completeMultipartUpload(
                     new CompleteMultipartUploadRequest(bucketName, newFileKey, fileInfo.getUploadId(), partList));

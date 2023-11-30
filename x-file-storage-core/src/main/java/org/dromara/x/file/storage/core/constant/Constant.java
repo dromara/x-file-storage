@@ -141,4 +141,20 @@ public interface Constant {
          */
         CROSS
     }
+
+    /**
+     * FileInfo 中上传状态的常量
+     * {@link org.dromara.x.file.storage.core.FileInfo#uploadStatus}
+     */
+    interface FileInfoUploadStatus {
+        /**
+         * 1：初始化完成
+         */
+        int INITIATE = 1;
+
+        /**
+         * 2：上传完成
+         */
+        int COMPLETE = 2;
+    }
 }

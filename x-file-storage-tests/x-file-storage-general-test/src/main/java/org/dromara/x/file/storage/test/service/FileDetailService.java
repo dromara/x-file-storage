@@ -12,8 +12,10 @@ import java.util.Map;
 import lombok.SneakyThrows;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
+import org.dromara.x.file.storage.core.upload.FilePartInfo;
 import org.dromara.x.file.storage.test.mapper.FileDetailMapper;
 import org.dromara.x.file.storage.test.model.FileDetail;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -23,6 +25,9 @@ import org.springframework.stereotype.Service;
 public class FileDetailService extends ServiceImpl<FileDetailMapper, FileDetail> implements FileRecorder {
 
     private ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    private FilePartDetailService filePartDetailService;
 
     /**
      * 保存文件信息到数据库
@@ -45,6 +50,30 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper, FileDetail>
             info.setId(detail.getId());
         }
         return b;
+    }
+
+    /**
+     * 更新文件记录，可以根据文件 ID 或 URL 来更新文件记录，
+     * 主要用在手动分片上传文件-完成上传，作用是更新文件信息
+     */
+    @SneakyThrows
+    @Override
+    public void update(FileInfo info) {
+        FileDetail detail = BeanUtil.copyProperties(
+                info, FileDetail.class, "metadata", "userMetadata", "thMetadata", "thUserMetadata", "attr");
+
+        // 这是手动获 元数据 并转成 json 字符串，方便存储在数据库中
+        detail.setMetadata(valueToJson(info.getMetadata()));
+        detail.setUserMetadata(valueToJson(info.getUserMetadata()));
+        detail.setThMetadata(valueToJson(info.getThMetadata()));
+        detail.setThUserMetadata(valueToJson(info.getThUserMetadata()));
+        // 这是手动获 取附加属性字典 并转成 json 字符串，方便存储在数据库中
+        detail.setAttr(valueToJson(info.getAttr()));
+
+        QueryWrapper<FileDetail> qw = new QueryWrapper<FileDetail>()
+                .eq(detail.getUrl() != null, FileDetail.COL_URL, detail.getUrl())
+                .eq(detail.getId() != null, FileDetail.COL_ID, detail.getId());
+        update(detail, qw);
     }
 
     /**
@@ -74,6 +103,23 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper, FileDetail>
     public boolean delete(String url) {
         remove(new QueryWrapper<FileDetail>().eq(FileDetail.COL_URL, url));
         return true;
+    }
+
+    /**
+     * 保存文件分片信息
+     * @param filePartInfo 文件分片信息
+     */
+    @Override
+    public void saveFilePart(FilePartInfo filePartInfo) {
+        filePartDetailService.saveFilePart(filePartInfo);
+    }
+
+    /**
+     * 删除文件分片信息
+     */
+    @Override
+    public void deleteFilePartByUploadId(String uploadId) {
+        filePartDetailService.deleteFilePartByUploadId(uploadId);
     }
 
     /**

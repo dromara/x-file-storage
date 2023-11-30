@@ -398,6 +398,30 @@ public class FileStorageService {
     }
 
     /**
+     * 默认使用的存储平台是否支持手动分片上传
+     */
+    public boolean isSupportMultipartUpload() {
+        return self.isSupportMultipartUpload(defaultPlatform);
+    }
+
+    /**
+     * 是否支持手动分片上传
+     */
+    public boolean isSupportMultipartUpload(String platform) {
+        FileStorage storage = self.getFileStorageVerify(platform);
+        return self.isSupportMultipartUpload(storage);
+    }
+
+    /**
+     * 是否支持手动分片上传
+     */
+    public boolean isSupportMultipartUpload(FileStorage fileStorage) {
+        if (fileStorage == null) return false;
+        return new IsSupportMultipartUploadAspectChain(aspectList, FileStorage::isSupportMultipartUpload)
+                .next(fileStorage);
+    }
+
+    /**
      * 手动分片上传-初始化
      */
     public InitiateMultipartUploadPretreatment initiateMultipartUpload() {
@@ -411,13 +435,32 @@ public class FileStorageService {
      * 手动分片上传-上传分片
      * @param fileInfo 文件信息
      * @param partNumber 分片号。每一个上传的分片都有一个分片号，一般情况下取值范围是1~10000
+     * @param source      源
      * @return 手动分片上传-上传分片预处理器
      */
-    public UploadPartPretreatment uploadPart(FileInfo fileInfo, int partNumber) {
+    public UploadPartPretreatment uploadPart(FileInfo fileInfo, int partNumber, Object source) {
+        return self.uploadPart(fileInfo, partNumber, source, null);
+    }
+
+    /**
+     * 手动分片上传-上传分片
+     * @param fileInfo 文件信息
+     * @param partNumber 分片号。每一个上传的分片都有一个分片号，一般情况下取值范围是1~10000
+     * @param source      源
+     * @param size        源的文件大小
+     * @return 手动分片上传-上传分片预处理器
+     */
+    public UploadPartPretreatment uploadPart(FileInfo fileInfo, int partNumber, Object source, Long size) {
         UploadPartPretreatment pre = new UploadPartPretreatment();
         pre.setFileStorageService(self);
         pre.setFileInfo(fileInfo);
         pre.setPartNumber(partNumber);
+        // 这是是个优化，如果是 FileWrapper 对象就直接使用，否则就创建 FileWrapper 并指定 contentType 避免自动识别造成性能浪费
+        if (source instanceof FileWrapper) {
+            pre.setPartFileWrapper((FileWrapper) source);
+        } else {
+            pre.setPartFileWrapper(self.wrapper(source, null, "application/octet-stream", size));
+        }
         return pre;
     }
 
