@@ -2,6 +2,7 @@ package org.dromara.x.file.storage.core.recorder;
 
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.upload.FilePartInfo;
 
 /**
  * 默认的文件记录者类，此类并不能真正保存、查询、删除记录，只是用来脱离数据库运行，保证文件上传功能可以正常使用
@@ -11,6 +12,8 @@ public class DefaultFileRecorder implements FileRecorder {
     public boolean save(FileInfo fileInfo) {
         return true;
     }
+
+    public void update(FileInfo fileInfo) {}
 
     @Override
     public FileInfo getByUrl(String url) {
@@ -22,4 +25,10 @@ public class DefaultFileRecorder implements FileRecorder {
     public boolean delete(String url) {
         return true;
     }
+
+    @Override
+    public void saveFilePart(FilePartInfo filePartInfo) {}
+
+    @Override
+    public void deleteFilePartByUploadId(String uploadId) {}
 }

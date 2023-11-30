@@ -1,8 +1,12 @@
 package org.dromara.x.file.storage.core.upload;
 
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
+import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
+import org.dromara.x.file.storage.core.aspect.ListPartsAspectChain;
+import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 
 /**
@@ -22,7 +26,12 @@ public class ListPartsActuator {
      */
     public List<FilePartInfo> execute() {
         FileInfo fileInfo = pre.getFileInfo();
+        Check.listParts(fileInfo);
+
         FileStorage fileStorage = fileStorageService.getFileStorageVerify(fileInfo.getPlatform());
-        return fileStorage.listParts(pre);
+        CopyOnWriteArrayList<FileStorageAspect> aspectList = fileStorageService.getAspectList();
+
+        return new ListPartsAspectChain(aspectList, (_pre, _fileStorage) -> _fileStorage.listParts(_pre))
+                .next(pre, fileStorage);
     }
 }

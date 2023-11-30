@@ -140,6 +140,18 @@ public class FileDetail {
     private String attr;
 
     /**
+     * 上传ID，仅在手动分片上传时使用
+     */
+    @TableField(value = "upload_id")
+    private String uploadId;
+
+    /**
+     * 上传状态，仅在手动分片上传时使用，1：初始化完成，2：上传完成
+     */
+    @TableField(value = "upload_status")
+    private Integer uploadStatus;
+
+    /**
      * 创建时间
      */
     @TableField(value = "create_time")
@@ -186,6 +198,10 @@ public class FileDetail {
     public static final String COL_TH_USER_METADATA = "th_user_metadata";
 
     public static final String COL_ATTR = "attr";
+
+    public static final String COL_UPLOAD_ID = "upload_id";
+
+    public static final String COL_UPLOAD_STATUS = "upload_status";
 
     public static final String COL_CREATE_TIME = "create_time";
 }

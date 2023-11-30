@@ -11,11 +11,13 @@ public class ExceptionFactory {
     public static final String UPLOAD_NOT_SUPPORT_ACL_MESSAGE_FORMAT = "文件上传失败，当前存储平台不支持 ALC！platform：{}，fileInfo：{}";
     public static final String UPLOAD_NOT_SUPPORT_METADATA_MESSAGE_FORMAT =
             "文件上传失败，当前存储平台不支持 Metadata！platform：{}，fileInfo：{}";
-    public static final String INITIATE_MULTIPART_UPLOAD_MESSAGE_FORMAT = "手动文件分片上传-初始化失败！platform：{}，filename：{}";
-    public static final String UPLOAD_PART_MESSAGE_FORMAT = "手动文件分片上传-上传分片失败！platform：{}，filename：{}";
-    public static final String COMPLETE_MULTIPART_UPLOAD_MESSAGE_FORMAT = "手动文件分片上传-完成失败！platform：{}，filename：{}";
-    public static final String ABORT_MULTIPART_UPLOAD_MESSAGE_FORMAT = "手动文件分片上传-取消失败！platform：{}，filename：{}";
-    public static final String LIST_PARTS_MESSAGE_FORMAT = "手动文件分片上传-列举已上传的分片失败！platform：{}，filename：{}";
+    public static final String INITIATE_MULTIPART_UPLOAD_MESSAGE_FORMAT = "手动文件分片上传-初始化失败！platform：{}，fileInfo：{}";
+    public static final String INITIATE_MULTIPART_UPLOAD_RECORDER_SAVE_MESSAGE_FORMAT =
+            "手动文件分片上传-初始化失败，文件记录保存失败！platform：{}，fileInfo：{}";
+    public static final String UPLOAD_PART_MESSAGE_FORMAT = "手动文件分片上传-上传分片失败！platform：{}，fileInfo：{}";
+    public static final String COMPLETE_MULTIPART_UPLOAD_MESSAGE_FORMAT = "手动文件分片上传-完成失败！platform：{}，fileInfo：{}";
+    public static final String ABORT_MULTIPART_UPLOAD_MESSAGE_FORMAT = "手动文件分片上传-取消失败！platform：{}，fileInfo：{}";
+    public static final String LIST_PARTS_MESSAGE_FORMAT = "手动文件分片上传-列举已上传的分片失败！platform：{}，fileInfo：{}";
     public static final String UNRECOGNIZED_ACL_MESSAGE_FORMAT = "无法识别此 ACL！platform：{}，ACL：{}";
     public static final String GENERATE_PRESIGNED_URL_MESSAGE_FORMAT = "对文件生成可以签名访问的 URL 失败！platform：{}，fileInfo：{}";
     public static final String GENERATE_TH_PRESIGNED_URL_MESSAGE_FORMAT =
@@ -94,9 +96,20 @@ public class ExceptionFactory {
      */
     public static FileStorageRuntimeException initiateMultipartUpload(FileInfo fileInfo, String platform, Exception e) {
         return new FileStorageRuntimeException(
-                StrUtil.format(INITIATE_MULTIPART_UPLOAD_MESSAGE_FORMAT, fileInfo.getOriginalFilename(), platform), e);
+                StrUtil.format(INITIATE_MULTIPART_UPLOAD_MESSAGE_FORMAT, platform, fileInfo), e);
     }
-
+    /**
+     * 手动分片上传-初始化失败，文件记录保存失败异常
+     * @param fileInfo 文件信息
+     * @param platform 存储平台名称
+     * @param e 源异常
+     * @return {@link FileStorageRuntimeException}
+     */
+    public static FileStorageRuntimeException initiateMultipartUploadRecorderSave(
+            FileInfo fileInfo, String platform, Exception e) {
+        return new FileStorageRuntimeException(
+                StrUtil.format(INITIATE_MULTIPART_UPLOAD_RECORDER_SAVE_MESSAGE_FORMAT, platform, fileInfo), e);
+    }
     /**
      * 手动分片上传-上传分片异常
      * @param fileInfo 文件信息
@@ -105,8 +118,7 @@ public class ExceptionFactory {
      * @return {@link FileStorageRuntimeException}
      */
     public static FileStorageRuntimeException uploadPart(FileInfo fileInfo, String platform, Exception e) {
-        return new FileStorageRuntimeException(
-                StrUtil.format(UPLOAD_PART_MESSAGE_FORMAT, fileInfo.getOriginalFilename(), platform), e);
+        return new FileStorageRuntimeException(StrUtil.format(UPLOAD_PART_MESSAGE_FORMAT, platform, fileInfo), e);
     }
 
     /**
@@ -118,7 +130,7 @@ public class ExceptionFactory {
      */
     public static FileStorageRuntimeException completeMultipartUpload(FileInfo fileInfo, String platform, Exception e) {
         return new FileStorageRuntimeException(
-                StrUtil.format(COMPLETE_MULTIPART_UPLOAD_MESSAGE_FORMAT, fileInfo.getOriginalFilename(), platform), e);
+                StrUtil.format(COMPLETE_MULTIPART_UPLOAD_MESSAGE_FORMAT, platform, fileInfo), e);
     }
 
     /**
@@ -130,7 +142,7 @@ public class ExceptionFactory {
      */
     public static FileStorageRuntimeException abortMultipartUpload(FileInfo fileInfo, String platform, Exception e) {
         return new FileStorageRuntimeException(
-                StrUtil.format(ABORT_MULTIPART_UPLOAD_MESSAGE_FORMAT, fileInfo.getOriginalFilename(), platform), e);
+                StrUtil.format(ABORT_MULTIPART_UPLOAD_MESSAGE_FORMAT, platform, fileInfo), e);
     }
 
     /**
@@ -141,8 +153,7 @@ public class ExceptionFactory {
      * @return {@link FileStorageRuntimeException}
      */
     public static FileStorageRuntimeException listParts(FileInfo fileInfo, String platform, Exception e) {
-        return new FileStorageRuntimeException(
-                StrUtil.format(LIST_PARTS_MESSAGE_FORMAT, fileInfo.getOriginalFilename(), platform), e);
+        return new FileStorageRuntimeException(StrUtil.format(LIST_PARTS_MESSAGE_FORMAT, platform, fileInfo), e);
     }
 
     /**

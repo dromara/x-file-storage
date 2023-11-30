@@ -128,4 +128,72 @@ public class Check {
             throw ExceptionFactory.sameMoveBasePath(basePath, srcFileInfo, destFileInfo, platform);
         }
     }
+
+    /**
+     * 手动分片上传-上传分片时，检查文件信息相关参数，如果缺少则抛出异常
+     * @param fileInfo 文件信息
+     */
+    public static void uploadPart(FileInfo fileInfo) {
+        if (fileInfo == null) throw new FileStorageRuntimeException("手动分片上传-上传分片失败，请传入 fileInfo 参数");
+        if (fileInfo.getPlatform() == null)
+            throw new FileStorageRuntimeException("手动分片上传-上传分片失败，请在 FileInfo 中传入 platform 参数");
+        if (fileInfo.getBasePath() == null)
+            throw new FileStorageRuntimeException("手动分片上传-上传分片失败，请在 FileInfo 中传入 basePath 参数");
+        if (fileInfo.getPath() == null) throw new FileStorageRuntimeException("手动分片上传-上传分片失败，请在 FileInfo 中传入 path 参数");
+        if (fileInfo.getFilename() == null)
+            throw new FileStorageRuntimeException("手动分片上传-上传分片失败，请在 FileInfo 中传入 filename 参数");
+        if (fileInfo.getUploadId() == null) throw new RuntimeException("手动分片上传-上传分片失败，请在 FileInfo 中传入 uploadId 参数");
+    }
+
+    /**
+     * 手动分片上传-完成时，检查文件信息相关参数，如果缺少则抛出异常
+     * @param fileInfo 文件信息
+     */
+    public static void completeMultipartUpload(FileInfo fileInfo) {
+        if (fileInfo == null) throw new FileStorageRuntimeException("手动分片上传-完成失败，请传入 fileInfo 参数");
+        if (fileInfo.getPlatform() == null)
+            throw new FileStorageRuntimeException("手动分片上传-完成失败，请在 FileInfo 中传入 platform 参数");
+        if (fileInfo.getBasePath() == null)
+            throw new FileStorageRuntimeException("手动分片上传-完成失败，请在 FileInfo 中传入 basePath 参数");
+        if (fileInfo.getPath() == null) throw new FileStorageRuntimeException("手动分片上传-完成失败，请在 FileInfo 中传入 path 参数");
+        if (fileInfo.getFilename() == null)
+            throw new FileStorageRuntimeException("手动分片上传-完成失败，请在 FileInfo 中传入 filename 参数");
+        if (fileInfo.getId() == null && fileInfo.getUrl() == null)
+            throw new RuntimeException("手动分片上传-完成失败，请在 FileInfo 中传入 id 或 url 参数");
+        if (fileInfo.getUploadId() == null) throw new RuntimeException("手动分片上传-完成失败，请在 FileInfo 中传入 uploadId 参数");
+    }
+
+    /**
+     * 手动分片上传-取消时，检查文件信息相关参数，如果缺少则抛出异常
+     * @param fileInfo 文件信息
+     */
+    public static void abortMultipartUpload(FileInfo fileInfo) {
+        if (fileInfo == null) throw new FileStorageRuntimeException("手动分片上传-取消失败，请传入 fileInfo 参数");
+        if (fileInfo.getPlatform() == null)
+            throw new FileStorageRuntimeException("手动分片上传-取消失败，请在 FileInfo 中传入 platform 参数");
+        if (fileInfo.getBasePath() == null)
+            throw new FileStorageRuntimeException("手动分片上传-取消失败，请在 FileInfo 中传入 basePath 参数");
+        if (fileInfo.getPath() == null) throw new FileStorageRuntimeException("手动分片上传-取消失败，请在 FileInfo 中传入 path 参数");
+        if (fileInfo.getFilename() == null)
+            throw new FileStorageRuntimeException("手动分片上传-取消失败，请在 FileInfo 中传入 filename 参数");
+        if (fileInfo.getUrl() == null) throw new FileStorageRuntimeException("手动分片上传-取消失败，请在 FileInfo 中传入 url 参数");
+        if (fileInfo.getUploadId() == null) throw new RuntimeException("手动分片上传-取消失败，请在 FileInfo 中传入 uploadId 参数");
+    }
+
+    /**
+     * 手动分片上传-列举已上传的分片时，检查文件信息相关参数，如果缺少则抛出异常
+     * @param fileInfo 文件信息
+     */
+    public static void listParts(FileInfo fileInfo) {
+        if (fileInfo == null) throw new FileStorageRuntimeException("手动分片上传-列举已上传的分片失败，请传入 fileInfo 参数");
+        if (fileInfo.getPlatform() == null)
+            throw new FileStorageRuntimeException("手动分片上传-列举已上传的分片失败，请在 FileInfo 中传入 platform 参数");
+        if (fileInfo.getBasePath() == null)
+            throw new FileStorageRuntimeException("手动分片上传-列举已上传的分片失败，请在 FileInfo 中传入 basePath 参数");
+        if (fileInfo.getPath() == null)
+            throw new FileStorageRuntimeException("手动分片上传-列举已上传的分片失败，请在 FileInfo 中传入 path 参数");
+        if (fileInfo.getFilename() == null)
+            throw new FileStorageRuntimeException("手动分片上传-列举已上传的分片失败，请在 FileInfo 中传入 filename 参数");
+        if (fileInfo.getUploadId() == null) throw new RuntimeException("手动分片上传-列举已上传的分片失败，请在 FileInfo 中传入 uploadId 参数");
+    }
 }
