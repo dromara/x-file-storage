@@ -3,16 +3,12 @@ package org.dromara.x.file.storage.core.platform;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.text.StrPool;
 import cn.hutool.core.util.StrUtil;
-import java.io.*;
-import java.util.Map;
-import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
 import org.csource.common.MyException;
 import org.csource.common.NameValuePair;
 import org.csource.fastdfs.DownloadCallback;
 import org.csource.fastdfs.StorageClient;
-import org.csource.fastdfs.UploadCallback;
 import org.csource.fastdfs.UploadStream;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.FastDfsConfig;
@@ -20,12 +16,12 @@ import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.constant.FormatTemplate;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
-import org.dromara.x.file.storage.core.file.FileWrapper;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -87,7 +83,6 @@ public class FastDfsFileStorage implements FileStorage {
     @Override
     public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
         Check.uploadNotSupportAcl(getPlatform(), fileInfo, pre);
-        FileWrapper fileWrapper = pre.getFileWrapper();
         try (InputStream in = pre.getInputStreamPlus()) {
             String[] fileUpload = clientFactory
                     .getClient()
@@ -127,7 +122,7 @@ public class FastDfsFileStorage implements FileStorage {
     /**
      * Get object metadata.
      *
-     * @param fileInfo
+     * @param fileInfo file Info
      * @return {@link NameValuePair[]}
      */
     private NameValuePair[] getObjectMetadata(FileInfo fileInfo, Function<FileInfo, Map<String, String>> function) {
