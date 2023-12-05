@@ -189,8 +189,7 @@ public class FastDfsFileStorage implements FileStorage {
                         try {
                             pos.write(data, 0, bytes);
                         } catch (Exception e) {
-                            log.error("FastDFS file storage download failed.", e);
-                            return 1;
+                            throw ExceptionFactory.download(fileInfo, getPlatform(), e);
                         }
                         return 0;
                     });
