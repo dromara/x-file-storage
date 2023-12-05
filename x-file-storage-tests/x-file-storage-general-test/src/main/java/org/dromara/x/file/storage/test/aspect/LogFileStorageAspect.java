@@ -3,13 +3,17 @@ package org.dromara.x.file.storage.test.aspect;
 import cn.hutool.core.util.ArrayUtil;
 import java.io.InputStream;
 import java.util.Date;
+import java.util.List;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.aspect.*;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
+import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
+import org.dromara.x.file.storage.core.upload.*;
 import org.springframework.stereotype.Component;
 
 /**
@@ -33,6 +37,91 @@ public class LogFileStorageAspect implements FileStorageAspect {
         fileInfo = chain.next(fileInfo, pre, fileStorage, fileRecorder);
         log.info("上传文件 after -> {}", fileInfo);
         return fileInfo;
+    }
+
+    /**
+     * 是否支持手动分片上传
+     */
+    @Override
+    public boolean isSupportMultipartUpload(IsSupportMultipartUploadAspectChain chain, FileStorage fileStorage) {
+        log.info("是否支持手动分片上传 before -> {}", fileStorage.getPlatform());
+        boolean res = chain.next(fileStorage);
+        log.info("是否支持手动分片上传 -> {}", res);
+        return res;
+    }
+
+    /**
+     * 手动分片上传-初始化，成功返回文件信息，失败返回 null
+     */
+    @Override
+    public FileInfo initiateMultipartUploadAround(
+            InitiateMultipartUploadAspectChain chain,
+            FileInfo fileInfo,
+            InitiateMultipartUploadPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        log.info("手动分片上传-初始化 before -> {}", fileInfo);
+        fileInfo = chain.next(fileInfo, pre, fileStorage, fileRecorder);
+        log.info("手动分片上传-初始化 after -> {}", fileInfo);
+        return fileInfo;
+    }
+
+    /**
+     * 手动分片上传-上传分片，成功返回文件信息
+     */
+    @Override
+    public FilePartInfo uploadPart(
+            UploadPartAspectChain chain,
+            UploadPartPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        log.info("手动分片上传-上传分片 before -> {}", pre.getFileInfo());
+        FilePartInfo filePartInfo = chain.next(pre, fileStorage, fileRecorder);
+        log.info("手动分片上传-上传分片 after -> {}", filePartInfo);
+        return filePartInfo;
+    }
+
+    /**
+     * 手动分片上传-完成
+     */
+    @Override
+    public FileInfo completeMultipartUploadAround(
+            CompleteMultipartUploadAspectChain chain,
+            CompleteMultipartUploadPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder,
+            ContentTypeDetect contentTypeDetect) {
+        log.info("手动分片上传-完成 before -> {}", pre.getFileInfo());
+        FileInfo fileInfo = chain.next(pre, fileStorage, fileRecorder, contentTypeDetect);
+        log.info("手动分片上传-完成 after -> {}", fileInfo);
+        return fileInfo;
+    }
+
+    /**
+     * 手动分片上传-取消
+     */
+    @Override
+    public FileInfo abortMultipartUploadAround(
+            AbortMultipartUploadAspectChain chain,
+            AbortMultipartUploadPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        log.info("手动分片上传-取消 before -> {}", pre.getFileInfo());
+        FileInfo fileInfo = chain.next(pre, fileStorage, fileRecorder);
+        log.info("手动分片上传-取消 after -> {}", fileInfo);
+        return fileInfo;
+    }
+
+    /**
+     * 手动分片上传-列举已上传的分片
+     */
+    @Override
+    public List<FilePartInfo> listParts(
+            ListPartsAspectChain chain, ListPartsPretreatment pre, FileStorage fileStorage) {
+        log.info("手动分片上传-列举已上传的分片 before -> {}", pre.getFileInfo());
+        List<FilePartInfo> list = chain.next(pre, fileStorage);
+        log.info("手动分片上传-列举已上传的分片 after -> {}", list);
+        return list;
     }
 
     /**
@@ -146,6 +235,61 @@ public class LogFileStorageAspect implements FileStorageAspect {
         boolean res = chain.next(fileInfo, acl, fileStorage);
         log.info("设置缩略图文件的访问控制列表 URL after -> {}", res);
         return res;
+    }
+
+    /**
+     * 是否支持 Metadata
+     */
+    @Override
+    public boolean isSupportMetadataAround(IsSupportMetadataAspectChain chain, FileStorage fileStorage) {
+        log.info("是否支持 Metadata before -> {}", fileStorage.getPlatform());
+        boolean res = chain.next(fileStorage);
+        log.info("是否支持 Metadata -> {}", res);
+        return res;
+    }
+
+    /**
+     * 是否支持同存储平台复制
+     */
+    @Override
+    public boolean isSupportSameCopyAround(IsSupportSameCopyAspectChain chain, FileStorage fileStorage) {
+        log.info("是否支持同存储平台复制 before -> {}", fileStorage.getPlatform());
+        boolean res = chain.next(fileStorage);
+        log.info("是否支持同存储平台复制 -> {}", res);
+        return res;
+    }
+
+    /**
+     * 同存储平台复制，成功返回文件信息
+     */
+    @Override
+    public FileInfo sameCopyAround(
+            SameCopyAspectChain chain,
+            FileInfo srcFileInfo,
+            FileInfo destFileInfo,
+            CopyPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        log.info("同存储平台复制文件 before -> srcFileInfo：{}，destFileInfo：{}", srcFileInfo, destFileInfo);
+        destFileInfo = chain.next(srcFileInfo, destFileInfo, pre, fileStorage, fileRecorder);
+        log.info("同存储平台复制文件 after -> srcFileInfo：{}，destFileInfo：{}", srcFileInfo, destFileInfo);
+        return destFileInfo;
+    }
+
+    /**
+     * 复制，成功返回文件信息
+     */
+    @Override
+    public FileInfo copyAround(
+            CopyAspectChain chain,
+            FileInfo srcFileInfo,
+            CopyPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        log.info("复制文件 before -> {}", srcFileInfo);
+        srcFileInfo = chain.next(srcFileInfo, pre, fileStorage, fileRecorder);
+        log.info("复制文件 after -> {}", srcFileInfo);
+        return srcFileInfo;
     }
 
     /**

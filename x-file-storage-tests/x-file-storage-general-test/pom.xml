@@ -48,15 +48,15 @@
         <!--            <artifactId>sardine</artifactId>-->
         <!--        </dependency>-->
         <!-- SFTP -->
-        <!--        <dependency>-->
-        <!--            <groupId>com.jcraft</groupId>-->
-        <!--            <artifactId>jsch</artifactId>-->
-        <!--        </dependency>-->
+                <dependency>
+                    <groupId>com.jcraft</groupId>
+                    <artifactId>jsch</artifactId>
+                </dependency>
         <!-- FTP -->
-        <!--        <dependency>-->
-        <!--            <groupId>commons-net</groupId>-->
-        <!--            <artifactId>commons-net</artifactId>-->
-        <!--        </dependency>-->
+                <dependency>
+                    <groupId>commons-net</groupId>
+                    <artifactId>commons-net</artifactId>
+                </dependency>
         <!-- Amazon S3 -->
         <!--        <dependency>-->
         <!--            <groupId>com.amazonaws</groupId>-->

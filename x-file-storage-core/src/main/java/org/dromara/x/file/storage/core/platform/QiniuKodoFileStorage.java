@@ -7,7 +7,6 @@ import com.qiniu.storage.BucketManager;
 import com.qiniu.storage.UploadManager;
 import com.qiniu.util.StringMap;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Date;
@@ -20,7 +19,10 @@ import org.dromara.x.file.storage.core.FileStorageProperties.QiniuKodoConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.exception.Check;
+import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.QiniuKodoFileStorageClientFactory.QiniuKodoClient;
 
 /**
@@ -67,10 +69,7 @@ public class QiniuKodoFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
-            throw new FileStorageRuntimeException(
-                    "文件上传失败，七牛云 Kodo 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
-        }
+        Check.uploadNotSupportAcl(platform, fileInfo, pre);
 
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
             // 七牛云 Kodo 的 SDK 内部会自动分片上传
@@ -93,13 +92,12 @@ public class QiniuKodoFileStorage implements FileStorage {
             }
 
             return true;
-        } catch (IOException e) {
+        } catch (Exception e) {
             try {
                 getClient().getBucketManager().delete(bucketName, newFileKey);
-            } catch (QiniuException ignored) {
+            } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
+            throw ExceptionFactory.upload(fileInfo, platform, e);
         }
     }
 
@@ -142,15 +140,23 @@ public class QiniuKodoFileStorage implements FileStorage {
 
     @Override
     public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
-        int deadline = (int) (expiration.getTime() / 1000);
-        return getClient().getAuth().privateDownloadUrlWithDeadline(fileInfo.getUrl(), deadline);
+        try {
+            int deadline = (int) (expiration.getTime() / 1000);
+            return getClient().getAuth().privateDownloadUrlWithDeadline(fileInfo.getUrl(), deadline);
+        } catch (Exception e) {
+            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
+        }
     }
 
     @Override
     public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        if (StrUtil.isBlank(fileInfo.getThUrl())) return null;
-        int deadline = (int) (expiration.getTime() / 1000);
-        return getClient().getAuth().privateDownloadUrlWithDeadline(fileInfo.getThUrl(), deadline);
+        try {
+            if (StrUtil.isBlank(fileInfo.getThUrl())) return null;
+            int deadline = (int) (expiration.getTime() / 1000);
+            return getClient().getAuth().privateDownloadUrlWithDeadline(fileInfo.getThUrl(), deadline);
+        } catch (Exception e) {
+            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+        }
     }
 
     @Override
@@ -166,8 +172,8 @@ public class QiniuKodoFileStorage implements FileStorage {
                 delete(manager, getThFileKey(fileInfo));
             }
             delete(manager, getFileKey(fileInfo));
-        } catch (QiniuException e) {
-            throw new FileStorageRuntimeException("删除文件失败！" + e.code() + "，" + e.response.toString(), e);
+        } catch (Exception e) {
+            throw ExceptionFactory.delete(fileInfo, platform, e);
         }
         return true;
     }
@@ -184,13 +190,21 @@ public class QiniuKodoFileStorage implements FileStorage {
 
     @Override
     public boolean exists(FileInfo fileInfo) {
+        try {
+            return exists(getFileKey(fileInfo));
+        } catch (Exception e) {
+            throw ExceptionFactory.exists(fileInfo, platform, e);
+        }
+    }
+
+    public boolean exists(String fileKey) throws QiniuException {
         BucketManager manager = getClient().getBucketManager();
         try {
-            com.qiniu.storage.model.FileInfo stat = manager.stat(bucketName, getFileKey(fileInfo));
+            com.qiniu.storage.model.FileInfo stat = manager.stat(bucketName, fileKey);
             if (stat != null && (StrUtil.isNotBlank(stat.md5) || StrUtil.isNotBlank(stat.hash))) return true;
         } catch (QiniuException e) {
             if (e.code() == 612) return false;
-            throw new FileStorageRuntimeException("查询文件是否存在失败！" + e.code() + "，" + e.response.toString(), e);
+            throw e;
         }
         return false;
     }
@@ -200,35 +214,32 @@ public class QiniuKodoFileStorage implements FileStorage {
         String url = getClient().getAuth().privateDownloadUrl(fileInfo.getUrl());
         try (InputStream in = new URL(url).openStream()) {
             consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.download(fileInfo, platform, e);
         }
     }
 
     @Override
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
-        if (StrUtil.isBlank(fileInfo.getThUrl())) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
-        }
+        Check.downloadThBlankThFilename(platform, fileInfo);
+
         String url = getClient().getAuth().privateDownloadUrl(fileInfo.getThUrl());
         try (InputStream in = new URL(url).openStream()) {
             consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.downloadTh(fileInfo, platform, e);
         }
     }
 
     @Override
-    public boolean isSupportCopy() {
+    public boolean isSupportSameCopy() {
         return true;
     }
 
     @Override
-    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, ProgressListener progressListener) {
-        if (!basePath.equals(srcFileInfo.getBasePath())) {
-            throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
-                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
-        }
+    public void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
+        Check.sameCopyNotSupportAcl(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameCopyBasePath(platform, basePath, srcFileInfo, destFileInfo);
 
         BucketManager manager = getClient().getBucketManager();
 
@@ -238,12 +249,10 @@ public class QiniuKodoFileStorage implements FileStorage {
         try {
             srcFile = manager.stat(bucketName, srcFileKey);
             if (srcFile == null || (StrUtil.isBlank(srcFile.md5) && StrUtil.isBlank(srcFile.hash))) {
-                throw new FileStorageRuntimeException(
-                        "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+                throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, null);
             }
         } catch (Exception e) {
-            throw new FileStorageRuntimeException(
-                    "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, e);
         }
 
         // 复制缩略图文件
@@ -254,8 +263,7 @@ public class QiniuKodoFileStorage implements FileStorage {
             try {
                 manager.copy(bucketName, getThFileKey(srcFileInfo), bucketName, destThFileKey, true);
             } catch (Exception e) {
-                throw new FileStorageRuntimeException(
-                        "缩略图文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+                throw ExceptionFactory.sameCopyTh(srcFileInfo, destFileInfo, platform, e);
             }
         }
 
@@ -263,9 +271,9 @@ public class QiniuKodoFileStorage implements FileStorage {
         String destFileKey = getFileKey(destFileInfo);
         destFileInfo.setUrl(domain + destFileKey);
         try {
-            ProgressListener.quickStart(progressListener, srcFile.fsize);
+            ProgressListener.quickStart(pre.getProgressListener(), srcFile.fsize);
             manager.copy(bucketName, srcFileKey, bucketName, destFileKey, true);
-            ProgressListener.quickFinish(progressListener, srcFile.fsize);
+            ProgressListener.quickFinish(pre.getProgressListener(), srcFile.fsize);
         } catch (Exception e) {
             if (destThFileKey != null)
                 try {
@@ -276,8 +284,70 @@ public class QiniuKodoFileStorage implements FileStorage {
                 manager.delete(bucketName, destFileKey);
             } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopy(srcFileInfo, destFileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public boolean isSupportSameMove() {
+        return true;
+    }
+
+    @Override
+    public void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {
+        Check.sameMoveNotSupportAcl(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameMoveBasePath(platform, basePath, srcFileInfo, destFileInfo);
+
+        BucketManager manager = getClient().getBucketManager();
+
+        // 获取远程文件信息
+        String srcFileKey = getFileKey(srcFileInfo);
+        com.qiniu.storage.model.FileInfo srcFile;
+        try {
+            srcFile = manager.stat(bucketName, srcFileKey);
+            if (srcFile == null || (StrUtil.isBlank(srcFile.md5) && StrUtil.isBlank(srcFile.hash))) {
+                throw ExceptionFactory.sameMoveNotFound(srcFileInfo, destFileInfo, platform, null);
+            }
+        } catch (Exception e) {
+            throw ExceptionFactory.sameMoveNotFound(srcFileInfo, destFileInfo, platform, e);
+        }
+
+        // 移动缩略图文件
+        String srcThFileKey = null;
+        String destThFileKey = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            srcThFileKey = getThFileKey(srcFileInfo);
+            destThFileKey = getThFileKey(destFileInfo);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            try {
+                manager.move(bucketName, srcThFileKey, bucketName, destThFileKey, true);
+            } catch (Exception e) {
+                throw ExceptionFactory.sameMoveTh(srcFileInfo, destFileInfo, platform, e);
+            }
+        }
+
+        // 移动文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        try {
+            ProgressListener.quickStart(pre.getProgressListener(), srcFile.fsize);
+            manager.move(bucketName, srcFileKey, bucketName, destFileKey, true);
+            ProgressListener.quickFinish(pre.getProgressListener(), srcFile.fsize);
+        } catch (Exception e) {
+            if (destThFileKey != null)
+                try {
+                    manager.move(bucketName, destThFileKey, bucketName, srcThFileKey, true);
+                } catch (Exception ignored) {
+                }
+            try {
+                if (exists(srcFileKey)) {
+                    manager.delete(bucketName, destFileKey);
+                } else {
+                    manager.move(bucketName, destFileKey, bucketName, srcFileKey, true);
+                }
+            } catch (Exception ignored) {
+            }
+            throw ExceptionFactory.sameMove(srcFileInfo, destFileInfo, platform, e);
         }
     }
 }

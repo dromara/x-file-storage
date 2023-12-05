@@ -92,13 +92,14 @@
         <tika-core.version>2.4.1</tika-core.version>
         <upyun-java-sdk.version>4.2.3</upyun-java-sdk.version>
         <fastdfs-client-java.version>1.30-20230328</fastdfs-client-java.version>
+        <azure-storage-blob-sdk.version>12.23.1</azure-storage-blob-sdk.version>
         <!--endregion-->
 
         <!--region Maven Plugins-->
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
         <sorter-maven-plugin.version>1.0.1</sorter-maven-plugin.version>
         <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
-        <maven-javadoc-plugin.version>2.9.1</maven-javadoc-plugin.version>
+        <maven-javadoc-plugin.version>3.6.0</maven-javadoc-plugin.version>
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
         <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
         <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
@@ -258,6 +259,12 @@
                 <artifactId>fastdfs-client-java</artifactId>
                 <version>${fastdfs-client-java.version}</version>
             </dependency>
+            <!-- 微软 Azure blob-->
+            <dependency>
+                <groupId>com.azure</groupId>
+                <artifactId>azure-storage-blob</artifactId>
+                <version>${azure-storage-blob-sdk.version}</version>
+            </dependency>
             <!--endregion-->
         </dependencies>
     </dependencyManagement>
@@ -408,7 +415,7 @@
                         <artifactId>maven-javadoc-plugin</artifactId>
                         <version>${maven-javadoc-plugin.version}</version>
                         <configuration>
-                            <additionalparam>-Xdoclint:none</additionalparam>
+                            <doclint>none</doclint>
                         </configuration>
                         <executions>
                             <execution>

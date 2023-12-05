@@ -6,6 +6,7 @@ import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 import lombok.Getter;
@@ -18,9 +19,11 @@ import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.file.FileWrapperAdapter;
 import org.dromara.x.file.storage.core.file.HttpServletRequestFileWrapper;
 import org.dromara.x.file.storage.core.file.MultipartFormDataReader;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
+import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
 
 /**
@@ -40,6 +43,8 @@ public class FileStorageService {
     private Boolean uploadNotSupportAclThrowException;
     private Boolean copyNotSupportMetadataThrowException;
     private Boolean copyNotSupportAclThrowException;
+    private Boolean moveNotSupportMetadataThrowException;
+    private Boolean moveNotSupportAclThrowException;
     private CopyOnWriteArrayList<FileStorageAspect> aspectList;
     private CopyOnWriteArrayList<FileWrapperAdapter> fileWrapperAdapterList;
     private ContentTypeDetect contentTypeDetect;
@@ -84,6 +89,20 @@ public class FileStorageService {
      * 上传文件，成功返回文件信息，失败返回 null
      */
     public FileInfo upload(UploadPretreatment pre) {
+        return upload(pre, self.getFileStorage(pre.getPlatform()), fileRecorder, aspectList);
+    }
+
+    /**
+     * 上传文件，成功返回文件信息，失败返回 null。此方法仅限内部使用
+     */
+    public FileInfo upload(
+            UploadPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder,
+            List<FileStorageAspect> aspectList) {
+        if (fileStorage == null)
+            throw new FileStorageRuntimeException(StrUtil.format("没有找到对应的存储平台！platform:{}", pre.getPlatform()));
+
         FileWrapper file = pre.getFileWrapper();
         if (file == null) throw new FileStorageRuntimeException("文件不允许为 null ！");
         if (pre.getPlatform() == null) throw new FileStorageRuntimeException("platform 不允许为 null ！");
@@ -126,10 +145,6 @@ public class FileStorageService {
                 fileInfo.setThContentType(contentTypeDetect.detect(thumbnailBytes, fileInfo.getThFilename()));
             }
         }
-
-        FileStorage fileStorage = self.getFileStorage(pre.getPlatform());
-        if (fileStorage == null)
-            throw new FileStorageRuntimeException(StrUtil.format("没有找到对应的存储平台！platform:{}", pre.getPlatform()));
 
         // 处理切面
         return new UploadAspectChain(aspectList, (_fileInfo, _pre, _fileStorage, _fileRecorder) -> {
@@ -180,7 +195,14 @@ public class FileStorageService {
         if (predicate != null && !predicate.test(fileInfo)) return false;
         FileStorage fileStorage = self.getFileStorage(fileInfo.getPlatform());
         if (fileStorage == null) throw new FileStorageRuntimeException("没有找到对应的存储平台！");
+        return self.delete(fileInfo, fileStorage, fileRecorder, aspectList);
+    }
 
+    /**
+     * 删除文件，仅限内部使用
+     */
+    public boolean delete(
+            FileInfo fileInfo, FileStorage fileStorage, FileRecorder fileRecorder, List<FileStorageAspect> aspectList) {
         return new DeleteAspectChain(aspectList, (_fileInfo, _fileStorage, _fileRecorder) -> {
                     if (_fileStorage.delete(_fileInfo)) { // 删除文件
                         return _fileRecorder.delete(_fileInfo.getUrl()); // 删除文件记录
@@ -376,6 +398,103 @@ public class FileStorageService {
     }
 
     /**
+     * 默认使用的存储平台是否支持手动分片上传
+     */
+    public boolean isSupportMultipartUpload() {
+        return self.isSupportMultipartUpload(defaultPlatform);
+    }
+
+    /**
+     * 是否支持手动分片上传
+     */
+    public boolean isSupportMultipartUpload(String platform) {
+        FileStorage storage = self.getFileStorageVerify(platform);
+        return self.isSupportMultipartUpload(storage);
+    }
+
+    /**
+     * 是否支持手动分片上传
+     */
+    public boolean isSupportMultipartUpload(FileStorage fileStorage) {
+        if (fileStorage == null) return false;
+        return new IsSupportMultipartUploadAspectChain(aspectList, FileStorage::isSupportMultipartUpload)
+                .next(fileStorage);
+    }
+
+    /**
+     * 手动分片上传-初始化
+     */
+    public InitiateMultipartUploadPretreatment initiateMultipartUpload() {
+        InitiateMultipartUploadPretreatment pre = new InitiateMultipartUploadPretreatment();
+        pre.setFileStorageService(self);
+        pre.setPlatform(defaultPlatform);
+        return pre;
+    }
+
+    /**
+     * 手动分片上传-上传分片
+     * @param fileInfo 文件信息
+     * @param partNumber 分片号。每一个上传的分片都有一个分片号，一般情况下取值范围是1~10000
+     * @param source      源
+     * @return 手动分片上传-上传分片预处理器
+     */
+    public UploadPartPretreatment uploadPart(FileInfo fileInfo, int partNumber, Object source) {
+        return self.uploadPart(fileInfo, partNumber, source, null);
+    }
+
+    /**
+     * 手动分片上传-上传分片
+     * @param fileInfo 文件信息
+     * @param partNumber 分片号。每一个上传的分片都有一个分片号，一般情况下取值范围是1~10000
+     * @param source      源
+     * @param size        源的文件大小
+     * @return 手动分片上传-上传分片预处理器
+     */
+    public UploadPartPretreatment uploadPart(FileInfo fileInfo, int partNumber, Object source, Long size) {
+        UploadPartPretreatment pre = new UploadPartPretreatment();
+        pre.setFileStorageService(self);
+        pre.setFileInfo(fileInfo);
+        pre.setPartNumber(partNumber);
+        // 这是是个优化，如果是 FileWrapper 对象就直接使用，否则就创建 FileWrapper 并指定 contentType 避免自动识别造成性能浪费
+        if (source instanceof FileWrapper) {
+            pre.setPartFileWrapper((FileWrapper) source);
+        } else {
+            pre.setPartFileWrapper(self.wrapper(source, null, "application/octet-stream", size));
+        }
+        return pre;
+    }
+
+    /**
+     * 手动分片上传-完成
+     */
+    public CompleteMultipartUploadPretreatment completeMultipartUpload(FileInfo fileInfo) {
+        CompleteMultipartUploadPretreatment pre = new CompleteMultipartUploadPretreatment();
+        pre.setFileStorageService(self);
+        pre.setFileInfo(fileInfo);
+        return pre;
+    }
+
+    /**
+     * 手动分片上传-取消
+     */
+    public AbortMultipartUploadPretreatment abortMultipartUpload(FileInfo fileInfo) {
+        AbortMultipartUploadPretreatment pre = new AbortMultipartUploadPretreatment();
+        pre.setFileStorageService(self);
+        pre.setFileInfo(fileInfo);
+        return pre;
+    }
+
+    /**
+     * 手动分片上传-列举已上传的分片
+     */
+    public ListPartsPretreatment listParts(FileInfo fileInfo) {
+        ListPartsPretreatment pre = new ListPartsPretreatment();
+        pre.setFileStorageService(self);
+        pre.setFileInfo(fileInfo);
+        return pre;
+    }
+
+    /**
      * 创建上传预处理器
      *
      * @param source      源
@@ -453,6 +572,22 @@ public class FileStorageService {
     }
 
     /**
+     * 是否支持同存储平台复制文件
+     */
+    public boolean isSupportSameCopy(String platform) {
+        FileStorage storage = self.getFileStorageVerify(platform);
+        return self.isSupportSameCopy(storage);
+    }
+
+    /**
+     * 是否支持同存储平台复制文件
+     */
+    public boolean isSupportSameCopy(FileStorage fileStorage) {
+        if (fileStorage == null) return false;
+        return new IsSupportSameCopyAspectChain(aspectList, FileStorage::isSupportSameCopy).next(fileStorage);
+    }
+
+    /**
      * 复制文件
      */
     public CopyPretreatment copy(FileInfo fileInfo) {
@@ -465,7 +600,39 @@ public class FileStorageService {
      * 复制文件
      */
     public CopyPretreatment copy(String url) {
-        return self.copy(getFileInfoByUrl(url));
+        return self.copy(self.getFileInfoByUrl(url));
+    }
+
+    /**
+     * 是否支持同存储平台移动文件
+     */
+    public boolean isSupportSameMove(String platform) {
+        FileStorage storage = self.getFileStorageVerify(platform);
+        return self.isSupportSameMove(storage);
+    }
+
+    /**
+     * 是否支持同存储平台移动文件
+     */
+    public boolean isSupportSameMove(FileStorage fileStorage) {
+        if (fileStorage == null) return false;
+        return new IsSupportSameMoveAspectChain(aspectList, FileStorage::isSupportSameMove).next(fileStorage);
+    }
+
+    /**
+     * 移动文件
+     */
+    public MovePretreatment move(FileInfo fileInfo) {
+        return new MovePretreatment(fileInfo, self)
+                .setNotSupportMetadataThrowException(moveNotSupportMetadataThrowException)
+                .setNotSupportAclThrowException(moveNotSupportAclThrowException);
+    }
+
+    /**
+     * 移动文件
+     */
+    public MovePretreatment move(String url) {
+        return self.move(self.getFileInfoByUrl(url));
     }
 
     /**

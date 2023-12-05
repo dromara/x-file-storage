@@ -1,7 +1,5 @@
 package org.dromara.x.file.storage.core.platform;
 
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.util.StrUtil;
 import com.github.sardine.DavResource;
 import com.github.sardine.Sardine;
@@ -17,7 +15,10 @@ import org.dromara.x.file.storage.core.FileStorageProperties.WebDavConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.exception.Check;
+import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.util.Tools;
 
 /**
@@ -93,14 +94,8 @@ public class WebDavFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
-            throw new FileStorageRuntimeException(
-                    "文件上传失败，WebDAV 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
-        }
-        if (CollUtil.isNotEmpty(fileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
-            throw new FileStorageRuntimeException("文件上传失败，WebDAV 不支持设置 Metadata！platform：" + platform + "，filename："
-                    + fileInfo.getOriginalFilename());
-        }
+        Check.uploadNotSupportAcl(platform, fileInfo, pre);
+        Check.uploadNotSupportMetadata(platform, fileInfo, pre);
 
         Sardine client = getClient();
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
@@ -121,13 +116,12 @@ public class WebDavFileStorage implements FileStorage {
             }
 
             return true;
-        } catch (IOException | IORuntimeException e) {
+        } catch (Exception e) {
             try {
                 client.delete(getUrl(newFileKey));
-            } catch (IOException ignored) {
+            } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
+            throw ExceptionFactory.upload(fileInfo, platform, e);
         }
     }
 
@@ -148,8 +142,8 @@ public class WebDavFileStorage implements FileStorage {
                 if (e.getStatusCode() != 404) throw e;
             }
             return true;
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件删除失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.delete(fileInfo, platform, e);
         }
     }
 
@@ -157,8 +151,8 @@ public class WebDavFileStorage implements FileStorage {
     public boolean exists(FileInfo fileInfo) {
         try {
             return getClient().exists(getUrl(getFileKey(fileInfo)));
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("查询文件是否存在失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.exists(fileInfo, platform, e);
         }
     }
 
@@ -166,35 +160,33 @@ public class WebDavFileStorage implements FileStorage {
     public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
         try (InputStream in = getClient().get(getUrl(getFileKey(fileInfo)))) {
             consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.download(fileInfo, platform, e);
         }
     }
 
     @Override
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
-        if (StrUtil.isBlank(fileInfo.getThFilename())) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
-        }
+        Check.downloadThBlankThFilename(platform, fileInfo);
 
         try (InputStream in = getClient().get(getUrl(getThFileKey(fileInfo)))) {
             consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.downloadTh(fileInfo, platform, e);
         }
     }
 
     @Override
-    public boolean isSupportCopy() {
+    public boolean isSupportSameCopy() {
         return true;
     }
 
     @Override
-    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, ProgressListener progressListener) {
-        if (!basePath.equals(srcFileInfo.getBasePath())) {
-            throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
-                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
-        }
+    public void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
+        Check.sameCopyNotSupportAcl(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameCopyNotSupportMetadata(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameCopyBasePath(platform, basePath, srcFileInfo, destFileInfo);
+
         Sardine client = getClient();
 
         // 获取远程文件信息
@@ -203,16 +195,14 @@ public class WebDavFileStorage implements FileStorage {
         try {
             srcFile = client.list(srcFileUrl, 0, false).get(0);
         } catch (Exception e) {
-            throw new FileStorageRuntimeException(
-                    "文件复制失败，无法获取源文件信息！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, e);
         }
 
         // 检查并创建父路径
         try {
             createDirectory(client, getUrl(destFileInfo.getBasePath() + destFileInfo.getPath()));
         } catch (Exception e) {
-            throw new FileStorageRuntimeException(
-                    "文件复制失败，检查并创建父路径失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopyCreatePath(srcFileInfo, destFileInfo, platform, e);
         }
 
         // 复制缩略图文件
@@ -224,8 +214,7 @@ public class WebDavFileStorage implements FileStorage {
             try {
                 client.copy(getUrl(getThFileKey(srcFileInfo)), destThFileUrl);
             } catch (Exception e) {
-                throw new FileStorageRuntimeException(
-                        "缩略图文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+                throw ExceptionFactory.sameCopyTh(srcFileInfo, destFileInfo, platform, e);
             }
         }
 
@@ -234,9 +223,9 @@ public class WebDavFileStorage implements FileStorage {
         destFileInfo.setUrl(domain + destFileKey);
         String destFileUrl = getUrl(destFileKey);
         try {
-            ProgressListener.quickStart(progressListener, srcFile.getContentLength());
+            ProgressListener.quickStart(pre.getProgressListener(), srcFile.getContentLength());
             client.copy(srcFileUrl, destFileUrl);
-            ProgressListener.quickFinish(progressListener, srcFile.getContentLength());
+            ProgressListener.quickFinish(pre.getProgressListener(), srcFile.getContentLength());
         } catch (Exception e) {
             try {
                 if (destThFileUrl != null) client.delete(destThFileUrl);
@@ -246,8 +235,78 @@ public class WebDavFileStorage implements FileStorage {
                 client.delete(destFileUrl);
             } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo, e);
+            throw ExceptionFactory.sameCopy(srcFileInfo, destFileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public boolean isSupportSameMove() {
+        return true;
+    }
+
+    @Override
+    public void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {
+        Check.sameMoveNotSupportAcl(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameMoveNotSupportMetadata(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameMoveBasePath(platform, basePath, srcFileInfo, destFileInfo);
+
+        Sardine client = getClient();
+
+        // 获取远程文件信息
+        String srcFileUrl = getUrl(getFileKey(srcFileInfo));
+        DavResource srcFile;
+        try {
+            srcFile = client.list(srcFileUrl, 0, false).get(0);
+        } catch (Exception e) {
+            throw ExceptionFactory.sameMoveNotFound(srcFileInfo, destFileInfo, platform, e);
+        }
+
+        // 检查并创建父路径
+        try {
+            createDirectory(client, getUrl(destFileInfo.getBasePath() + destFileInfo.getPath()));
+        } catch (Exception e) {
+            throw ExceptionFactory.sameMoveCreatePath(srcFileInfo, destFileInfo, platform, e);
+        }
+
+        // 移动缩略图文件
+        String srcThFileUrl = null;
+        String destThFileUrl = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            srcThFileUrl = getUrl(getThFileKey(srcFileInfo));
+            String destThFileKey = getThFileKey(destFileInfo);
+            destThFileUrl = getUrl(destThFileKey);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            try {
+                client.move(srcThFileUrl, destThFileUrl);
+            } catch (Exception e) {
+                throw ExceptionFactory.sameMoveTh(srcFileInfo, destFileInfo, platform, e);
+            }
+        }
+
+        // 移动文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        String destFileUrl = getUrl(destFileKey);
+        try {
+            ProgressListener.quickStart(pre.getProgressListener(), srcFile.getContentLength());
+            client.move(srcFileUrl, destFileUrl);
+            ProgressListener.quickFinish(pre.getProgressListener(), srcFile.getContentLength());
+        } catch (Exception e) {
+            try {
+                if (destThFileUrl != null) {
+                    client.move(destThFileUrl, srcThFileUrl);
+                }
+            } catch (Exception ignored) {
+            }
+            try {
+                if (client.exists(srcFileUrl)) {
+                    client.delete(destFileUrl);
+                } else {
+                    client.move(destFileUrl, srcFileUrl);
+                }
+            } catch (Exception ignored) {
+            }
+            throw ExceptionFactory.sameMove(srcFileInfo, destFileInfo, platform, e);
         }
     }
 }

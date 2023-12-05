@@ -2,10 +2,13 @@ package org.dromara.x.file.storage.core.platform;
 
 import java.io.InputStream;
 import java.util.Date;
+import java.util.List;
 import java.util.function.Consumer;
 import org.dromara.x.file.storage.core.FileInfo;
-import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
+import org.dromara.x.file.storage.core.upload.*;
 
 /**
  * 文件存储接口，对应各个平台
@@ -26,6 +29,42 @@ public interface FileStorage extends AutoCloseable {
      * 保存文件
      */
     boolean save(FileInfo fileInfo, UploadPretreatment pre);
+
+    /**
+     * 是否支持手动分片上传
+     */
+    default boolean isSupportMultipartUpload() {
+        return false;
+    }
+
+    /**
+     * 手动分片上传-初始化
+     */
+    default void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {}
+
+    /**
+     * 手动分片上传-上传分片
+     */
+    default FilePartInfo uploadPart(UploadPartPretreatment pre) {
+        return null;
+    }
+
+    /**
+     * 手动分片上传-完成
+     */
+    default void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {}
+
+    /**
+     * 手动分片上传-取消
+     */
+    default void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {}
+
+    /**
+     * 手动分片上传-列举已上传的分片
+     */
+    default List<FilePartInfo> listParts(ListPartsPretreatment pre) {
+        return null;
+    }
 
     /**
      * 是否支持对文件生成可以签名访问的 URL
@@ -101,16 +140,28 @@ public interface FileStorage extends AutoCloseable {
     void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer);
 
     /**
-     * 复制复制文件
+     * 是否支持同存储平台复制文件
      */
-    default boolean isSupportCopy() {
+    default boolean isSupportSameCopy() {
         return false;
     }
 
     /**
-     * 复制文件
+     * 同存储平台复制文件
      */
-    default void copy(FileInfo srcFileInfo, FileInfo destFileInfo, ProgressListener progressListener) {}
+    default void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {}
+
+    /**
+     * 是否支持同存储平台移动文件
+     */
+    default boolean isSupportSameMove() {
+        return false;
+    }
+
+    /**
+     * 同存储平台移动文件
+     */
+    default void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {}
 
     /**
      * 释放相关资源

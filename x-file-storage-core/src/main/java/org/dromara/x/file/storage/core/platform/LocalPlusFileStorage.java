@@ -1,6 +1,5 @@
 package org.dromara.x.file.storage.core.platform;
 
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import java.io.File;
@@ -16,8 +15,11 @@ import org.dromara.x.file.storage.core.FileStorageProperties.LocalPlusConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.exception.Check;
+import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
 
 /**
  * 本地文件存储升级版
@@ -59,29 +61,16 @@ public class LocalPlusFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
-            throw new FileStorageRuntimeException(
-                    "文件上传失败，LocalFile 不支持设置 ACL！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename());
-        }
-        if (CollUtil.isNotEmpty(fileInfo.getUserMetadata()) && pre.getNotSupportMetadataThrowException()) {
-            throw new FileStorageRuntimeException("文件上传失败，LocalFile 不支持设置 Metadata！platform：" + platform + "，filename："
-                    + fileInfo.getOriginalFilename());
-        }
+        Check.uploadNotSupportAcl(platform, fileInfo, pre);
+        Check.uploadNotSupportMetadata(platform, fileInfo, pre);
 
         try {
             File newFile = FileUtil.touch(getAbsolutePath(newFileKey));
             FileWrapper fileWrapper = pre.getFileWrapper();
             if (fileWrapper.supportTransfer()) { // 移动文件，速度较快
-                ProgressListener listener = pre.getProgressListener();
-                if (listener != null) {
-                    listener.start();
-                    listener.progress(0, fileWrapper.getSize());
-                }
+                ProgressListener.quickStart(pre.getProgressListener(), fileWrapper.getSize());
                 fileWrapper.transferTo(newFile);
-                if (listener != null) {
-                    listener.progress(newFile.length(), fileWrapper.getSize());
-                    listener.finish();
-                }
+                ProgressListener.quickFinish(pre.getProgressListener(), fileWrapper.getSize());
                 if (fileInfo.getSize() == null) fileInfo.setSize(newFile.length());
             } else { // 通过输入流写入文件
                 InputStreamPlus in = pre.getInputStreamPlus();
@@ -97,81 +86,86 @@ public class LocalPlusFileStorage implements FileStorage {
             }
             return true;
         } catch (IOException e) {
-            FileUtil.del(getAbsolutePath(newFileKey));
-            throw new FileStorageRuntimeException(
-                    "文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
+            try {
+                FileUtil.del(getAbsolutePath(newFileKey));
+            } catch (Exception ignored) {
+            }
+            throw ExceptionFactory.upload(fileInfo, platform, e);
         }
     }
 
     @Override
     public boolean delete(FileInfo fileInfo) {
-        if (fileInfo.getThFilename() != null) { // 删除缩略图
-            FileUtil.del(getAbsolutePath(getThFileKey(fileInfo)));
+        try {
+            if (fileInfo.getThFilename() != null) { // 删除缩略图
+                FileUtil.del(getAbsolutePath(getThFileKey(fileInfo)));
+            }
+            return FileUtil.del(getAbsolutePath(getFileKey(fileInfo)));
+        } catch (Exception e) {
+            throw ExceptionFactory.delete(fileInfo, platform, e);
         }
-        return FileUtil.del(getAbsolutePath(getFileKey(fileInfo)));
     }
 
     @Override
     public boolean exists(FileInfo fileInfo) {
-        return new File(getAbsolutePath(getFileKey(fileInfo))).exists();
+        try {
+            return new File(getAbsolutePath(getFileKey(fileInfo))).exists();
+        } catch (Exception e) {
+            throw ExceptionFactory.exists(fileInfo, platform, e);
+        }
     }
 
     @Override
     public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
         try (InputStream in = FileUtil.getInputStream(getAbsolutePath(getFileKey(fileInfo)))) {
             consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.download(fileInfo, platform, e);
         }
     }
 
     @Override
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
-        if (StrUtil.isBlank(fileInfo.getThFilename())) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
-        }
+        Check.downloadThBlankThFilename(platform, fileInfo);
+
         try (InputStream in = FileUtil.getInputStream(getAbsolutePath(getThFileKey(fileInfo)))) {
             consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.downloadTh(fileInfo, platform, e);
         }
     }
 
     @Override
-    public boolean isSupportCopy() {
+    public boolean isSupportSameCopy() {
         return true;
     }
 
     @Override
-    public void copy(FileInfo srcFileInfo, FileInfo destFileInfo, ProgressListener progressListener) {
-        if (!basePath.equals(srcFileInfo.getBasePath())) {
-            throw new FileStorageRuntimeException("文件复制失败，源文件 basePath 与当前存储平台 " + platform + " 的 basePath " + basePath
-                    + " 不同！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
-        }
+    public void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
+        Check.sameCopyNotSupportAcl(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameCopyNotSupportMetadata(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameCopyBasePath(platform, basePath, srcFileInfo, destFileInfo);
 
         File srcFile = new File(getAbsolutePath(getFileKey(srcFileInfo)));
         if (!srcFile.exists()) {
-            throw new FileStorageRuntimeException(
-                    "文件复制失败，源文件不存在！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+            throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, null);
         }
 
         // 复制缩略图文件
         File destThFile = null;
         if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
-            File srcThFile = new File(getAbsolutePath(getThFileKey(srcFileInfo)));
-            if (!srcThFile.exists()) {
-                throw new FileStorageRuntimeException(
-                        "缩略图文件复制失败，源缩略图文件不存在！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
-            }
             String destThFileKey = getThFileKey(destFileInfo);
             destFileInfo.setThUrl(domain + destThFileKey);
             try {
+                File srcThFile = new File(getAbsolutePath(getThFileKey(srcFileInfo)));
                 destThFile = FileUtil.touch(getAbsolutePath(destThFileKey));
                 FileUtil.copyFile(srcThFile, destThFile, StandardCopyOption.REPLACE_EXISTING);
             } catch (Exception e) {
-                FileUtil.del(destThFile);
-                throw new FileStorageRuntimeException(
-                        "缩略图文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+                try {
+                    FileUtil.del(destThFile);
+                } catch (Exception ignored) {
+                }
+                throw ExceptionFactory.sameCopyTh(srcFileInfo, destFileInfo, platform, e);
             }
         }
 
@@ -181,18 +175,90 @@ public class LocalPlusFileStorage implements FileStorage {
         File destFile = null;
         try {
             destFile = FileUtil.touch(getAbsolutePath(destFileKey));
-            if (progressListener == null) {
+            if (pre.getProgressListener() == null) {
                 FileUtil.copyFile(srcFile, destFile, StandardCopyOption.REPLACE_EXISTING);
             } else {
-                InputStreamPlus in =
-                        new InputStreamPlus(FileUtil.getInputStream(srcFile), progressListener, srcFile.length());
+                InputStreamPlus in = new InputStreamPlus(
+                        FileUtil.getInputStream(srcFile), pre.getProgressListener(), srcFile.length());
                 FileUtil.writeFromStream(in, destFile);
             }
         } catch (Exception e) {
-            FileUtil.del(destThFile);
-            FileUtil.del(destFile);
-            throw new FileStorageRuntimeException(
-                    "文件复制失败！srcFileInfo：" + srcFileInfo + "，destFileInfo：" + destFileInfo);
+            try {
+                FileUtil.del(destThFile);
+            } catch (Exception ignored) {
+            }
+            try {
+                FileUtil.del(destFile);
+            } catch (Exception ignored) {
+            }
+            throw ExceptionFactory.sameCopy(srcFileInfo, destFileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public boolean isSupportSameMove() {
+        return true;
+    }
+
+    @Override
+    public void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {
+        Check.sameMoveNotSupportAcl(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameMoveNotSupportMetadata(platform, srcFileInfo, destFileInfo, pre);
+        Check.sameMoveBasePath(platform, basePath, srcFileInfo, destFileInfo);
+
+        File srcFile = new File(getAbsolutePath(getFileKey(srcFileInfo)));
+        if (!srcFile.exists()) {
+            throw ExceptionFactory.sameMoveNotFound(srcFileInfo, destFileInfo, platform, null);
+        }
+
+        // 移动缩略图文件
+        File srcThFile = null;
+        File destThFile = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            String destThFileKey = getThFileKey(destFileInfo);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            try {
+                srcThFile = new File(getAbsolutePath(getThFileKey(srcFileInfo)));
+                destThFile = FileUtil.touch(getAbsolutePath(destThFileKey));
+                FileUtil.move(srcThFile, destThFile, true);
+            } catch (Exception e) {
+                try {
+                    FileUtil.del(destThFile);
+                } catch (Exception ignored) {
+                }
+                throw ExceptionFactory.sameMoveTh(srcFileInfo, destFileInfo, platform, e);
+            }
+        }
+
+        // 移动文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        File destFile = null;
+        try {
+            // 这里还有优化空间，例如跨存储设备或跨分区移动大文件时，会耗时很久且无法监听到进度，
+            // 可以使用复制+删除源文件来实现，这样可以监听到进度。
+            // 但是正常来说，不应该在单个存储平台使用的存储路径下挂载不同的分区，这会造成维护上的困难，
+            // 不同的分区最好用配置成不同的存储平台，除非你明确知道为什么要这么做及可能会出现的问题。
+            destFile = FileUtil.touch(getAbsolutePath(destFileKey));
+            ProgressListener.quickStart(pre.getProgressListener(), srcFile.length());
+            FileUtil.move(srcFile, destFile, true);
+            ProgressListener.quickFinish(pre.getProgressListener(), srcFile.length());
+        } catch (Exception e) {
+            if (destThFile != null) {
+                try {
+                    FileUtil.move(destThFile, srcThFile, true);
+                } catch (Exception ignored) {
+                }
+            }
+            try {
+                if (srcFile.exists()) {
+                    FileUtil.del(destFile);
+                } else if (destFile != null) {
+                    FileUtil.move(destFile, srcFile, true);
+                }
+            } catch (Exception ignored) {
+            }
+            throw ExceptionFactory.sameMove(srcFileInfo, destFileInfo, platform, e);
         }
     }
 }

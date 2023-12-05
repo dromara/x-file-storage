@@ -1,6 +1,7 @@
 package org.dromara.x.file.storage.test;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.thread.ThreadUtil;
 import java.io.File;
@@ -109,8 +110,8 @@ class FileStorageServiceCopyTest {
         log.info("测试复制到同路径下且带进度监听：{}", fileInfo);
         FileInfo destFileInfo = fileStorageService
                 .copy(fileInfo)
-                .setFilename("aaaCopy.jpg")
-                .setThFilename("aaaCopy.min.jpg")
+                .setFilename("aaaCopy." + FileNameUtil.extName(fileInfo.getFilename()))
+                .setThFilename("aaaCopy.min." + FileNameUtil.extName(fileInfo.getThFilename()))
                 .setProgressListener((progressSize, allSize) ->
                         log.info("文件复制进度：{} {}%", progressSize, progressSize * 100 / allSize))
                 .copy();
@@ -118,7 +119,7 @@ class FileStorageServiceCopyTest {
     }
 
     /**
-     * 测试跨平台复制
+     * 测试跨存储平台复制
      */
     @Test
     public void cross() {

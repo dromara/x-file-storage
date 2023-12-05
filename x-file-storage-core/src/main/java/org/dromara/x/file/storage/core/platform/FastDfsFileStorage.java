@@ -3,16 +3,24 @@ package org.dromara.x.file.storage.core.platform;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.text.StrPool;
 import cn.hutool.core.util.StrUtil;
+import java.io.*;
+import java.util.Map;
+import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
 import org.csource.common.MyException;
 import org.csource.common.NameValuePair;
+import org.csource.fastdfs.DownloadCallback;
 import org.csource.fastdfs.StorageClient;
+import org.csource.fastdfs.UploadCallback;
 import org.csource.fastdfs.UploadStream;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.FastDfsConfig;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.constant.FormatTemplate;
+import org.dromara.x.file.storage.core.exception.Check;
+import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
 import java.io.ByteArrayInputStream;
@@ -78,9 +86,8 @@ public class FastDfsFileStorage implements FileStorage {
      */
     @Override
     public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
-        if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
-            throw FileStorageRuntimeException.acl(fileInfo, getPlatform());
-        }
+        Check.uploadNotSupportAcl(getPlatform(), fileInfo, pre);
+        FileWrapper fileWrapper = pre.getFileWrapper();
         try (InputStream in = pre.getInputStreamPlus()) {
             String[] fileUpload = clientFactory
                     .getClient()
@@ -113,7 +120,7 @@ public class FastDfsFileStorage implements FileStorage {
             }
             return true;
         } catch (Exception e) {
-            throw FileStorageRuntimeException.save(fileInfo, getPlatform(), e);
+            throw ExceptionFactory.upload(fileInfo, getPlatform(), e);
         }
     }
 
@@ -147,7 +154,7 @@ public class FastDfsFileStorage implements FileStorage {
             int deleted = clientFactory.getClient().delete_file(config.getGroupName(), fileInfo.getFilename());
             return deleted == 0;
         } catch (Exception e) {
-            throw FileStorageRuntimeException.delete(fileInfo, getPlatform(), e);
+            throw ExceptionFactory.delete(fileInfo, getPlatform(), e);
         }
     }
 
@@ -163,7 +170,7 @@ public class FastDfsFileStorage implements FileStorage {
                     clientFactory.getClient().get_file_info(config.getGroupName(), fileInfo.getFilename());
             return fileInfo1 != null;
         } catch (IOException | MyException e) {
-            throw FileStorageRuntimeException.exists(fileInfo, getPlatform(), e);
+            throw ExceptionFactory.exists(fileInfo, getPlatform(), e);
         }
     }
 
@@ -176,12 +183,31 @@ public class FastDfsFileStorage implements FileStorage {
     @Override
     public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
         try {
+            PipedInputStream pis = new PipedInputStream();
+            PipedOutputStream pos = new PipedOutputStream();
+            pis.connect(pos);
+            pos.close();
+
+            clientFactory
+                    .getClient()
+                    .download_file(config.getGroupName(), fileInfo.getFilename(), new DownloadCallback() {
+                        @Override
+                        public int recv(long file_size, byte[] data, int bytes) {
+                            try {
+                                pos.write(data, 0, bytes);
+                            } catch (Exception e) {
+                                return 1;
+                            }
+                            return 0;
+                        }
+                    });
+            consumer.accept(pis);
             byte[] bytes = clientFactory.getClient().download_file(config.getGroupName(), fileInfo.getFilename());
             try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes)) {
                 consumer.accept(byteArrayInputStream);
             }
         } catch (IOException | MyException e) {
-            throw FileStorageRuntimeException.download(fileInfo, getPlatform(), e);
+            throw ExceptionFactory.download(fileInfo, getPlatform(), e);
         }
     }
 
@@ -194,7 +220,7 @@ public class FastDfsFileStorage implements FileStorage {
     @Override
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
         if (StrUtil.isBlank(fileInfo.getThFilename())) {
-            throw FileStorageRuntimeException.downloadThNotFound(fileInfo, getPlatform());
+            throw ExceptionFactory.downloadThNotFound(fileInfo, getPlatform());
         }
 
         try {
@@ -203,8 +229,13 @@ public class FastDfsFileStorage implements FileStorage {
                 consumer.accept(byteArrayInputStream);
             }
         } catch (IOException | MyException e) {
-            throw FileStorageRuntimeException.downloadTh(fileInfo, getPlatform(), e);
+            throw ExceptionFactory.downloadTh(fileInfo, getPlatform(), e);
         }
+    }
+
+    @Override
+    public boolean isSupportMetadata() {
+        return FileStorage.super.isSupportMetadata();
     }
 
     /**

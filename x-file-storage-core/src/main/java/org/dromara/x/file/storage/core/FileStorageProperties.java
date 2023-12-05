@@ -47,6 +47,17 @@ public class FileStorageProperties {
      * 复制时不支持 ACL 时抛出异常
      */
     private Boolean copyNotSupportAclThrowException = true;
+
+    /**
+     * 移动时不支持元数据时抛出异常
+     */
+    private Boolean moveNotSupportMetadataThrowException = true;
+
+    /**
+     * 移动时不支持 ACL 时抛出异常
+     */
+    private Boolean moveNotSupportAclThrowException = true;
+
     /**
      * 本地存储
      */
@@ -121,6 +132,11 @@ public class FileStorageProperties {
      * FastDFS
      */
     private List<? extends FastDfsConfig> fastdfs = new ArrayList<>();
+
+    /**
+     * 微软Azure Blob
+     */
+    private List<? extends AzureBlobStorageConfig> azureBlob = new ArrayList<>();
 
     /**
      * 基本的存储平台配置
@@ -869,6 +885,55 @@ public class FileStorageProperties {
              */
             private Integer connectionPoolMaxWaitTimeInMs;
         }
+    }
+
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    public static class AzureBlobStorageConfig extends BaseConfig {
+
+        private String endPoint;
+
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+
+        /**
+         * 容器名称，类似于s3的bucketName
+         */
+        private String containerName;
+
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+
+        /**
+         * 连接字符串
+         */
+        private String connectionString;
+
+        /**
+         * 自动分片上传阈值，超过此大小则使用分片上传，默认值256M
+         */
+        private long multipartThreshold = 256 * 1024 * 1024L;
+        /**
+         * 自动分片上传时每个分片大小，默认 4MB
+         */
+        private long multipartPartSize = 4 * 1024 * 1024L;
+
+        /**
+         * 最大上传并行度
+         * 分片后 同时进行上传的 数量
+         * 数量太大会占用大量缓冲区
+         * 默认 8
+         */
+        private int maxConcurrency = 8;
+
+        /**
+         * 其它自定义配置
+         */
+        private Map<String, Object> attr = new LinkedHashMap<>();
     }
 
     /**

@@ -1,5 +1,6 @@
 package org.dromara.x.file.storage.core.copy;
 
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.Getter;
@@ -8,7 +9,10 @@ import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.ProgressListener;
+import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.constant.Constant.CopyMode;
+import org.dromara.x.file.storage.core.platform.FileStorage;
+import org.dromara.x.file.storage.core.recorder.FileRecorder;
 
 /**
  * 复制预处理
@@ -191,5 +195,12 @@ public class CopyPretreatment {
      */
     public FileInfo copy() {
         return new CopyActuator(this).execute();
+    }
+
+    /**
+     * 复制文件，成功后返回新的 FileInfo，此方法仅限内部使用
+     */
+    public FileInfo copy(FileStorage fileStorage, FileRecorder fileRecorder, List<FileStorageAspect> aspectList) {
+        return new CopyActuator(this).execute(fileStorage, fileRecorder, aspectList);
     }
 }

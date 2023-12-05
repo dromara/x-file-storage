@@ -2,11 +2,16 @@ package org.dromara.x.file.storage.core.aspect;
 
 import java.io.InputStream;
 import java.util.Date;
+import java.util.List;
 import java.util.function.Consumer;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
+import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
+import org.dromara.x.file.storage.core.upload.*;
 
 /**
  * 文件服务切面接口，用来干预文件上传，删除等
@@ -23,6 +28,67 @@ public interface FileStorageAspect {
             FileStorage fileStorage,
             FileRecorder fileRecorder) {
         return chain.next(fileInfo, pre, fileStorage, fileRecorder);
+    }
+
+    /**
+     * 是否支持手动分片上传
+     */
+    default boolean isSupportMultipartUpload(IsSupportMultipartUploadAspectChain chain, FileStorage fileStorage) {
+        return chain.next(fileStorage);
+    }
+
+    /**
+     * 手动分片上传-初始化，成功返回文件信息，失败返回 null
+     */
+    default FileInfo initiateMultipartUploadAround(
+            InitiateMultipartUploadAspectChain chain,
+            FileInfo fileInfo,
+            InitiateMultipartUploadPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        return chain.next(fileInfo, pre, fileStorage, fileRecorder);
+    }
+
+    /**
+     * 手动分片上传-上传分片，成功返回文件信息
+     */
+    default FilePartInfo uploadPart(
+            UploadPartAspectChain chain,
+            UploadPartPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        return chain.next(pre, fileStorage, fileRecorder);
+    }
+
+    /**
+     * 手动分片上传-完成
+     */
+    default FileInfo completeMultipartUploadAround(
+            CompleteMultipartUploadAspectChain chain,
+            CompleteMultipartUploadPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder,
+            ContentTypeDetect contentTypeDetect) {
+        return chain.next(pre, fileStorage, fileRecorder, contentTypeDetect);
+    }
+
+    /**
+     * 手动分片上传-取消
+     */
+    default FileInfo abortMultipartUploadAround(
+            AbortMultipartUploadAspectChain chain,
+            AbortMultipartUploadPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        return chain.next(pre, fileStorage, fileRecorder);
+    }
+
+    /**
+     * 手动分片上传-列举已上传的分片
+     */
+    default List<FilePartInfo> listParts(
+            ListPartsAspectChain chain, ListPartsPretreatment pre, FileStorage fileStorage) {
+        return chain.next(pre, fileStorage);
     }
 
     /**
@@ -106,6 +172,70 @@ public interface FileStorageAspect {
      */
     default boolean isSupportMetadataAround(IsSupportMetadataAspectChain chain, FileStorage fileStorage) {
         return chain.next(fileStorage);
+    }
+
+    /**
+     * 是否支持同存储平台复制
+     */
+    default boolean isSupportSameCopyAround(IsSupportSameCopyAspectChain chain, FileStorage fileStorage) {
+        return chain.next(fileStorage);
+    }
+
+    /**
+     * 复制，成功返回文件信息
+     */
+    default FileInfo copyAround(
+            CopyAspectChain chain,
+            FileInfo srcFileInfo,
+            CopyPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        return chain.next(srcFileInfo, pre, fileStorage, fileRecorder);
+    }
+
+    /**
+     * 同存储平台复制，成功返回文件信息
+     */
+    default FileInfo sameCopyAround(
+            SameCopyAspectChain chain,
+            FileInfo srcFileInfo,
+            FileInfo destFileInfo,
+            CopyPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        return chain.next(srcFileInfo, destFileInfo, pre, fileStorage, fileRecorder);
+    }
+
+    /**
+     * 是否支持同存储平台移动
+     */
+    default boolean isSupportSameMoveAround(IsSupportSameMoveAspectChain chain, FileStorage fileStorage) {
+        return chain.next(fileStorage);
+    }
+
+    /**
+     * 移动，成功返回文件信息
+     */
+    default FileInfo moveAround(
+            MoveAspectChain chain,
+            FileInfo srcFileInfo,
+            MovePretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        return chain.next(srcFileInfo, pre, fileStorage, fileRecorder);
+    }
+
+    /**
+     * 同存储平台移动，成功返回文件信息
+     */
+    default FileInfo sameMoveAround(
+            SameMoveAspectChain chain,
+            FileInfo srcFileInfo,
+            FileInfo destFileInfo,
+            MovePretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        return chain.next(srcFileInfo, destFileInfo, pre, fileStorage, fileRecorder);
     }
 
     /**

@@ -145,6 +145,17 @@ public class FileInfo implements Serializable {
     private Object thFileAcl;
 
     /**
+     * 上传ID，仅在手动分片上传时使用
+     */
+    private String uploadId;
+
+    /**
+     * 上传状态，仅在手动分片上传时使用，1：初始化完成，2：上传完成
+     * {@link org.dromara.x.file.storage.core.constant.Constant.FileInfoUploadStatus}
+     */
+    private Integer uploadStatus;
+
+    /**
      * 创建时间
      */
     private Date createTime;

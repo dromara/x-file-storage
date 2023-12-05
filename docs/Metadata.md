@@ -34,15 +34,30 @@ FileInfo fileInfo = fileStorageService.of(file)
 ```yaml
 dromara:
   x-file-storage:
-    upload-not-support-metadata-throw-exception: false
+    upload-not-support-metadata-throw-exception: false # 上传时
+    copy-not-support-metadata-throw-exception: false # 复制时
+    move-not-support-metadata-throw-exception: false # 移动时
 ```
 
 **第二种（仅当前）**
 ```java
+//上传时
 FileInfo fileInfo = fileStorageService.of(file)
         .setNotSupportMetadataThrowException(false) //在不支持 Metadata 的存储平台不抛出异常
         .putUserMetadata("role","666")
         .upload();
+
+//复制时
+FileInfo fileInfo = fileStorageService.copy(fileInfo)
+        .setNotSupportMetadataThrowException(false) //在不支持 Metadata 的存储平台不抛出异常
+        .setPlatform("local-plus-1")
+        .copy();
+
+//移动时
+FileInfo fileInfo = fileStorageService.move(fileInfo)
+        .setNotSupportMetadataThrowException(false) //在不支持 Metadata 的存储平台不抛出异常
+        .setPlatform("local-plus-1")
+        .move();
 ```
 
 

@@ -11,7 +11,6 @@ import com.obs.services.ObsClient;
 import com.obs.services.internal.ObsConvertor;
 import com.obs.services.model.*;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
@@ -26,7 +25,9 @@ import org.dromara.x.file.storage.core.FileStorageProperties.HuaweiObsConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.exception.Check;
+import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 
 /**
  * 华为云 OBS 存储
@@ -145,14 +146,16 @@ public class HuaweiObsFileStorage implements FileStorage {
             }
 
             return true;
-        } catch (IOException e) {
-            if (useMultipartUpload) {
-                client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName, newFileKey, uploadId));
-            } else {
-                client.deleteObject(bucketName, newFileKey);
+        } catch (Exception e) {
+            try {
+                if (useMultipartUpload) {
+                    client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName, newFileKey, uploadId));
+                } else {
+                    client.deleteObject(bucketName, newFileKey);
+                }
+            } catch (Exception ignored) {
             }
-            throw new FileStorageRuntimeException(
-                    "文件上传失败！platform：" + platform + "，filename：" + fileInfo.getOriginalFilename(), e);
+            throw ExceptionFactory.upload(fileInfo, platform, e);
         }
     }
 
@@ -168,7 +171,7 @@ public class HuaweiObsFileStorage implements FileStorage {
             if (sAcl == null) return null;
             return ObsConvertor.getInstance().transCannedAcl(sAcl);
         } else {
-            throw new FileStorageRuntimeException("不支持的ACL：" + acl);
+            throw ExceptionFactory.unrecognizedAcl(acl, platform);
         }
     }
 
@@ -213,22 +216,31 @@ public class HuaweiObsFileStorage implements FileStorage {
 
     @Override
     public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
-        long expires = (expiration.getTime() - System.currentTimeMillis()) / 1000;
-        TemporarySignatureRequest request = new TemporarySignatureRequest(HttpMethodEnum.GET, expires);
-        request.setBucketName(bucketName);
-        request.setObjectKey(getFileKey(fileInfo));
-        return getClient().createTemporarySignature(request).getSignedUrl();
+        try {
+            long expires = (expiration.getTime() - System.currentTimeMillis()) / 1000;
+            TemporarySignatureRequest request = new TemporarySignatureRequest(HttpMethodEnum.GET, expires);
+            request.setBucketName(bucketName);
+            request.setObjectKey(getFileKey(fileInfo));
+            return getClient().createTemporarySignature(request).getSignedUrl();
+        } catch (Exception e) {
+            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
+        }
     }
 
     @Override
     public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        String key = getThFileKey(fileInfo);
-        if (key == null) return null;
-        long expires = (expiration.getTime() - System.currentTimeMillis()) / 1000;
-        TemporarySignatureRequest request = new TemporarySignatureRequest(HttpMethodEnum.GET, expires);
-        request.setBucketName(bucketName);
-        request.setObjectKey(key);
-        return getClient().createTemporarySignature(request).getSignedUrl();
+        try {
+            String key = getThFileKey(fileInfo);
+            if (key == null) return null;
+            long expires = (expiration.getTime() - System.currentTimeMillis()) / 1000;
+            TemporarySignatureRequest request = new TemporarySignatureRequest(HttpMethodEnum.GET, expires);
+            request.setBucketName(bucketName);
+            request.setObjectKey(key);
+
+            return getClient().createTemporarySignature(request).getSignedUrl();
+        } catch (Exception e) {
+            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+        }
     }
 
     @Override
@@ -240,8 +252,12 @@ public class HuaweiObsFileStorage implements FileStorage {
     public boolean setFileAcl(FileInfo fileInfo, Object acl) {
         AccessControlList oAcl = getAcl(acl);
         if (oAcl == null) return false;
-        getClient().setObjectAcl(bucketName, getFileKey(fileInfo), oAcl);
-        return true;
+        try {
+            getClient().setObjectAcl(bucketName, getFileKey(fileInfo), oAcl);
+            return true;
+        } catch (Exception e) {
+            throw ExceptionFactory.setFileAcl(fileInfo, oAcl, platform, e);
+        }
     }
 
     @Override
@@ -250,8 +266,12 @@ public class HuaweiObsFileStorage implements FileStorage {
         if (oAcl == null) return false;
         String key = getThFileKey(fileInfo);
         if (key == null) return false;
-        getClient().setObjectAcl(bucketName, key, oAcl);
-        return true;
+        try {
+            getClient().setObjectAcl(bucketName, key, oAcl);
+            return true;
+        } catch (Exception e) {
+            throw ExceptionFactory.setThFileAcl(fileInfo, oAcl, platform, e);
+        }
     }
 
     @Override
@@ -262,16 +282,24 @@ public class HuaweiObsFileStorage implements FileStorage {
     @Override
     public boolean delete(FileInfo fileInfo) {
         ObsClient client = getClient();
-        if (fileInfo.getThFilename() != null) { // 删除缩略图
-            client.deleteObject(bucketName, getThFileKey(fileInfo));
+        try {
+            if (fileInfo.getThFilename() != null) { // 删除缩略图
+                client.deleteObject(bucketName, getThFileKey(fileInfo));
+            }
+            client.deleteObject(bucketName, getFileKey(fileInfo));
+            return true;
+        } catch (Exception e) {
+            throw ExceptionFactory.delete(fileInfo, platform, e);
         }
-        client.deleteObject(bucketName, getFileKey(fileInfo));
-        return true;
     }
 
     @Override
     public boolean exists(FileInfo fileInfo) {
-        return getClient().doesObjectExist(bucketName, getFileKey(fileInfo));
+        try {
+            return getClient().doesObjectExist(bucketName, getFileKey(fileInfo));
+        } catch (Exception e) {
+            throw ExceptionFactory.exists(fileInfo, platform, e);
+        }
     }
 
     @Override
@@ -279,21 +307,111 @@ public class HuaweiObsFileStorage implements FileStorage {
         ObsObject object = getClient().getObject(bucketName, getFileKey(fileInfo));
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.download(fileInfo, platform, e);
         }
     }
 
     @Override
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
-        if (StrUtil.isBlank(fileInfo.getThFilename())) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败，文件不存在！fileInfo：" + fileInfo);
-        }
+        Check.downloadThBlankThFilename(platform, fileInfo);
+
         ObsObject object = getClient().getObject(bucketName, getThFileKey(fileInfo));
         try (InputStream in = object.getObjectContent()) {
             consumer.accept(in);
-        } catch (IOException e) {
-            throw new FileStorageRuntimeException("缩略图文件下载失败！fileInfo：" + fileInfo, e);
+        } catch (Exception e) {
+            throw ExceptionFactory.downloadTh(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public boolean isSupportSameCopy() {
+        return true;
+    }
+
+    @Override
+    public void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
+        Check.sameCopyBasePath(platform, basePath, srcFileInfo, destFileInfo);
+
+        ObsClient client = getClient();
+
+        // 获取远程文件信息
+        String srcFileKey = getFileKey(srcFileInfo);
+        ObjectMetadata srcFile;
+        try {
+            srcFile = client.getObjectMetadata(bucketName, srcFileKey);
+        } catch (Exception e) {
+            throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, e);
+        }
+
+        // 复制缩略图文件
+        String destThFileKey = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            destThFileKey = getThFileKey(destFileInfo);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            try {
+                CopyObjectRequest request =
+                        new CopyObjectRequest(bucketName, getThFileKey(srcFileInfo), bucketName, destThFileKey);
+                request.setAcl(getAcl(destFileInfo.getThFileAcl()));
+                client.copyObject(request);
+            } catch (Exception e) {
+                throw ExceptionFactory.sameCopyTh(srcFileInfo, destFileInfo, platform, e);
+            }
+        }
+
+        // 复制文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        long fileSize = srcFile.getContentLength();
+        boolean useMultipartCopy = fileSize >= 1024 * 1024 * 1024; // 按照华为云 OBS 官方文档小于 1GB，走小文件复制
+        String uploadId = null;
+        try {
+            if (useMultipartCopy) { // 大文件复制，华为云 OBS 内部不会自动复制 Metadata 和 ACL，需要重新设置
+                InitiateMultipartUploadRequest initiateMultipartUploadRequest =
+                        new InitiateMultipartUploadRequest(bucketName, destFileKey);
+                initiateMultipartUploadRequest.setMetadata(getObjectMetadata(destFileInfo));
+                initiateMultipartUploadRequest.setAcl(getAcl(destFileInfo.getFileAcl()));
+                uploadId = client.initiateMultipartUpload(initiateMultipartUploadRequest)
+                        .getUploadId();
+                ProgressListener.quickStart(pre.getProgressListener(), fileSize);
+                ArrayList<PartEtag> partList = new ArrayList<>();
+                long progressSize = 0;
+                int i = 0;
+                while (progressSize < fileSize) {
+                    // 设置分片大小为 256 MB。单位为字节。
+                    long partSize = Math.min(256 * 1024 * 1024, fileSize - progressSize);
+                    CopyPartRequest part =
+                            new CopyPartRequest(uploadId, bucketName, srcFileKey, bucketName, destFileKey, ++i);
+                    part.setByteRangeStart(progressSize);
+                    part.setByteRangeEnd(progressSize + partSize + 1);
+                    partList.add(new PartEtag(client.copyPart(part).getEtag(), i));
+                    ProgressListener.quickProgress(pre.getProgressListener(), progressSize += partSize, fileSize);
+                }
+                client.completeMultipartUpload(
+                        new CompleteMultipartUploadRequest(bucketName, destFileKey, uploadId, partList));
+                ProgressListener.quickFinish(pre.getProgressListener());
+            } else { // 小文件复制，华为云 OBS 内部会自动复制 Metadata ，但是 ACL 需要重新设置
+                ProgressListener.quickStart(pre.getProgressListener(), fileSize);
+                CopyObjectRequest request = new CopyObjectRequest(bucketName, srcFileKey, bucketName, destFileKey);
+                request.setAcl(getAcl(destFileInfo.getFileAcl()));
+                client.copyObject(request);
+                ProgressListener.quickFinish(pre.getProgressListener(), fileSize);
+            }
+        } catch (Exception e) {
+            if (destThFileKey != null)
+                try {
+                    client.deleteObject(bucketName, destThFileKey);
+                } catch (Exception ignored) {
+                }
+            try {
+                if (useMultipartCopy) {
+                    client.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName, destFileKey, uploadId));
+                } else {
+                    client.deleteObject(bucketName, destFileKey);
+                }
+            } catch (Exception ignored) {
+            }
+            throw ExceptionFactory.sameCopy(srcFileInfo, destFileInfo, platform, e);
         }
     }
 }
