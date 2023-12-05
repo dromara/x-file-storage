@@ -5,6 +5,7 @@ import cn.hutool.extra.ftp.Ftp;
 import cn.hutool.extra.ssh.Sftp;
 import com.aliyun.oss.OSS;
 import com.amazonaws.services.s3.AmazonS3;
+import com.azure.storage.blob.BlobServiceClient;
 import com.baidubce.services.bos.BosClient;
 import com.github.sardine.Sardine;
 import com.google.cloud.storage.Storage;
@@ -249,6 +250,7 @@ public class FileStorageServiceBuilder {
         fileStorageList.addAll(
                 buildGoogleCloudStorageFileStorage(properties.getGoogleCloudStorage(), clientFactoryList));
         fileStorageList.addAll(buildFastDfsFileStorage(properties.getFastdfs(), clientFactoryList));
+        fileStorageList.addAll(buildAzureBlobFileStorage(properties.getAzureBlob(), clientFactoryList));
 
         // 本体
         FileStorageService service = new FileStorageService();
@@ -553,6 +555,25 @@ public class FileStorageServiceBuilder {
                     FileStorageClientFactory<StorageClient> clientFactory = getFactory(
                             config.getPlatform(), clientFactoryList, () -> new FastDfsFileStorageClientFactory(config));
                     return new FastDfsFileStorage(config, clientFactory);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 根据配置文件创建 微软 Azure Blob 存储平台
+     */
+    public static List<AzureBlobFileStorage> buildAzureBlobFileStorage(
+            List<? extends AzureBlobStorageConfig> list, List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        if (CollUtil.isEmpty(list)) return Collections.emptyList();
+        buildFileStorageDetect(list, "microsoft azure blob ", "com.azure.storage.blob.BlobServiceClient");
+        return list.stream()
+                .map(config -> {
+                    log.info("加载 microsoft azure blob 存储平台：{}", config.getPlatform());
+                    FileStorageClientFactory<BlobServiceClient> clientFactory = getFactory(
+                            config.getPlatform(),
+                            clientFactoryList,
+                            () -> new AzureBlobFileStorageClientFactory(config));
+                    return new AzureBlobFileStorage(config, clientFactory);
                 })
                 .collect(Collectors.toList());
     }

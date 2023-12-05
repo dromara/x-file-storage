@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 import org.dromara.x.file.storage.core.FileStorageProperties;
 import org.dromara.x.file.storage.core.FileStorageProperties.AliyunOssConfig;
 import org.dromara.x.file.storage.core.FileStorageProperties.AmazonS3Config;
+import org.dromara.x.file.storage.core.FileStorageProperties.AzureBlobStorageConfig;
 import org.dromara.x.file.storage.core.FileStorageProperties.BaiduBosConfig;
 import org.dromara.x.file.storage.core.FileStorageProperties.FastDfsConfig;
 import org.dromara.x.file.storage.core.FileStorageProperties.FtpConfig;
@@ -155,6 +156,11 @@ public class SpringFileStorageProperties {
     private List<? extends SpringFastDfsConfig> fastdfs = new ArrayList<>();
 
     /**
+     * 微软Azure Blob
+     */
+    private List<? extends SpringAzureBlobStorageConfig> azureBlob = new ArrayList<>();
+
+    /**
      * 转换成 FileStorageProperties ，并过滤掉没有启用的存储平台
      */
     public FileStorageProperties toFileStorageProperties() {
@@ -202,6 +208,10 @@ public class SpringFileStorageProperties {
                 .collect(Collectors.toList()));
         properties.setFastdfs(
                 fastdfs.stream().filter(SpringFastDfsConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setAzureBlob(azureBlob.stream()
+                .filter(SpringAzureBlobStorageConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+
         return properties;
     }
 
@@ -397,6 +407,18 @@ public class SpringFileStorageProperties {
     @Data
     @EqualsAndHashCode(callSuper = true)
     public static class SpringFastDfsConfig extends FastDfsConfig {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+
+    /**
+     * AzureBlob Storage
+     */
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    public static class SpringAzureBlobStorageConfig extends AzureBlobStorageConfig {
         /**
          * 启用存储
          */
