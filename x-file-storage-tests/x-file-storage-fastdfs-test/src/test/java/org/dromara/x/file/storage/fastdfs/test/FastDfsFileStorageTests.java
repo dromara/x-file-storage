@@ -2,6 +2,10 @@ package org.dromara.x.file.storage.fastdfs.test;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.Console;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import javax.annotation.Resource;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.junit.jupiter.api.Test;
@@ -10,11 +14,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.multipart.MultipartFile;
-
-import javax.annotation.Resource;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 
 /**
  * There is no description.

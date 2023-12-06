@@ -3,6 +3,7 @@ package org.dromara.x.file.storage.core.upload;
 import java.util.Date;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.FileInfo;
 
 /**
@@ -10,6 +11,7 @@ import org.dromara.x.file.storage.core.FileInfo;
  */
 @Data
 @NoArgsConstructor
+@Accessors(chain = true)
 public class FilePartInfo {
     /**
      * 分片id，仅在数据库相关操作时使用
@@ -24,7 +26,7 @@ public class FilePartInfo {
      */
     private String uploadId;
     /**
-     * 分片 ETag，可以理解为分片ID
+     * 分片 ETag（分片数据的MD5值）
      */
     private String eTag;
     /**

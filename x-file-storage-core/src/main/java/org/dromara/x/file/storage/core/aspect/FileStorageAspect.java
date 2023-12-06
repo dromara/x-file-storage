@@ -2,7 +2,6 @@ package org.dromara.x.file.storage.core.aspect;
 
 import java.io.InputStream;
 import java.util.Date;
-import java.util.List;
 import java.util.function.Consumer;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
@@ -86,8 +85,7 @@ public interface FileStorageAspect {
     /**
      * 手动分片上传-列举已上传的分片
      */
-    default List<FilePartInfo> listParts(
-            ListPartsAspectChain chain, ListPartsPretreatment pre, FileStorage fileStorage) {
+    default FilePartInfoList listParts(ListPartsAspectChain chain, ListPartsPretreatment pre, FileStorage fileStorage) {
         return chain.next(pre, fileStorage);
     }
 

@@ -17,6 +17,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -28,6 +29,8 @@ import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.upload.*;
 
 /**
  * 华为云 OBS 存储
@@ -156,6 +159,126 @@ public class HuaweiObsFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.upload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public boolean isSupportMultipartUpload() {
+        return true;
+    }
+
+    @Override
+    public void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
+        fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
+        fileInfo.setUrl(domain + newFileKey);
+        AccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
+        ObjectMetadata metadata = getObjectMetadata(fileInfo);
+        ObsClient client = getClient();
+        try {
+            InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(bucketName, newFileKey);
+            request.setMetadata(metadata);
+            request.setAcl(fileAcl);
+            String uploadId = client.initiateMultipartUpload(request).getUploadId();
+            fileInfo.setUploadId(uploadId);
+        } catch (Exception e) {
+            throw ExceptionFactory.initiateMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public FilePartInfo uploadPart(UploadPartPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        ObsClient client = getClient();
+        FileWrapper partFileWrapper = pre.getPartFileWrapper();
+        Long partSize = partFileWrapper.getSize();
+        if (partSize == null) partSize = -1L;
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
+            UploadPartRequest part = new UploadPartRequest();
+            part.setBucketName(bucketName);
+            part.setObjectKey(newFileKey);
+            part.setUploadId(fileInfo.getUploadId());
+            part.setInput(in);
+            part.setPartSize(partSize); // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为100 KB。
+            part.setPartNumber(
+                    pre.getPartNumber()); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，ObsClient将返回InvalidArgument错误码。
+            UploadPartResult result = client.uploadPart(part);
+            FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+            filePartInfo.setETag(result.getEtag());
+            filePartInfo.setPartNumber(result.getPartNumber());
+            filePartInfo.setPartSize(in.getAllSize());
+            filePartInfo.setCreateTime(new Date());
+            return filePartInfo;
+        } catch (Exception e) {
+            throw ExceptionFactory.uploadPart(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        ObsClient client = getClient();
+        try {
+            List<PartEtag> partList = pre.getPartInfoList().stream()
+                    .map(part -> new PartEtag(part.getETag(), part.getPartNumber()))
+                    .collect(Collectors.toList());
+            client.completeMultipartUpload(
+                    new CompleteMultipartUploadRequest(bucketName, newFileKey, fileInfo.getUploadId(), partList));
+        } catch (Exception e) {
+            throw ExceptionFactory.completeMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        AccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
+        ObsClient client = getClient();
+        try {
+            client.abortMultipartUpload(
+                    new AbortMultipartUploadRequest(bucketName, newFileKey, fileInfo.getUploadId()));
+            if (fileAcl != null) client.setObjectAcl(bucketName, newFileKey, fileAcl);
+
+        } catch (Exception e) {
+            throw ExceptionFactory.abortMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public Integer getListPartsSupportMaxParts() {
+        return 1000;
+    }
+
+    @Override
+    public FilePartInfoList listParts(ListPartsPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        ObsClient client = getClient();
+        try {
+            ListPartsResult result = client.listParts(new ListPartsRequest(
+                    bucketName, newFileKey, fileInfo.getUploadId(), pre.getMaxParts(), pre.getPartNumberMarker()));
+            FilePartInfoList list = new FilePartInfoList();
+            list.setFileInfo(fileInfo);
+            list.setList(result.getMultipartList().stream()
+                    .map(p -> {
+                        FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+                        filePartInfo.setETag(p.getEtag());
+                        filePartInfo.setPartNumber(p.getPartNumber());
+                        filePartInfo.setPartSize(p.getSize());
+                        filePartInfo.setLastModified(p.getLastModified());
+                        return filePartInfo;
+                    })
+                    .collect(Collectors.toList()));
+            list.setMaxParts(result.getMaxParts());
+            list.setIsTruncated(result.isTruncated());
+            list.setPartNumberMarker(Integer.parseInt(result.getPartNumberMarker()));
+            list.setNextPartNumberMarker(Integer.parseInt(result.getNextPartNumberMarker()));
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listParts(fileInfo, platform, e);
         }
     }
 
