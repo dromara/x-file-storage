@@ -1,11 +1,10 @@
 package org.dromara.x.file.storage.core.aspect;
 
 import java.util.Iterator;
-import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.platform.FileStorage;
-import org.dromara.x.file.storage.core.upload.FilePartInfo;
+import org.dromara.x.file.storage.core.upload.FilePartInfoList;
 import org.dromara.x.file.storage.core.upload.ListPartsPretreatment;
 
 /**
@@ -26,7 +25,7 @@ public class ListPartsAspectChain {
     /**
      * 调用下一个切面
      */
-    public List<FilePartInfo> next(ListPartsPretreatment pre, FileStorage fileStorage) {
+    public FilePartInfoList next(ListPartsPretreatment pre, FileStorage fileStorage) {
         if (aspectIterator.hasNext()) { // 还有下一个
             return aspectIterator.next().listParts(this, pre, fileStorage);
         } else {

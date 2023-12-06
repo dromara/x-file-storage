@@ -1,6 +1,5 @@
 package org.dromara.x.file.storage.test;
 
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.lang.Assert;
@@ -8,13 +7,13 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.upload.FilePartInfo;
+import org.dromara.x.file.storage.core.upload.FilePartInfoList;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -101,8 +100,8 @@ class FileStorageServiceMultipartUploadTest {
             }
         }
 
-        List<FilePartInfo> partList = fileStorageService.listParts(fileInfo).listParts();
-        for (FilePartInfo info : partList) {
+        FilePartInfoList partList = fileStorageService.listParts(fileInfo).listParts();
+        for (FilePartInfo info : partList.getList()) {
             log.info("手动分片上传-列举已上传的分片：{}", info);
         }
 
@@ -148,8 +147,8 @@ class FileStorageServiceMultipartUploadTest {
             }
         }
 
-        List<FilePartInfo> partList = fileStorageService.listParts(fileInfo).listParts();
-        for (FilePartInfo info : partList) {
+        FilePartInfoList partList = fileStorageService.listParts(fileInfo).listParts();
+        for (FilePartInfo info : partList.getList()) {
             log.info("手动分片上传-列举已上传的分片：{}", info);
         }
 
@@ -160,7 +159,7 @@ class FileStorageServiceMultipartUploadTest {
             partList = fileStorageService.listParts(fileInfo).listParts();
         } catch (Exception e) {
         }
-        Assert.isTrue(CollUtil.isEmpty(partList), "手动分片上传文件取消失败！");
+        Assert.isNull(partList, "手动分片上传文件取消失败！");
         log.info("手动分片上传文件取消成功：{}", fileInfo);
     }
 }

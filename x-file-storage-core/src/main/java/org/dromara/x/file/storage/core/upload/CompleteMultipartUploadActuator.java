@@ -9,6 +9,7 @@ import org.dromara.x.file.storage.core.aspect.CompleteMultipartUploadAspectChain
 import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.exception.Check;
+import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
@@ -31,10 +32,11 @@ public class CompleteMultipartUploadActuator {
     public FileInfo execute() {
         FileInfo fileInfo = pre.getFileInfo();
         Check.completeMultipartUpload(fileInfo);
-
-        fileInfo.setUploadStatus(Constant.FileInfoUploadStatus.COMPLETE);
         FileStorage fileStorage = fileStorageService.getFileStorageVerify(fileInfo.getPlatform());
-
+        if (!fileStorageService.isSupportMultipartUpload(fileStorage)) {
+            throw new FileStorageRuntimeException("手动分片上传-完成失败，当前存储平台不支持此功能");
+        }
+        fileInfo.setUploadStatus(Constant.FileInfoUploadStatus.COMPLETE);
         CopyOnWriteArrayList<FileStorageAspect> aspectList = fileStorageService.getAspectList();
         FileRecorder fileRecorder = fileStorageService.getFileRecorder();
         ContentTypeDetect contentTypeDetect = fileStorageService.getContentTypeDetect();
@@ -43,6 +45,14 @@ public class CompleteMultipartUploadActuator {
         return new CompleteMultipartUploadAspectChain(
                         aspectList, (_pre, _fileStorage, _fileRecorder, _contentTypeDetect) -> {
                             FileInfo _fileInfo = _pre.getFileInfo();
+
+                            // 如果未传入分片信息，则获取全部分片
+                            if (_pre.getPartInfoList() == null) {
+                                FilePartInfoList partInfoList =
+                                        fileStorageService.listParts(_fileInfo).listParts(_fileStorage, aspectList);
+                                _pre.setPartInfoList(partInfoList.getList());
+                            }
+
                             _fileStorage.completeMultipartUpload(_pre);
                             _fileRecorder.update(_fileInfo);
                             _fileRecorder.deleteFilePartByUploadId(_fileInfo.getUploadId());

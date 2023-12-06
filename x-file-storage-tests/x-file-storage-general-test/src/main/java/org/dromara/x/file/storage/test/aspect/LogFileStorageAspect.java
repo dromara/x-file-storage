@@ -3,7 +3,6 @@ package org.dromara.x.file.storage.test.aspect;
 import cn.hutool.core.util.ArrayUtil;
 import java.io.InputStream;
 import java.util.Date;
-import java.util.List;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileInfo;
@@ -116,10 +115,9 @@ public class LogFileStorageAspect implements FileStorageAspect {
      * 手动分片上传-列举已上传的分片
      */
     @Override
-    public List<FilePartInfo> listParts(
-            ListPartsAspectChain chain, ListPartsPretreatment pre, FileStorage fileStorage) {
+    public FilePartInfoList listParts(ListPartsAspectChain chain, ListPartsPretreatment pre, FileStorage fileStorage) {
         log.info("手动分片上传-列举已上传的分片 before -> {}", pre.getFileInfo());
-        List<FilePartInfo> list = chain.next(pre, fileStorage);
+        FilePartInfoList list = chain.next(pre, fileStorage);
         log.info("手动分片上传-列举已上传的分片 after -> {}", list);
         return list;
     }

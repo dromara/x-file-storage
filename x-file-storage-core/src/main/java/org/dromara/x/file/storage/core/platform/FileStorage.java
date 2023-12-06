@@ -2,7 +2,6 @@ package org.dromara.x.file.storage.core.platform;
 
 import java.io.InputStream;
 import java.util.Date;
-import java.util.List;
 import java.util.function.Consumer;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
@@ -60,9 +59,16 @@ public interface FileStorage extends AutoCloseable {
     default void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {}
 
     /**
+     * 手动分片上传-列举已上传的分片-每次获取的最大分片数，对象存储一般是 1000
+     */
+    default Integer getListPartsSupportMaxParts() {
+        return null;
+    }
+
+    /**
      * 手动分片上传-列举已上传的分片
      */
-    default List<FilePartInfo> listParts(ListPartsPretreatment pre) {
+    default FilePartInfoList listParts(ListPartsPretreatment pre) {
         return null;
     }
 

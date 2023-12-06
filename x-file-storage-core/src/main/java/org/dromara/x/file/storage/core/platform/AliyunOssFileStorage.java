@@ -187,13 +187,11 @@ public class AliyunOssFileStorage implements FileStorage {
     public FilePartInfo uploadPart(UploadPartPretreatment pre) {
         FileInfo fileInfo = pre.getFileInfo();
         String newFileKey = getFileKey(fileInfo);
-        ProgressListener listener = pre.getProgressListener();
         OSS client = getClient();
         FileWrapper partFileWrapper = pre.getPartFileWrapper();
         Long partSize = partFileWrapper.getSize();
         if (partSize == null) partSize = -1L;
-        try (InputStreamPlus in = pre.getInputStreamPlus(false)) {
-
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
             UploadPartRequest part = new UploadPartRequest();
             part.setBucketName(bucketName);
             part.setKey(newFileKey);
@@ -202,18 +200,6 @@ public class AliyunOssFileStorage implements FileStorage {
             part.setPartSize(partSize); // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为100 KB。
             part.setPartNumber(
                     pre.getPartNumber()); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，OSS将返回InvalidArgument错误码。
-            if (listener != null) {
-                AtomicLong progressSize = new AtomicLong();
-                part.setProgressListener(e -> {
-                    if (e.getEventType() == ProgressEventType.TRANSFER_PART_STARTED_EVENT) {
-                        listener.start();
-                    } else if (e.getEventType() == ProgressEventType.REQUEST_BYTE_TRANSFER_EVENT) {
-                        listener.progress(progressSize.addAndGet(e.getBytes()), partFileWrapper.getSize());
-                    } else if (e.getEventType() == ProgressEventType.TRANSFER_PART_COMPLETED_EVENT) {
-                        listener.finish();
-                    }
-                });
-            }
             PartETag partETag = client.uploadPart(part).getPartETag();
             FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
             filePartInfo.setETag(partETag.getETag());
@@ -233,19 +219,9 @@ public class AliyunOssFileStorage implements FileStorage {
         CannedAccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
         OSS client = getClient();
         try {
-            List<PartETag> partList;
-            if (pre.getPartInfoList() != null) {
-                partList = pre.getPartInfoList().stream()
-                        .map(part -> new PartETag(part.getPartNumber(), part.getETag()))
-                        .collect(Collectors.toList());
-            } else {
-                PartListing partListing =
-                        client.listParts(new ListPartsRequest(bucketName, newFileKey, fileInfo.getUploadId()));
-                partList = partListing.getParts().stream()
-                        .map(part -> new PartETag(part.getPartNumber(), part.getETag()))
-                        .collect(Collectors.toList());
-            }
-
+            List<PartETag> partList = pre.getPartInfoList().stream()
+                    .map(part -> new PartETag(part.getPartNumber(), part.getETag()))
+                    .collect(Collectors.toList());
             client.completeMultipartUpload(
                     new CompleteMultipartUploadRequest(bucketName, newFileKey, fileInfo.getUploadId(), partList));
             if (fileAcl != null) client.setObjectAcl(bucketName, newFileKey, fileAcl);
@@ -272,14 +248,23 @@ public class AliyunOssFileStorage implements FileStorage {
     }
 
     @Override
-    public List<FilePartInfo> listParts(ListPartsPretreatment pre) {
+    public Integer getListPartsSupportMaxParts() {
+        return 1000;
+    }
+
+    @Override
+    public FilePartInfoList listParts(ListPartsPretreatment pre) {
         FileInfo fileInfo = pre.getFileInfo();
         String newFileKey = getFileKey(fileInfo);
         OSS client = getClient();
         try {
-            PartListing partListing =
-                    client.listParts(new ListPartsRequest(bucketName, newFileKey, fileInfo.getUploadId()));
-            return partListing.getParts().stream()
+            ListPartsRequest request = new ListPartsRequest(bucketName, newFileKey, fileInfo.getUploadId());
+            request.setMaxParts(pre.getMaxParts());
+            request.setPartNumberMarker(pre.getPartNumberMarker());
+            PartListing result = client.listParts(request);
+            FilePartInfoList list = new FilePartInfoList();
+            list.setFileInfo(fileInfo);
+            list.setList(result.getParts().stream()
                     .map(p -> {
                         FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
                         filePartInfo.setETag(p.getETag());
@@ -288,7 +273,12 @@ public class AliyunOssFileStorage implements FileStorage {
                         filePartInfo.setLastModified(p.getLastModified());
                         return filePartInfo;
                     })
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toList()));
+            list.setMaxParts(result.getMaxParts());
+            list.setIsTruncated(result.isTruncated());
+            list.setPartNumberMarker(result.getPartNumberMarker());
+            list.setNextPartNumberMarker(result.getNextPartNumberMarker());
+            return list;
         } catch (Exception e) {
             throw ExceptionFactory.listParts(fileInfo, platform, e);
         }
