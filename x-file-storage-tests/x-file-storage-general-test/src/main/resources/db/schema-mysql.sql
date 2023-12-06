@@ -31,7 +31,7 @@ CREATE TABLE `file_detail`
     `attr`              text COMMENT '附加属性',
     `file_acl`          varchar(32)  DEFAULT NULL COMMENT '文件ACL',
     `th_file_acl`       varchar(32)  DEFAULT NULL COMMENT '缩略图文件ACL',
-    `upload_id` varchar(32) DEFAULT NULL COMMENT '上传ID，仅在手动分片上传时使用',
+    `upload_id` varchar(128) DEFAULT NULL COMMENT '上传ID，仅在手动分片上传时使用',
     `upload_status` int(11) DEFAULT NULL COMMENT '上传状态，仅在手动分片上传时使用，1：初始化完成，2：上传完成',
     `create_time`       datetime     DEFAULT NULL COMMENT '创建时间',
     PRIMARY KEY (`id`) USING BTREE
@@ -44,7 +44,7 @@ DROP TABLE IF EXISTS `file_part_detail`;
 CREATE TABLE `file_part_detail` (
                                     `id` varchar(32) CHARACTER SET utf8 NOT NULL COMMENT '分片id',
                                     `platform` varchar(32) CHARACTER SET utf8 DEFAULT NULL COMMENT '存储平台',
-                                    `upload_id` varchar(32) CHARACTER SET utf8 DEFAULT NULL COMMENT '上传ID，仅在手动分片上传时使用',
+                                    `upload_id` varchar(128) CHARACTER SET utf8 DEFAULT NULL COMMENT '上传ID，仅在手动分片上传时使用',
                                     `e_tag` varchar(255) DEFAULT NULL COMMENT '分片 ETag',
                                     `part_number` int(11) DEFAULT NULL COMMENT '分片号。每一个上传的分片都有一个分片号，一般情况下取值范围是1~10000',
                                     `part_size` bigint(20) DEFAULT NULL COMMENT '文件大小，单位字节',

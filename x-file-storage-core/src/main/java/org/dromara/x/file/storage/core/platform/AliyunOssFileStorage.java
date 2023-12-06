@@ -235,13 +235,10 @@ public class AliyunOssFileStorage implements FileStorage {
     public void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {
         FileInfo fileInfo = pre.getFileInfo();
         String newFileKey = getFileKey(fileInfo);
-        CannedAccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
         OSS client = getClient();
         try {
             client.abortMultipartUpload(
                     new AbortMultipartUploadRequest(bucketName, newFileKey, fileInfo.getUploadId()));
-            if (fileAcl != null) client.setObjectAcl(bucketName, newFileKey, fileAcl);
-
         } catch (Exception e) {
             throw ExceptionFactory.abortMultipartUpload(fileInfo, platform, e);
         }
