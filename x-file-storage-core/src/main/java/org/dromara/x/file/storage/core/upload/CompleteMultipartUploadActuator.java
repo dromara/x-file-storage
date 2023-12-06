@@ -1,5 +1,6 @@
 package org.dromara.x.file.storage.core.upload;
 
+import cn.hutool.core.io.IoUtil;
 import java.io.IOException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.dromara.x.file.storage.core.Downloader;
@@ -64,6 +65,9 @@ public class CompleteMultipartUploadActuator {
                                             try {
                                                 _fileInfo.setContentType(
                                                         _contentTypeDetect.detect(in, _fileInfo.getOriginalFilename()));
+                                                // 这里静默关闭流，防止出现 Premature end of Content-Length delimited message body
+                                                // 错误
+                                                IoUtil.close(in);
                                             } catch (IOException e) {
                                                 throw new RuntimeException(e);
                                             }

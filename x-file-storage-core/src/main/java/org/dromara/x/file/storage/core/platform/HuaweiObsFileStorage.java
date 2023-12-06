@@ -193,21 +193,19 @@ public class HuaweiObsFileStorage implements FileStorage {
         ObsClient client = getClient();
         FileWrapper partFileWrapper = pre.getPartFileWrapper();
         Long partSize = partFileWrapper.getSize();
-        if (partSize == null) partSize = -1L;
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
             UploadPartRequest part = new UploadPartRequest();
             part.setBucketName(bucketName);
             part.setObjectKey(newFileKey);
             part.setUploadId(fileInfo.getUploadId());
             part.setInput(in);
-            part.setPartSize(partSize); // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为100 KB。
-            part.setPartNumber(
-                    pre.getPartNumber()); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，ObsClient将返回InvalidArgument错误码。
+            part.setPartSize(partSize);
+            part.setPartNumber(pre.getPartNumber());
             UploadPartResult result = client.uploadPart(part);
             FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
             filePartInfo.setETag(result.getEtag());
             filePartInfo.setPartNumber(result.getPartNumber());
-            filePartInfo.setPartSize(in.getAllSize());
+            filePartInfo.setPartSize(in.getProgressSize());
             filePartInfo.setCreateTime(new Date());
             return filePartInfo;
         } catch (Exception e) {
@@ -235,13 +233,10 @@ public class HuaweiObsFileStorage implements FileStorage {
     public void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {
         FileInfo fileInfo = pre.getFileInfo();
         String newFileKey = getFileKey(fileInfo);
-        AccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
         ObsClient client = getClient();
         try {
             client.abortMultipartUpload(
                     new AbortMultipartUploadRequest(bucketName, newFileKey, fileInfo.getUploadId()));
-            if (fileAcl != null) client.setObjectAcl(bucketName, newFileKey, fileAcl);
-
         } catch (Exception e) {
             throw ExceptionFactory.abortMultipartUpload(fileInfo, platform, e);
         }

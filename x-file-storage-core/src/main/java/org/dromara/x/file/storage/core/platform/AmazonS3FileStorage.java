@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,6 +24,9 @@ import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.util.Tools;
 
 /**
  * Amazon S3 存储
@@ -161,6 +165,127 @@ public class AmazonS3FileStorage implements FileStorage {
         }
     }
 
+    @Override
+    public boolean isSupportMultipartUpload() {
+        return true;
+    }
+
+    @Override
+    public void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
+        fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
+        fileInfo.setUrl(domain + newFileKey);
+        ObjectMetadata metadata = getObjectMetadata(fileInfo);
+        AmazonS3 client = getClient();
+        try {
+            String uploadId = client.initiateMultipartUpload(
+                            new InitiateMultipartUploadRequest(bucketName, newFileKey, metadata))
+                    .getUploadId();
+
+            fileInfo.setUploadId(uploadId);
+        } catch (Exception e) {
+            throw ExceptionFactory.initiateMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public FilePartInfo uploadPart(UploadPartPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        AmazonS3 client = getClient();
+        FileWrapper partFileWrapper = pre.getPartFileWrapper();
+        Long partSize = partFileWrapper.getSize();
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
+            // Amazon S3 比较特殊，上传分片必须传入分片大小，这里强制获取，可能会占用大量内存
+            if (partSize == null) partSize = partFileWrapper.getInputStreamMaskResetReturn(Tools::getSize);
+            UploadPartRequest part = new UploadPartRequest();
+            part.setBucketName(bucketName);
+            part.setKey(newFileKey);
+            part.setUploadId(fileInfo.getUploadId());
+            part.setInputStream(in);
+            part.setPartSize(partSize);
+            part.setPartNumber(pre.getPartNumber());
+            PartETag partETag = client.uploadPart(part).getPartETag();
+            FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+            filePartInfo.setETag(partETag.getETag());
+            filePartInfo.setPartNumber(partETag.getPartNumber());
+            filePartInfo.setPartSize(in.getProgressSize());
+            filePartInfo.setCreateTime(new Date());
+            return filePartInfo;
+        } catch (Exception e) {
+            throw ExceptionFactory.uploadPart(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        CannedAccessControlList fileAcl = getAcl(fileInfo.getFileAcl());
+        AmazonS3 client = getClient();
+        try {
+            List<PartETag> partList = pre.getPartInfoList().stream()
+                    .map(part -> new PartETag(part.getPartNumber(), part.getETag()))
+                    .collect(Collectors.toList());
+            client.completeMultipartUpload(
+                    new CompleteMultipartUploadRequest(bucketName, newFileKey, fileInfo.getUploadId(), partList));
+            if (fileAcl != null) client.setObjectAcl(bucketName, newFileKey, fileAcl);
+
+        } catch (Exception e) {
+            throw ExceptionFactory.completeMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        AmazonS3 client = getClient();
+        try {
+            client.abortMultipartUpload(
+                    new AbortMultipartUploadRequest(bucketName, newFileKey, fileInfo.getUploadId()));
+        } catch (Exception e) {
+            throw ExceptionFactory.abortMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public Integer getListPartsSupportMaxParts() {
+        return 1000;
+    }
+
+    @Override
+    public FilePartInfoList listParts(ListPartsPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        AmazonS3 client = getClient();
+        try {
+            ListPartsRequest request = new ListPartsRequest(bucketName, newFileKey, fileInfo.getUploadId());
+            request.setMaxParts(pre.getMaxParts());
+            request.setPartNumberMarker(pre.getPartNumberMarker());
+            PartListing result = client.listParts(request);
+            FilePartInfoList list = new FilePartInfoList();
+            list.setFileInfo(fileInfo);
+            list.setList(result.getParts().stream()
+                    .map(p -> {
+                        FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+                        filePartInfo.setETag(p.getETag());
+                        filePartInfo.setPartNumber(p.getPartNumber());
+                        filePartInfo.setPartSize(p.getSize());
+                        filePartInfo.setLastModified(p.getLastModified());
+                        return filePartInfo;
+                    })
+                    .collect(Collectors.toList()));
+            list.setMaxParts(result.getMaxParts());
+            list.setIsTruncated(result.isTruncated());
+            list.setPartNumberMarker(result.getPartNumberMarker());
+            list.setNextPartNumberMarker(result.getNextPartNumberMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listParts(fileInfo, platform, e);
+        }
+    }
+
     /**
      * 获取文件的访问控制列表
      */
@@ -187,7 +312,7 @@ public class AmazonS3FileStorage implements FileStorage {
     public ObjectMetadata getObjectMetadata(FileInfo fileInfo) {
         ObjectMetadata metadata = new ObjectMetadata();
         if (fileInfo.getSize() != null) metadata.setContentLength(fileInfo.getSize());
-        metadata.setContentType(fileInfo.getContentType());
+        if (fileInfo.getContentType() != null) metadata.setContentType(fileInfo.getContentType());
         metadata.setUserMetadata(fileInfo.getUserMetadata());
         if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
             fileInfo.getMetadata().forEach(metadata::setHeader);
