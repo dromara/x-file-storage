@@ -1,16 +1,21 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
+import com.google.common.collect.Multimap;
 import io.minio.*;
 import io.minio.errors.*;
 import io.minio.http.Method;
+import io.minio.messages.ListPartsResult;
+import io.minio.messages.Part;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,6 +28,9 @@ import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.util.Tools;
 
 /**
  * MinIO 存储
@@ -113,6 +121,252 @@ public class MinioFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.upload(fileInfo, platform, e);
+        }
+    }
+
+    /**
+     * 通过反射获取 MinIO 异步操作对象
+     */
+    public MinioAsyncClient getMinioAsyncClient(MinioClient client) {
+        return (MinioAsyncClient) ReflectUtil.getFieldValue(client, "asyncClient");
+    }
+
+    /**
+     * 通过反射调用内部的分片上传初始化方法
+     */
+    public CreateMultipartUploadResponse initiateMultipartUpload(MinioClient client, PutObjectArgs args)
+            throws ExecutionException, InterruptedException {
+        MinioAsyncClient asyncClient = getMinioAsyncClient(client);
+
+        Multimap<String, String> headers = ReflectUtil.invoke(asyncClient, "newMultimap", args.extraHeaders());
+        headers.putAll(args.genHeaders());
+
+        java.lang.reflect.Method method =
+                ReflectUtil.getMethodByName(asyncClient.getClass(), "createMultipartUploadAsync");
+
+        CompletableFuture<CreateMultipartUploadResponse> cf = ReflectUtil.invoke(
+                asyncClient, method, args.bucket(), args.region(), args.object(), headers, args.extraQueryParams());
+
+        return cf.get();
+    }
+
+    @Override
+    public boolean isSupportMultipartUpload() {
+        return true;
+    }
+
+    @Override
+    public void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
+        fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
+        fileInfo.setUrl(domain + newFileKey);
+        //        Check.uploadNotSupportAcl(platform, fileInfo, pre);
+        MinioClient client = getClient();
+        try {
+            PutObjectArgs.Builder builder =
+                    PutObjectArgs.builder().bucket(bucketName).object(newFileKey);
+            if (fileInfo.getContentType() != null) builder.contentType(fileInfo.getContentType());
+            PutObjectArgs args =
+                    builder.headers(fileInfo.getMetadata()).userMetadata(fileInfo.getUserMetadata()).stream(
+                                    new ByteArrayInputStream(new byte[0]), 0, 0)
+                            .build();
+
+            String uploadId = initiateMultipartUpload(client, args).result().uploadId();
+            fileInfo.setUploadId(uploadId);
+        } catch (Exception e) {
+            throw ExceptionFactory.initiateMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    /**
+     * 通过反射调用内部的上传分片方法
+     */
+    public UploadPartResponse uploadPart(MinioClient client, String uploadId, int partNumber, PutObjectArgs args)
+            throws ExecutionException, InterruptedException {
+        MinioAsyncClient asyncClient = getMinioAsyncClient(client);
+
+        java.lang.reflect.Method newPartReaderMethod =
+                ReflectUtil.getMethodByName(asyncClient.getClass(), "newPartReader");
+
+        Object partReader = ReflectUtil.invoke(
+                asyncClient, newPartReaderMethod, args.stream(), args.objectSize(), args.partSize(), 1);
+        Object partSource = ReflectUtil.invoke(partReader, "getPart");
+
+        java.lang.reflect.Method uploadPartsMethod =
+                ReflectUtil.getMethodByName(asyncClient.getClass(), "uploadPartAsync");
+        CompletableFuture<UploadPartResponse> result = ReflectUtil.invoke(
+                asyncClient,
+                uploadPartsMethod,
+                args.bucket(),
+                args.region(),
+                args.object(),
+                partSource,
+                partNumber,
+                uploadId,
+                null,
+                null);
+        return result.get();
+    }
+
+    @Override
+    public FilePartInfo uploadPart(UploadPartPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        MinioClient client = getClient();
+        FileWrapper partFileWrapper = pre.getPartFileWrapper();
+        Long partSize = partFileWrapper.getSize();
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
+            // MinIO 比较特殊，上传分片必须传入分片大小，这里强制获取，可能会占用大量内存
+            if (partSize == null) partSize = partFileWrapper.getInputStreamMaskResetReturn(Tools::getSize);
+
+            PutObjectArgs args = PutObjectArgs.builder().bucket(bucketName).object(newFileKey).stream(in, partSize, -1)
+                    .build();
+
+            UploadPartResponse part = uploadPart(client, fileInfo.getUploadId(), pre.getPartNumber(), args);
+            FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+            filePartInfo.setETag(part.etag());
+            filePartInfo.setPartNumber(part.partNumber());
+            filePartInfo.setPartSize(in.getProgressSize());
+            filePartInfo.setCreateTime(new Date());
+            return filePartInfo;
+        } catch (Exception e) {
+            throw ExceptionFactory.uploadPart(fileInfo, platform, e);
+        }
+    }
+
+    /**
+     * 通过反射调用内部的分片上传完成方法
+     */
+    public ObjectWriteResponse completeMultipartUpload(
+            MinioClient client, String uploadId, Part[] parts, PutObjectArgs args)
+            throws ExecutionException, InterruptedException {
+        MinioAsyncClient asyncClient = getMinioAsyncClient(client);
+
+        java.lang.reflect.Method method =
+                ReflectUtil.getMethodByName(asyncClient.getClass(), "completeMultipartUploadAsync");
+
+        CompletableFuture<ObjectWriteResponse> cf = ReflectUtil.invoke(
+                asyncClient, method, args.bucket(), args.region(), args.object(), uploadId, parts, null, null);
+
+        return cf.get();
+    }
+
+    @Override
+    public void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+
+        MinioClient client = getClient();
+        try {
+            PutObjectArgs args = PutObjectArgs.builder().bucket(bucketName).object(newFileKey).stream(
+                            new ByteArrayInputStream(new byte[0]), 0, 0)
+                    .build();
+
+            Part[] parts = pre.getPartInfoList().stream()
+                    .map(part -> new Part(part.getPartNumber(), part.getETag()))
+                    .toArray(Part[]::new);
+
+            completeMultipartUpload(client, fileInfo.getUploadId(), parts, args);
+        } catch (Exception e) {
+            throw ExceptionFactory.completeMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    /**
+     * 通过反射调用内部的分片上传取消方法
+     */
+    public AbortMultipartUploadResponse abortMultipartUpload(MinioClient client, String uploadId, PutObjectArgs args)
+            throws ExecutionException, InterruptedException {
+        MinioAsyncClient asyncClient = getMinioAsyncClient(client);
+
+        java.lang.reflect.Method method =
+                ReflectUtil.getMethodByName(asyncClient.getClass(), "abortMultipartUploadAsync");
+
+        CompletableFuture<AbortMultipartUploadResponse> cf = ReflectUtil.invoke(
+                asyncClient, method, args.bucket(), args.region(), args.object(), uploadId, null, null);
+
+        return cf.get();
+    }
+
+    @Override
+    public void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        MinioClient client = getClient();
+        try {
+            PutObjectArgs args = PutObjectArgs.builder().bucket(bucketName).object(newFileKey).stream(
+                            new ByteArrayInputStream(new byte[0]), 0, 0)
+                    .build();
+
+            abortMultipartUpload(client, fileInfo.getUploadId(), args);
+        } catch (Exception e) {
+            throw ExceptionFactory.abortMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public Integer getListPartsSupportMaxParts() {
+        return 1000;
+    }
+
+    /**
+     * 通过反射调用内部的列举已上传的分片方法
+     */
+    public ListPartsResult listParts(
+            MinioClient client, String uploadId, Integer maxParts, Integer partNumberMarker, PutObjectArgs args)
+            throws ExecutionException, InterruptedException {
+        MinioAsyncClient asyncClient = getMinioAsyncClient(client);
+
+        java.lang.reflect.Method method = ReflectUtil.getMethodByName(asyncClient.getClass(), "listPartsAsync");
+
+        Multimap<String, String> headers = ReflectUtil.invoke(asyncClient, "newMultimap", args.extraHeaders());
+        headers.putAll(args.genHeaders());
+
+        CompletableFuture<ListPartsResponse> result = ReflectUtil.invoke(
+                asyncClient,
+                method,
+                args.bucket(),
+                args.region(),
+                args.object(),
+                maxParts,
+                partNumberMarker,
+                uploadId,
+                headers,
+                args.extraQueryParams());
+        return result.get().result();
+    }
+
+    @Override
+    public FilePartInfoList listParts(ListPartsPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        MinioClient client = getClient();
+        try {
+            PutObjectArgs args = PutObjectArgs.builder().bucket(bucketName).object(newFileKey).stream(
+                            new ByteArrayInputStream(new byte[0]), 0, 0)
+                    .build();
+
+            ListPartsResult result =
+                    listParts(client, fileInfo.getUploadId(), pre.getMaxParts(), pre.getPartNumberMarker(), args);
+            FilePartInfoList list = new FilePartInfoList();
+            list.setFileInfo(fileInfo);
+            list.setList(result.partList().stream()
+                    .map(p -> {
+                        FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+                        filePartInfo.setETag(p.etag());
+                        filePartInfo.setPartNumber(p.partNumber());
+                        filePartInfo.setPartSize(p.partSize());
+                        filePartInfo.setLastModified(DateUtil.date(p.lastModified()));
+                        return filePartInfo;
+                    })
+                    .collect(Collectors.toList()));
+            list.setMaxParts(result.maxParts());
+            list.setIsTruncated(result.isTruncated());
+            list.setPartNumberMarker(result.partNumberMarker());
+            list.setNextPartNumberMarker(result.nextPartNumberMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listParts(fileInfo, platform, e);
         }
     }
 

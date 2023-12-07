@@ -6,6 +6,7 @@ import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
+import org.dromara.x.file.storage.core.upload.InitiateMultipartUploadPretreatment;
 
 /**
  * 用于检查条件并抛出对应异常，主要用于存储平台的实现类中
@@ -25,12 +26,39 @@ public class Check {
     }
 
     /**
+     * 上传文件时，检查是否传入 ACL，如果传入则按要求抛出异常
+     * @param platform 存储平台名称
+     * @param fileInfo 文件信息
+     * @param pre 文件上传预处理对象
+     */
+    public static void uploadNotSupportAcl(
+            String platform, FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
+        if (fileInfo.getFileAcl() != null && pre.getNotSupportAclThrowException()) {
+            throw ExceptionFactory.uploadNotSupportAcl(fileInfo, platform);
+        }
+    }
+
+    /**
      * 上传文件时，检查是否传入 Metadata，如果传入则按要求抛出异常
      * @param platform 存储平台名称
      * @param fileInfo 文件信息
      * @param pre 文件上传预处理对象
      */
     public static void uploadNotSupportMetadata(String platform, FileInfo fileInfo, UploadPretreatment pre) {
+        if ((CollUtil.isNotEmpty(fileInfo.getMetadata()) || CollUtil.isNotEmpty(fileInfo.getUserMetadata()))
+                && pre.getNotSupportMetadataThrowException()) {
+            throw ExceptionFactory.uploadNotSupportMetadata(fileInfo, platform);
+        }
+    }
+
+    /**
+     * 上传文件时，检查是否传入 Metadata，如果传入则按要求抛出异常
+     * @param platform 存储平台名称
+     * @param fileInfo 文件信息
+     * @param pre 文件上传预处理对象
+     */
+    public static void uploadNotSupportMetadata(
+            String platform, FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
         if ((CollUtil.isNotEmpty(fileInfo.getMetadata()) || CollUtil.isNotEmpty(fileInfo.getUserMetadata()))
                 && pre.getNotSupportMetadataThrowException()) {
             throw ExceptionFactory.uploadNotSupportMetadata(fileInfo, platform);
