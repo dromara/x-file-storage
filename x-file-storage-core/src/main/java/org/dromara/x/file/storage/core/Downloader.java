@@ -6,8 +6,9 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.aspect.DownloadAspectChain;
 import org.dromara.x.file.storage.core.aspect.DownloadThAspectChain;
 import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
@@ -17,7 +18,7 @@ import org.dromara.x.file.storage.core.platform.FileStorage;
 /**
  * 下载器
  */
-public class Downloader {
+public class Downloader implements ProgressListenerSetter<Downloader> {
     /**
      * 下载目标：文件
      */
@@ -31,6 +32,9 @@ public class Downloader {
     private final List<FileStorageAspect> aspectList;
     private final FileInfo fileInfo;
     private final Integer target;
+
+    @Setter
+    @Accessors(chain = true)
     private ProgressListener progressListener;
 
     /**
@@ -43,41 +47,6 @@ public class Downloader {
         this.aspectList = aspectList;
         this.fileInfo = fileInfo;
         this.target = target;
-    }
-
-    /**
-     * 设置下载进度监听器
-     * @param progressListener 提供一个参数，表示已传输字节数
-     */
-    public Downloader setProgressMonitor(Consumer<Long> progressListener) {
-        return setProgressMonitor((progressSize, allSize) -> progressListener.accept(progressSize));
-    }
-
-    /**
-     * 设置下载进度监听器
-     * @param progressListener 提供两个参数，第一个是 progressSize已传输字节数，第二个是 allSize总字节数
-     */
-    public Downloader setProgressMonitor(BiConsumer<Long, Long> progressListener) {
-        return setProgressMonitor(new ProgressListener() {
-            @Override
-            public void start() {}
-
-            @Override
-            public void progress(long progressSize, Long allSize) {
-                progressListener.accept(progressSize, allSize);
-            }
-
-            @Override
-            public void finish() {}
-        });
-    }
-
-    /**
-     * 设置下载进度监听器
-     */
-    public Downloader setProgressMonitor(ProgressListener progressListener) {
-        this.progressListener = progressListener;
-        return this;
     }
 
     /**

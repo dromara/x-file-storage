@@ -160,7 +160,7 @@ public class MinioFileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        //        Check.uploadNotSupportAcl(platform, fileInfo, pre);
+        Check.uploadNotSupportAcl(platform, fileInfo, pre);
         MinioClient client = getClient();
         try {
             PutObjectArgs.Builder builder =
@@ -266,7 +266,9 @@ public class MinioFileStorage implements FileStorage {
                     .map(part -> new Part(part.getPartNumber(), part.getETag()))
                     .toArray(Part[]::new);
 
+            ProgressListener.quickStart(pre.getProgressListener(), fileInfo.getSize());
             completeMultipartUpload(client, fileInfo.getUploadId(), parts, args);
+            ProgressListener.quickFinish(pre.getProgressListener(), fileInfo.getSize());
         } catch (Exception e) {
             throw ExceptionFactory.completeMultipartUpload(fileInfo, platform, e);
         }

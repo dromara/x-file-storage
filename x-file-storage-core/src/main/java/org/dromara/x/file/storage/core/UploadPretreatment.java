@@ -10,7 +10,6 @@ import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,7 +27,7 @@ import org.dromara.x.file.storage.core.recorder.FileRecorder;
 @Getter
 @Setter
 @Accessors(chain = true)
-public class UploadPretreatment {
+public class UploadPretreatment implements ProgressListenerSetter<UploadPretreatment> {
     private FileStorageService fileStorageService;
     /**
      * 要上传到的平台
@@ -703,71 +702,6 @@ public class UploadPretreatment {
      */
     public UploadPretreatment thumbnail() {
         return thumbnail(200, 200);
-    }
-
-    /**
-     * 设置上传进度监听器
-     *
-     * @param progressListener 提供一个参数，表示已传输字节数
-     */
-    public UploadPretreatment setProgressMonitor(boolean flag, Consumer<Long> progressListener) {
-        if (flag) setProgressMonitor(progressListener);
-        return this;
-    }
-
-    /**
-     * 设置上传进度监听器
-     *
-     * @param progressListener 提供一个参数，表示已传输字节数
-     */
-    public UploadPretreatment setProgressMonitor(Consumer<Long> progressListener) {
-        return setProgressMonitor((progressSize, allSize) -> progressListener.accept(progressSize));
-    }
-
-    /**
-     * 设置上传进度监听器
-     *
-     * @param progressListener 提供两个参数，第一个是 progressSize已传输字节数，第二个是 allSize总字节数
-     */
-    public UploadPretreatment setProgressMonitor(boolean flag, BiConsumer<Long, Long> progressListener) {
-        if (flag) setProgressMonitor(progressListener);
-        return this;
-    }
-
-    /**
-     * 设置上传进度监听器
-     *
-     * @param progressListener 提供两个参数，第一个是 progressSize已传输字节数，第二个是 allSize总字节数
-     */
-    public UploadPretreatment setProgressMonitor(BiConsumer<Long, Long> progressListener) {
-        return setProgressMonitor(new ProgressListener() {
-            @Override
-            public void start() {}
-
-            @Override
-            public void progress(long progressSize, Long allSize) {
-                progressListener.accept(progressSize, allSize);
-            }
-
-            @Override
-            public void finish() {}
-        });
-    }
-
-    /**
-     * 设置上传进度监听器
-     */
-    public UploadPretreatment setProgressMonitor(boolean flag, ProgressListener progressListener) {
-        if (flag) setProgressMonitor(progressListener);
-        return this;
-    }
-
-    /**
-     * 设置上传进度监听器
-     */
-    public UploadPretreatment setProgressMonitor(ProgressListener progressListener) {
-        this.progressListener = progressListener;
-        return this;
     }
 
     /**

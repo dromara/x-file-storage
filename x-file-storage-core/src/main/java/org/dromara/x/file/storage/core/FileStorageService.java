@@ -428,6 +428,8 @@ public class FileStorageService {
         InitiateMultipartUploadPretreatment pre = new InitiateMultipartUploadPretreatment();
         pre.setFileStorageService(self);
         pre.setPlatform(defaultPlatform);
+        pre.setNotSupportMetadataThrowException(uploadNotSupportMetadataThrowException);
+        pre.setNotSupportAclThrowException(uploadNotSupportAclThrowException);
         return pre;
     }
 

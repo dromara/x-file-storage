@@ -222,8 +222,10 @@ public class HuaweiObsFileStorage implements FileStorage {
             List<PartEtag> partList = pre.getPartInfoList().stream()
                     .map(part -> new PartEtag(part.getETag(), part.getPartNumber()))
                     .collect(Collectors.toList());
+            ProgressListener.quickStart(pre.getProgressListener(), fileInfo.getSize());
             client.completeMultipartUpload(
                     new CompleteMultipartUploadRequest(bucketName, newFileKey, fileInfo.getUploadId(), partList));
+            ProgressListener.quickFinish(pre.getProgressListener(), fileInfo.getSize());
         } catch (Exception e) {
             throw ExceptionFactory.completeMultipartUpload(fileInfo, platform, e);
         }

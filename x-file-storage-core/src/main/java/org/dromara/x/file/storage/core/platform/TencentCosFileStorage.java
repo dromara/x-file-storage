@@ -224,8 +224,10 @@ public class TencentCosFileStorage implements FileStorage {
             List<PartETag> partList = pre.getPartInfoList().stream()
                     .map(part -> new PartETag(part.getPartNumber(), part.getETag()))
                     .collect(Collectors.toList());
+            ProgressListener.quickStart(pre.getProgressListener(), fileInfo.getSize());
             client.completeMultipartUpload(
                     new CompleteMultipartUploadRequest(bucketName, newFileKey, fileInfo.getUploadId(), partList));
+            ProgressListener.quickFinish(pre.getProgressListener(), fileInfo.getSize());
         } catch (Exception e) {
             throw ExceptionFactory.completeMultipartUpload(fileInfo, platform, e);
         }
