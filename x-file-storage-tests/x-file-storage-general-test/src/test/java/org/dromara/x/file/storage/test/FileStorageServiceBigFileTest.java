@@ -37,7 +37,7 @@ class FileStorageServiceBigFileTest {
         FileInfo fileInfo = fileStorageService
                 .of(file)
                 .setPath("test/")
-                .setProgressMonitor(new ProgressListener() {
+                .setProgressListener(new ProgressListener() {
                     @Override
                     public void start() {
                         System.out.println("上传开始");

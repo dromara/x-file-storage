@@ -1,12 +1,11 @@
 package org.dromara.x.file.storage.core.upload;
 
 import java.io.IOException;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.*;
+import org.dromara.x.file.storage.core.ProgressListenerSetter;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 
 /**
@@ -15,7 +14,7 @@ import org.dromara.x.file.storage.core.file.FileWrapper;
 @Getter
 @Setter
 @Accessors(chain = true)
-public class UploadPartPretreatment {
+public class UploadPartPretreatment implements ProgressListenerSetter<UploadPartPretreatment> {
     /**
      * 文件存储服务类
      */
@@ -41,71 +40,6 @@ public class UploadPartPretreatment {
      * 传时用的增强版本的 InputStream ，可以带进度监听、计算哈希等功能，仅内部使用
      */
     private InputStreamPlus inputStreamPlus;
-
-    /**
-     * 设置上传进度监听器
-     *
-     * @param progressListener 提供一个参数，表示已传输字节数
-     */
-    public UploadPartPretreatment setProgressListener(boolean flag, Consumer<Long> progressListener) {
-        if (flag) setProgressListener(progressListener);
-        return this;
-    }
-
-    /**
-     * 设置上传进度监听器
-     *
-     * @param progressListener 提供一个参数，表示已传输字节数
-     */
-    public UploadPartPretreatment setProgressListener(Consumer<Long> progressListener) {
-        return setProgressListener((progressSize, allSize) -> progressListener.accept(progressSize));
-    }
-
-    /**
-     * 设置上传进度监听器
-     *
-     * @param progressListener 提供两个参数，第一个是 progressSize已传输字节数，第二个是 allSize总字节数
-     */
-    public UploadPartPretreatment setProgressListener(boolean flag, BiConsumer<Long, Long> progressListener) {
-        if (flag) setProgressListener(progressListener);
-        return this;
-    }
-
-    /**
-     * 设置上传进度监听器
-     *
-     * @param progressListener 提供两个参数，第一个是 progressSize已传输字节数，第二个是 allSize总字节数
-     */
-    public UploadPartPretreatment setProgressListener(BiConsumer<Long, Long> progressListener) {
-        return setProgressListener(new ProgressListener() {
-            @Override
-            public void start() {}
-
-            @Override
-            public void progress(long progressSize, Long allSize) {
-                progressListener.accept(progressSize, allSize);
-            }
-
-            @Override
-            public void finish() {}
-        });
-    }
-
-    /**
-     * 设置上传进度监听器
-     */
-    public UploadPartPretreatment setProgressListener(boolean flag, ProgressListener progressListener) {
-        if (flag) setProgressListener(progressListener);
-        return this;
-    }
-
-    /**
-     * 设置上传进度监听器
-     */
-    public UploadPartPretreatment setProgressListener(ProgressListener progressListener) {
-        this.progressListener = progressListener;
-        return this;
-    }
 
     /**
      * 获取增强版本的 InputStream ，可以带进度监听、计算哈希等功能

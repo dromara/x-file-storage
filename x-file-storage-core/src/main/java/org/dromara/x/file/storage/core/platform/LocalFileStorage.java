@@ -1,15 +1,18 @@
 package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.io.StreamProgress;
+import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
 import java.util.function.Consumer;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import java.util.stream.Collectors;
+import lombok.*;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.LocalConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
@@ -20,6 +23,7 @@ import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
+import org.dromara.x.file.storage.core.upload.*;
 
 /**
  * 本地文件存储
@@ -89,6 +93,178 @@ public class LocalFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.upload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public boolean isSupportMultipartUpload() {
+        return true;
+    }
+
+    @Override
+    public void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
+        fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
+        fileInfo.setUrl(domain + newFileKey);
+        Check.uploadNotSupportAcl(platform, fileInfo, pre);
+        Check.uploadNotSupportMetadata(platform, fileInfo, pre);
+        try {
+            String uploadId = IdUtil.objectId();
+            String parent = FileUtil.file(getAbsolutePath(newFileKey)).getParent();
+            FileUtil.mkdir(FileUtil.file(parent, uploadId));
+            fileInfo.setUploadId(uploadId);
+        } catch (Exception e) {
+            throw ExceptionFactory.initiateMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public FilePartInfo uploadPart(UploadPartPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
+            String parent = FileUtil.file(getAbsolutePath(newFileKey)).getParent();
+            File dir = FileUtil.file(parent, fileInfo.getUploadId());
+            File part = FileUtil.file(dir, String.valueOf(pre.getPartNumber()));
+            FileUtil.writeFromStream(in, part);
+
+            String etag = IdUtil.objectId();
+
+            LocalPartInfo partInfo =
+                    new LocalPartInfo(pre.getPartNumber(), etag, part.length(), new Date(part.lastModified()));
+            FileUtil.appendUtf8String(partInfo.toIndexString() + "\n", FileUtil.file(dir, "index"));
+
+            FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+            // etag 应该是分片的 MD5，这里暂时用随机 ID 代替，等流式计算 hash 功能好了再替换
+            filePartInfo.setETag(etag);
+            filePartInfo.setPartNumber(pre.getPartNumber());
+            filePartInfo.setPartSize(in.getProgressSize());
+            filePartInfo.setCreateTime(new Date());
+            return filePartInfo;
+        } catch (Exception e) {
+            throw ExceptionFactory.uploadPart(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        try {
+            File newFile = FileUtil.file(getAbsolutePath(newFileKey));
+            String parent = newFile.getParent();
+            File dir = FileUtil.file(parent, fileInfo.getUploadId());
+
+            List<FilePartInfo> partInfoList = pre.getPartInfoList().stream()
+                    .sorted(Comparator.comparingInt(FilePartInfo::getPartNumber))
+                    .collect(Collectors.toList());
+
+            // 合并文件
+            Long fileSize = fileInfo.getSize();
+            final long[] allProgressSize = {0};
+            ProgressListener progressListener = pre.getProgressListener();
+            ProgressListener.quickStart(progressListener, fileSize);
+            try (BufferedOutputStream out = FileUtil.getOutputStream(newFile)) {
+                for (FilePartInfo partInfo : partInfoList) {
+                    File partFile = FileUtil.file(dir, String.valueOf(partInfo.getPartNumber()));
+                    if (progressListener == null) {
+                        FileUtil.writeToStream(partFile, out);
+                    } else {
+                        try (InputStream in = FileUtil.getInputStream(partFile)) {
+                            IoUtil.copy(in, out, IoUtil.DEFAULT_BUFFER_SIZE, new StreamProgress() {
+                                @Override
+                                public void start() {}
+
+                                @Override
+                                public void progress(long total, long progressSize) {
+                                    ProgressListener.quickProgress(
+                                            progressListener, allProgressSize[0] + progressSize, fileSize);
+                                }
+
+                                @Override
+                                public void finish() {
+                                    allProgressSize[0] += partFile.length();
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+            ProgressListener.quickFinish(progressListener);
+            if (fileSize == null) fileInfo.setSize(newFile.length());
+
+            FileUtil.del(dir);
+        } catch (Exception e) {
+            try {
+                FileUtil.del(getAbsolutePath(newFileKey));
+            } catch (Exception ignored) {
+            }
+            throw ExceptionFactory.completeMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        try {
+            File newFile = FileUtil.file(getAbsolutePath(newFileKey));
+            String parent = newFile.getParent();
+            File dir = FileUtil.file(parent, fileInfo.getUploadId());
+            FileUtil.del(dir);
+        } catch (Exception e) {
+            throw ExceptionFactory.abortMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public Integer getListPartsSupportMaxParts() {
+        return 10000;
+    }
+
+    @Override
+    public FilePartInfoList listParts(ListPartsPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        try {
+            String parent = FileUtil.file(getAbsolutePath(newFileKey)).getParent();
+            File dir = FileUtil.file(parent, fileInfo.getUploadId());
+            List<String> partTextInfoList = FileUtil.readUtf8Lines(FileUtil.file(dir, "index"));
+
+            List<LocalPartInfo> localPartInfoList = partTextInfoList.stream()
+                    .map(LocalPartInfo::new)
+                    .filter(p -> p.getPartNumber() > pre.getPartNumberMarker())
+                    .sorted(Comparator.comparingInt(LocalPartInfo::getPartNumber))
+                    .collect(Collectors.toList());
+
+            FilePartInfoList list = new FilePartInfoList();
+            list.setFileInfo(fileInfo);
+            list.setMaxParts(pre.getMaxParts());
+            list.setPartNumberMarker(pre.getPartNumberMarker());
+
+            if (localPartInfoList.size() > pre.getMaxParts()) {
+                list.setIsTruncated(true);
+                localPartInfoList = localPartInfoList.subList(0, pre.getMaxParts());
+                list.setNextPartNumberMarker(
+                        localPartInfoList.get(localPartInfoList.size() - 1).getPartNumber());
+            } else {
+                list.setIsTruncated(false);
+            }
+
+            list.setList(localPartInfoList.stream()
+                    .map(p -> {
+                        FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+                        filePartInfo.setETag(p.getEtag());
+                        filePartInfo.setPartNumber(p.getPartNumber());
+                        filePartInfo.setPartSize(p.getSize());
+                        filePartInfo.setLastModified(p.getLastModified());
+                        return filePartInfo;
+                    })
+                    .collect(Collectors.toList()));
+
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listParts(fileInfo, platform, e);
         }
     }
 
@@ -257,6 +433,31 @@ public class LocalFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.sameMove(srcFileInfo, destFileInfo, platform, e);
+        }
+    }
+
+    /**
+     * 本地的分片信息
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LocalPartInfo {
+        private Integer partNumber;
+        private String etag;
+        private Long size;
+        private Date lastModified;
+
+        public LocalPartInfo(String text) {
+            String[] arr = text.split("_");
+            partNumber = Integer.parseInt(arr[0]);
+            etag = arr[1];
+            size = Long.parseLong(arr[2]);
+            lastModified = new Date(Long.parseLong(arr[3]));
+        }
+
+        public String toIndexString() {
+            return partNumber + "_" + etag + "_" + size + "_" + lastModified.getTime();
         }
     }
 }

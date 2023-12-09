@@ -6,6 +6,8 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
+import org.dromara.x.file.storage.core.ProgressListener;
+import org.dromara.x.file.storage.core.ProgressListenerSetter;
 
 /**
  * 手动分片上传-完成预处理器
@@ -13,7 +15,8 @@ import org.dromara.x.file.storage.core.FileStorageService;
 @Getter
 @Setter
 @Accessors(chain = true)
-public class CompleteMultipartUploadPretreatment {
+public class CompleteMultipartUploadPretreatment
+        implements ProgressListenerSetter<CompleteMultipartUploadPretreatment> {
     /**
      * 文件存储服务类
      */
@@ -26,6 +29,10 @@ public class CompleteMultipartUploadPretreatment {
      * 文件分片信息，不传则自动使用全部已上传的分片
      */
     private List<FilePartInfo> partInfoList;
+    /**
+     * 完成进度监听
+     */
+    private ProgressListener progressListener;
 
     /**
      * 执行完成

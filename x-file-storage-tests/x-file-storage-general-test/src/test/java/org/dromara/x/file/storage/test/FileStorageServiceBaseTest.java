@@ -44,7 +44,7 @@ class FileStorageServiceBaseTest {
                 .thumbnail()
                 .putAttr("role", "admin")
                 .setAcl(supportACL, Constant.ACL.PRIVATE)
-                .setProgressMonitor(new ProgressListener() {
+                .setProgressListener(new ProgressListener() {
                     @Override
                     public void start() {
                         System.out.println("上传开始");
@@ -221,7 +221,7 @@ class FileStorageServiceBaseTest {
 
         byte[] bytes = fileStorageService
                 .download(fileInfo)
-                .setProgressMonitor((progressSize, allSize) ->
+                .setProgressListener((progressSize, allSize) ->
                         log.info("文件下载进度：{} {}%", progressSize, progressSize * 100 / allSize))
                 .bytes();
         Assert.notNull(bytes, "文件下载失败！");
@@ -229,7 +229,7 @@ class FileStorageServiceBaseTest {
 
         byte[] thBytes = fileStorageService
                 .downloadTh(fileInfo)
-                .setProgressMonitor((progressSize, allSize) ->
+                .setProgressListener((progressSize, allSize) ->
                         log.info("缩略图文件下载进度：{} {}%", progressSize, progressSize * 100 / allSize))
                 .bytes();
         Assert.notNull(thBytes, "缩略图文件下载失败！");

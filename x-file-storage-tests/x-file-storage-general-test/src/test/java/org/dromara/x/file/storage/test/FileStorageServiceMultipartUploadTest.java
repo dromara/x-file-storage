@@ -108,6 +108,27 @@ class FileStorageServiceMultipartUploadTest {
         fileStorageService
                 .completeMultipartUpload(fileInfo)
                 //                .setPartInfoList(partList)
+                .setProgressListener(new ProgressListener() {
+                    @Override
+                    public void start() {
+                        System.out.println("文件合并开始");
+                    }
+
+                    @Override
+                    public void progress(long progressSize, Long allSize) {
+                        if (allSize == null) {
+                            System.out.println("文件已合并 " + progressSize + " 总大小未知");
+                        } else {
+                            System.out.println("文件已合并 " + progressSize + " 总大小" + allSize + " "
+                                    + (progressSize * 10000 / allSize * 0.01) + "%");
+                        }
+                    }
+
+                    @Override
+                    public void finish() {
+                        System.out.println("文件合并结束");
+                    }
+                })
                 .complete();
         log.info("手动分片上传文件完成成功：{}", fileInfo);
 
