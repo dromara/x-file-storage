@@ -93,7 +93,6 @@ public class HuaweiObsFileStorage implements FileStorage {
                 uploadId = client.initiateMultipartUpload(initiateMultipartUploadRequest).getUploadId();
                 List<PartEtag> partList = new ArrayList<>();
                 int i = 0;
-                AtomicLong progressSize = new AtomicLong();
                 if (listener != null) listener.start();
                 while (true) {
                     byte[] bytes = IoUtil.readBytes(in,multipartPartSize);
@@ -106,7 +105,7 @@ public class HuaweiObsFileStorage implements FileStorage {
                     part.setPartSize((long) bytes.length); // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为100 KB。
                     part.setPartNumber(++i); // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，ObsClient将返回InvalidArgument错误码。
                     if (listener != null) {
-                        part.setProgressListener(e -> listener.progress(progressSize.addAndGet(e.getTransferredBytes()),fileInfo.getSize()));
+                        part.setProgressListener(e -> listener.progress(e.getTransferredBytes(),fileInfo.getSize()));
                     }
                     UploadPartResult uploadPartResult = client.uploadPart(part);
                     partList.add(new PartEtag(uploadPartResult.getEtag(),uploadPartResult.getPartNumber()));
@@ -119,8 +118,7 @@ public class HuaweiObsFileStorage implements FileStorage {
                 request.setAcl(fileAcl);
                 if (listener != null) {
                     listener.start();
-                    AtomicLong progressSize = new AtomicLong();
-                    request.setProgressListener(e -> listener.progress(progressSize.addAndGet(e.getTransferredBytes()),fileInfo.getSize()));
+                    request.setProgressListener(e -> listener.progress(e.getTransferredBytes(),fileInfo.getSize()));
                 }
                 client.putObject(request);
                 if (listener != null) listener.finish();
