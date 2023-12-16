@@ -191,7 +191,7 @@ public class CopyActuator {
                     .putThUserMetadataAll(srcFileInfo.getThUserMetadata() != null, srcFileInfo.getThUserMetadata())
                     .setProgressListener(pre.getProgressListener())
                     .putAttrAll(srcFileInfo.getAttr() != null, srcFileInfo.getAttr())
-                    .upload(fileStorage, fileRecorder, aspectList);
+                    .upload(fileStorageService.getFileStorageVerify(pre.getPlatform()), fileRecorder, aspectList);
         });
         return destFileInfoArr[0];
     }
