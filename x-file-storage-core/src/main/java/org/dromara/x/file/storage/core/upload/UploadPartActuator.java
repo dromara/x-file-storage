@@ -6,7 +6,6 @@ import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.aspect.UploadPartAspectChain;
 import org.dromara.x.file.storage.core.exception.Check;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 
@@ -30,9 +29,6 @@ public class UploadPartActuator {
         Check.uploadPart(fileInfo);
 
         FileStorage fileStorage = fileStorageService.getFileStorageVerify(fileInfo.getPlatform());
-        if (!fileStorageService.isSupportMultipartUpload(fileStorage)) {
-            throw new FileStorageRuntimeException("手动分片上传-分片上传失败，当前存储平台不支持此功能");
-        }
         CopyOnWriteArrayList<FileStorageAspect> aspectList = fileStorageService.getAspectList();
         FileRecorder fileRecorder = fileStorageService.getFileRecorder();
 

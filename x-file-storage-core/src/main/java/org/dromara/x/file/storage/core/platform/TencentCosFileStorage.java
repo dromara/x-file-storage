@@ -163,8 +163,8 @@ public class TencentCosFileStorage implements FileStorage {
     }
 
     @Override
-    public boolean isSupportMultipartUpload() {
-        return true;
+    public MultipartUploadSupportInfo isSupportMultipartUpload() {
+        return MultipartUploadSupportInfo.supportAll();
     }
 
     @Override
@@ -244,11 +244,6 @@ public class TencentCosFileStorage implements FileStorage {
         } catch (Exception e) {
             throw ExceptionFactory.abortMultipartUpload(fileInfo, platform, e);
         }
-    }
-
-    @Override
-    public Integer getListPartsSupportMaxParts() {
-        return 1000;
     }
 
     @Override

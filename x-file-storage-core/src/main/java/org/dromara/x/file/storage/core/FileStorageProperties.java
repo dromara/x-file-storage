@@ -4,11 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -436,6 +432,13 @@ public class FileStorageProperties {
          * 基础路径
          */
         private String basePath = "";
+
+        /**
+         * 手动分片上传时，每个分片大小，单位字节，最小 1MB，最大 50MB，必须是 1MB 的整数倍，默认 1MB。
+         * 又拍云 USS 比较特殊，必须提前传入分片大小（最后一个分片可以小于此大小，但不能超过）
+         * 你可以在初始化文件时使用 putMetadata("X-Upyun-Multi-Part-Size", "1048576") 方法传入分片大小
+         */
+        private Integer multipartUploadPartSize = 1024 * 1024;
 
         /**
          * 其它自定义配置

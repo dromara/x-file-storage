@@ -1,16 +1,6 @@
 package org.dromara.x.file.storage.core.platform;
 
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_CHARSET;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_CONNECTION_POOL_ENABLED;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_CONNECTION_POOL_MAX_COUNT_PER_ENTRY;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_CONNECTION_POOL_MAX_IDLE_TIME;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_CONNECTION_POOL_MAX_WAIT_TIME_IN_MS;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_CONNECT_TIMEOUT_IN_SECONDS;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_HTTP_ANTI_STEAL_TOKEN;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_HTTP_SECRET_KEY;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_HTTP_TRACKER_HTTP_PORT;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_NETWORK_TIMEOUT_IN_SECONDS;
-import static org.csource.fastdfs.ClientGlobal.PROP_KEY_TRACKER_SERVERS;
+import static org.csource.fastdfs.ClientGlobal.*;
 import static org.dromara.x.file.storage.core.constant.Regex.IP_COLON_PORT;
 import static org.dromara.x.file.storage.core.constant.Regex.IP_COLON_PORT_COMMA;
 
@@ -28,11 +18,7 @@ import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.csource.common.MyException;
-import org.csource.fastdfs.ClientGlobal;
-import org.csource.fastdfs.StorageClient;
-import org.csource.fastdfs.StorageServer;
-import org.csource.fastdfs.TrackerClient;
-import org.csource.fastdfs.TrackerServer;
+import org.csource.fastdfs.*;
 import org.dromara.x.file.storage.core.FileStorageProperties.FastDfsConfig;
 import org.dromara.x.file.storage.core.FileStorageProperties.FastDfsConfig.FastDfsExtra;
 import org.dromara.x.file.storage.core.FileStorageProperties.FastDfsConfig.FastDfsStorageServer;

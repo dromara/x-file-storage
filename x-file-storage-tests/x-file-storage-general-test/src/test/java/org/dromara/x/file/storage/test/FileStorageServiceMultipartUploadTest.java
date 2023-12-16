@@ -12,6 +12,9 @@ import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.constant.Constant;
+import org.dromara.x.file.storage.core.platform.FileStorage;
+import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
+import org.dromara.x.file.storage.core.platform.UpyunUssFileStorage;
 import org.dromara.x.file.storage.core.upload.FilePartInfo;
 import org.dromara.x.file.storage.core.upload.FilePartInfoList;
 import org.junit.jupiter.api.Test;
@@ -45,11 +48,15 @@ class FileStorageServiceMultipartUploadTest {
         File file = getFile();
 
         String defaultPlatform = fileStorageService.getDefaultPlatform();
-        if (!fileStorageService.isSupportMultipartUpload(defaultPlatform)) {
+        MultipartUploadSupportInfo supportInfo = fileStorageService.isSupportMultipartUpload(defaultPlatform);
+
+        if (!supportInfo.getIsSupport()) {
             log.info("手动分片上传文件结束，当前存储平台【{}】不支持此功能", defaultPlatform);
             return;
         }
+        FileStorage fileStorage = fileStorageService.getFileStorage();
 
+        int partSize = 5 * 1024 * 1024; // 每个分片大小 5MB
         FileInfo fileInfo = fileStorageService
                 .initiateMultipartUpload()
                 .setPath("test/")
@@ -60,6 +67,9 @@ class FileStorageServiceMultipartUploadTest {
                 .setObjectType("user")
                 .putAttr("user", "admin")
                 .putMetadata(Constant.Metadata.CONTENT_DISPOSITION, "attachment;filename=DownloadFileName.mp4")
+                // 又拍云 USS 比较特殊，需要传入分片大小，虽然已有默认值，但为了方便测试还是单独设置一下
+                .putMetadata(
+                        fileStorage instanceof UpyunUssFileStorage, "X-Upyun-Multi-Part-Size", String.valueOf(partSize))
                 .putMetadata("Test-Not-Support", "123456") // 测试不支持的元数据
                 .putUserMetadata("role", "666")
                 .setFileAcl(Constant.ACL.PRIVATE)
@@ -69,7 +79,7 @@ class FileStorageServiceMultipartUploadTest {
 
         try (BufferedInputStream in = FileUtil.getInputStream(file)) {
             for (int partNumber = 1; ; partNumber++) {
-                byte[] bytes = IoUtil.readBytes(in, 5 * 1024 * 1024); // 每个分片大小 5MB
+                byte[] bytes = IoUtil.readBytes(in, partSize); // 每个分片大小
                 if (bytes == null || bytes.length == 0) break;
 
                 int finalPartNumber = partNumber;
@@ -100,9 +110,13 @@ class FileStorageServiceMultipartUploadTest {
             }
         }
 
-        FilePartInfoList partList = fileStorageService.listParts(fileInfo).listParts();
-        for (FilePartInfo info : partList.getList()) {
-            log.info("手动分片上传-列举已上传的分片：{}", info);
+        if (supportInfo.getIsSupportListParts()) {
+            FilePartInfoList partList = fileStorageService.listParts(fileInfo).listParts();
+            for (FilePartInfo info : partList.getList()) {
+                log.info("手动分片上传-列举已上传的分片：{}", info);
+            }
+        } else {
+            log.info("手动分片上传-列举已上传的分片：当前存储平台暂不支持此功能");
         }
 
         fileStorageService
@@ -141,7 +155,8 @@ class FileStorageServiceMultipartUploadTest {
     @Test
     public void abort() throws IOException {
         String defaultPlatform = fileStorageService.getDefaultPlatform();
-        if (!fileStorageService.isSupportMultipartUpload(defaultPlatform)) {
+        MultipartUploadSupportInfo supportInfo = fileStorageService.isSupportMultipartUpload(defaultPlatform);
+        if (!supportInfo.getIsSupportAbort()) {
             log.info("手动分片上传文件结束，当前存储平台【{}】不支持此功能", defaultPlatform);
             return;
         }

@@ -66,6 +66,28 @@ public class Check {
     }
 
     /**
+     * 上传文件时，检查是否传入文件大小，如果未传入则抛出异常
+     * @param platform 存储平台名称
+     * @param fileInfo 文件信息
+     */
+    public static void uploadRequireFileSize(String platform, FileInfo fileInfo) {
+        if (fileInfo.getSize() == null) {
+            throw ExceptionFactory.uploadRequireFileSize(fileInfo, platform);
+        }
+    }
+
+    /**
+     * 手动分片上传时，检查是否传入文件大小，如果未传入则抛出异常
+     * @param platform 存储平台名称
+     * @param fileInfo 文件信息
+     */
+    public static void initiateMultipartUploadRequireFileSize(String platform, FileInfo fileInfo) {
+        if (fileInfo.getSize() == null) {
+            throw ExceptionFactory.initiateMultipartUploadRequireFileSize(fileInfo, platform);
+        }
+    }
+
+    /**
      * 下载文件缩略图时，检查是否传入缩略图文件名，如果没有则按要求抛出异常
      * @param platform 存储平台名称
      * @param fileInfo 文件信息

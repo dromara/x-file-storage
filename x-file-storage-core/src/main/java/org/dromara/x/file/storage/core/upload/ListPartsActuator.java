@@ -6,8 +6,8 @@ import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.aspect.ListPartsAspectChain;
 import org.dromara.x.file.storage.core.exception.Check;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.platform.FileStorage;
+import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
 
 /**
  * 手动分片上传-列举已上传的分片执行器
@@ -35,15 +35,14 @@ public class ListPartsActuator {
      */
     public FilePartInfoList execute(FileStorage fileStorage, List<FileStorageAspect> aspectList) {
         Check.listParts(pre.getFileInfo());
-        if (!fileStorageService.isSupportMultipartUpload(fileStorage)) {
-            throw new FileStorageRuntimeException("手动分片上传-列举已上传的分片失败，当前存储平台不支持此功能");
-        }
         return new ListPartsAspectChain(aspectList, (_pre, _fileStorage) -> {
-                    // 获取对应存储平台每次获取的最大分片数，对象存储一般是 1000
-                    Integer supportMaxParts = _fileStorage.getListPartsSupportMaxParts();
+                    MultipartUploadSupportInfo supportInfo = fileStorageService.isSupportMultipartUpload(_fileStorage);
 
-                    // 如果要返回的最大分片数量小于等于支持的最大分片数量，则直接调用，否则分多次调用后拼接成一个结果
-                    if (_pre.getMaxParts() <= supportMaxParts) {
+                    // 获取对应存储平台每次获取的最大分片数，对象存储一般是 1000
+                    Integer supportMaxParts = supportInfo.getListPartsSupportMaxParts();
+
+                    // 如果要返回的最大分片数量为 null 或小于等于支持的最大分片数量，则直接调用，否则分多次调用后拼接成一个结果
+                    if (supportMaxParts == null || _pre.getMaxParts() <= supportMaxParts) {
                         return _fileStorage.listParts(_pre);
                     } else {
                         FilePartInfoList list = new FilePartInfoList();
