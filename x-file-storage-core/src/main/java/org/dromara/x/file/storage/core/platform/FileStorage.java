@@ -32,8 +32,8 @@ public interface FileStorage extends AutoCloseable {
     /**
      * 是否支持手动分片上传
      */
-    default boolean isSupportMultipartUpload() {
-        return false;
+    default MultipartUploadSupportInfo isSupportMultipartUpload() {
+        return MultipartUploadSupportInfo.notSupport();
     }
 
     /**
@@ -57,13 +57,6 @@ public interface FileStorage extends AutoCloseable {
      * 手动分片上传-取消
      */
     default void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {}
-
-    /**
-     * 手动分片上传-列举已上传的分片-每次获取的最大分片数，对象存储一般是 1000
-     */
-    default Integer getListPartsSupportMaxParts() {
-        return null;
-    }
 
     /**
      * 手动分片上传-列举已上传的分片

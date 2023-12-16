@@ -10,7 +10,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import lombok.Getter;
@@ -26,7 +28,14 @@ import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
+import org.dromara.x.file.storage.core.upload.CompleteMultipartUploadPretreatment;
+import org.dromara.x.file.storage.core.upload.FilePartInfo;
+import org.dromara.x.file.storage.core.upload.InitiateMultipartUploadPretreatment;
+import org.dromara.x.file.storage.core.upload.UploadPartPretreatment;
+import org.dromara.x.file.storage.core.util.Tools;
 
 /**
  * 又拍云 USS 存储
@@ -39,6 +48,7 @@ public class UpyunUssFileStorage implements FileStorage {
     private String domain;
     private String basePath;
     private String bucketName;
+    private Integer multipartUploadPartSize;
     private FileStorageClientFactory<RestManager> clientFactory;
 
     public UpyunUssFileStorage(UpyunUssConfig config, FileStorageClientFactory<RestManager> clientFactory) {
@@ -46,6 +56,7 @@ public class UpyunUssFileStorage implements FileStorage {
         domain = config.getDomain();
         basePath = config.getBasePath();
         bucketName = config.getBucketName();
+        multipartUploadPartSize = config.getMultipartUploadPartSize();
         this.clientFactory = clientFactory;
     }
 
@@ -106,12 +117,141 @@ public class UpyunUssFileStorage implements FileStorage {
         }
     }
 
+    @Override
+    public MultipartUploadSupportInfo isSupportMultipartUpload() {
+        return new MultipartUploadSupportInfo(true, false, false, null);
+    }
+
+    @Override
+    public void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
+        fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
+        fileInfo.setUrl(domain + newFileKey);
+        Check.uploadNotSupportAcl(platform, fileInfo, pre);
+        //        Check.initiateMultipartUploadRequireFileSize(platform,fileInfo);
+        RestManager manager = getClient();
+        try {
+            Map<String, String> params = new HashMap<>();
+            // X-Upyun-Multi-Disorder	是	String
+            // X-Upyun-Multi-Stage	是	String
+            // X-Upyun-Multi-Length	是	String	待上传文件的大小，单位 Byte
+            // Content-Length	是	String	请求的内容长度
+            // Content-MD5	否	String	请求的 MD5 值，需要服务端进行 MD5 校验请填写，等效于签名认证中的 Content-MD5
+            // X-Upyun-Multi-Part-Size	否	String	1M整数倍，默认1M，最大50M，单位 Byte
+            // X-Upyun-Multi-Type	否	String	待上传文件的 MIME 类型，默认 application/octet-stream，建议自行设置
+            // X-Upyun-Meta-X	否	String	给文件添加的元信息，详见 Metadata
+            // X-Upyun-Meta-Ttl	否	String	指定文件的生存时间，过期后自动删除，单位天，最大支持 180 天
+            params.put("X-Upyun-Multi-Disorder", "true"); // 值为 true, 表示并行式断点续传
+            params.put("X-Upyun-Multi-Stage", "initiate"); // 值为 initiate
+            if (multipartUploadPartSize != null) {
+                params.put("X-Upyun-Multi-Part-Size", String.valueOf(multipartUploadPartSize));
+            }
+            params.putAll(getObjectMetadata(fileInfo));
+            Response result = checkResponse(manager.writeFile(newFileKey, new byte[0], params));
+            String uploadId = result.header("X-Upyun-Multi-Uuid");
+            fileInfo.setUploadId(uploadId);
+        } catch (Exception e) {
+            throw ExceptionFactory.initiateMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public FilePartInfo uploadPart(UploadPartPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        RestManager manager = getClient();
+        FileWrapper partFileWrapper = pre.getPartFileWrapper();
+        Long partSize = partFileWrapper.getSize();
+
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
+            // X-Upyun-Multi-Stage	是	String	值为 upload
+            // X-Upyun-Multi-Uuid	是	String	任务标识，初始化时生成
+            // X-Upyun-Part-Id	是	String	分块序号，序号从 0 开始
+            // Content-Length	是	String	请求的内容长度
+            // Content-MD5	否	String	请求的 MD5 值，需要服务端进行 MD5 校验请填写，等效于签名认证中的 Content-MD5
+
+            // 百度云 BOS 比较特殊，上传分片必须传入分片大小，这里强制获取，可能会占用大量内存
+            if (partSize == null) partSize = partFileWrapper.getInputStreamMaskResetReturn(Tools::getSize);
+
+            Map<String, String> params = new HashMap<>();
+            params.put("X-Upyun-Multi-Stage", "upload"); // 值为 upload
+            params.put("X-Upyun-Multi-Uuid", fileInfo.getUploadId()); // 任务标识，初始化时生成
+            params.put("X-Upyun-Part-Id", String.valueOf(pre.getPartNumber() - 1)); // 分块序号，序号从 0 开始
+            params.put("Content-Length", String.valueOf(partSize)); // 请求的内容长度
+
+            try {
+                checkResponse(manager.writeFile(newFileKey, in, params));
+            } catch (Exception e) {
+                String message = e.getMessage();
+                if (message != null && message.contains("wrong content-length header")) {
+                    throw new FileStorageRuntimeException(
+                            "当前上传的分片大小与文件初始化时提供的分片大小不同，又拍云 USS 比较特殊，必须提前传入分片大小（最后一个分片可以小于此大小，但不能超过），"
+                                    + "你可以在初始化文件时使用 putMetadata(\"X-Upyun-Multi-Part-Size\", \"1048576\") 方法传入分片大小"
+                                    + "或修改配置文件 multipartUploadPartSize 参数，单位字节，最小 1MB，最大 50MB，必须是 1MB 的整数倍，"
+                                    + "默认为 "
+                                    + multipartUploadPartSize,
+                            e);
+                }
+                throw e;
+            }
+
+            fileInfo.setUploadId(fileInfo.getUploadId());
+            FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+            filePartInfo.setETag("暂无");
+            filePartInfo.setPartNumber(pre.getPartNumber());
+            filePartInfo.setPartSize(in.getProgressSize());
+            filePartInfo.setCreateTime(new Date());
+            return filePartInfo;
+        } catch (Exception e) {
+            throw ExceptionFactory.uploadPart(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        RestManager manager = getClient();
+
+        try {
+            Map<String, String> params = new HashMap<>();
+            params.put("X-Upyun-Multi-Stage", "complete"); // 值为 complete
+            params.put("X-Upyun-Multi-Uuid", fileInfo.getUploadId()); // 任务标识，初始化时生成
+
+            Long fileSize = fileInfo.getSize();
+            ProgressListener.quickStart(pre.getProgressListener(), fileSize);
+            try {
+                Response result = checkResponse(manager.writeFile(newFileKey, new byte[0], params));
+                ProgressListener.quickFinish(pre.getProgressListener(), fileSize);
+                String length = result.header("X-Upyun-Multi-Length");
+                if (fileSize == null && length != null) fileInfo.setSize(Long.parseLong(length));
+            } catch (Exception e) {
+                String message = e.getMessage();
+                if (message != null && message.contains("invalid x-upyun-part-size")) {
+                    throw new FileStorageRuntimeException(
+                            "已上传的分片大小与文件初始化时提供的分片大小不同，又拍云 USS 比较特殊，必须提前传入分片大小（最后一个分片可以小于此大小，但不能超过），"
+                                    + "你可以在初始化文件时使用 putMetadata(\"X-Upyun-Multi-Part-Size\", \"1048576\") 方法传入分片大小"
+                                    + "或修改配置文件 multipartUploadPartSize 参数，单位字节，最小 1MB，最大 50MB，必须是 1MB 的整数倍，"
+                                    + "默认为 "
+                                    + multipartUploadPartSize,
+                            e);
+                }
+                throw e;
+            }
+
+        } catch (Exception e) {
+            throw ExceptionFactory.completeMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
     /**
      * 获取对象的元数据
      */
     public HashMap<String, String> getObjectMetadata(FileInfo fileInfo) {
         HashMap<String, String> params = new HashMap<>();
-        params.put(RestManager.PARAMS.CONTENT_TYPE.getValue(), fileInfo.getContentType());
+        if (fileInfo.getContentType() != null) {
+            params.put(RestManager.PARAMS.CONTENT_TYPE.getValue(), fileInfo.getContentType());
+        }
         if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
             params.putAll(fileInfo.getMetadata());
         }

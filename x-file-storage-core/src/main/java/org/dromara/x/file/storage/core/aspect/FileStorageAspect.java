@@ -8,6 +8,7 @@ import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
+import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
 import org.dromara.x.file.storage.core.upload.*;
@@ -32,7 +33,8 @@ public interface FileStorageAspect {
     /**
      * 是否支持手动分片上传
      */
-    default boolean isSupportMultipartUpload(IsSupportMultipartUploadAspectChain chain, FileStorage fileStorage) {
+    default MultipartUploadSupportInfo isSupportMultipartUpload(
+            IsSupportMultipartUploadAspectChain chain, FileStorage fileStorage) {
         return chain.next(fileStorage);
     }
 

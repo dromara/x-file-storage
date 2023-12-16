@@ -5,7 +5,6 @@ import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.io.StreamProgress;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
-import com.obs.services.model.*;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -103,8 +102,8 @@ public class LocalPlusFileStorage implements FileStorage {
     }
 
     @Override
-    public boolean isSupportMultipartUpload() {
-        return true;
+    public MultipartUploadSupportInfo isSupportMultipartUpload() {
+        return MultipartUploadSupportInfo.supportAll().setListPartsSupportMaxParts(10000);
     }
 
     @Override
@@ -221,11 +220,6 @@ public class LocalPlusFileStorage implements FileStorage {
         } catch (Exception e) {
             throw ExceptionFactory.abortMultipartUpload(fileInfo, platform, e);
         }
-    }
-
-    @Override
-    public Integer getListPartsSupportMaxParts() {
-        return 10000;
     }
 
     @Override

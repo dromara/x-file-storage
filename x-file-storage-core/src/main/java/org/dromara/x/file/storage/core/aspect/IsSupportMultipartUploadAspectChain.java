@@ -4,6 +4,7 @@ import java.util.Iterator;
 import lombok.Getter;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.platform.FileStorage;
+import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
 
 /**
  * 是否支持手动分片上传的切面调用链
@@ -24,7 +25,7 @@ public class IsSupportMultipartUploadAspectChain {
     /**
      * 调用下一个切面
      */
-    public boolean next(FileStorage fileStorage) {
+    public MultipartUploadSupportInfo next(FileStorage fileStorage) {
         if (aspectIterator.hasNext()) { // 还有下一个
             return aspectIterator.next().isSupportMultipartUpload(this, fileStorage);
         } else {

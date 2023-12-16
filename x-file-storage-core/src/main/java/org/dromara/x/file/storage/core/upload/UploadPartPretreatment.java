@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.*;
-import org.dromara.x.file.storage.core.ProgressListenerSetter;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 
 /**

@@ -10,6 +10,7 @@ import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.aspect.*;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
+import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
 import org.dromara.x.file.storage.core.upload.*;
@@ -42,9 +43,10 @@ public class LogFileStorageAspect implements FileStorageAspect {
      * 是否支持手动分片上传
      */
     @Override
-    public boolean isSupportMultipartUpload(IsSupportMultipartUploadAspectChain chain, FileStorage fileStorage) {
+    public MultipartUploadSupportInfo isSupportMultipartUpload(
+            IsSupportMultipartUploadAspectChain chain, FileStorage fileStorage) {
         log.info("是否支持手动分片上传 before -> {}", fileStorage.getPlatform());
-        boolean res = chain.next(fileStorage);
+        MultipartUploadSupportInfo res = chain.next(fileStorage);
         log.info("是否支持手动分片上传 -> {}", res);
         return res;
     }

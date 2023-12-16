@@ -5,13 +5,16 @@ import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.google.common.collect.Multimap;
 import io.minio.*;
-import io.minio.errors.*;
+import io.minio.errors.ErrorResponseException;
 import io.minio.http.Method;
 import io.minio.messages.ListPartsResult;
 import io.minio.messages.Part;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -151,8 +154,8 @@ public class MinioFileStorage implements FileStorage {
     }
 
     @Override
-    public boolean isSupportMultipartUpload() {
-        return true;
+    public MultipartUploadSupportInfo isSupportMultipartUpload() {
+        return MultipartUploadSupportInfo.supportAll();
     }
 
     @Override
@@ -304,11 +307,6 @@ public class MinioFileStorage implements FileStorage {
         } catch (Exception e) {
             throw ExceptionFactory.abortMultipartUpload(fileInfo, platform, e);
         }
-    }
-
-    @Override
-    public Integer getListPartsSupportMaxParts() {
-        return 1000;
     }
 
     /**

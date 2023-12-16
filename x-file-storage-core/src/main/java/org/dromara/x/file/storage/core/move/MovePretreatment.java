@@ -1,6 +1,6 @@
 package org.dromara.x.file.storage.core.move;
 
-import static org.dromara.x.file.storage.core.constant.Constant.*;
+import static org.dromara.x.file.storage.core.constant.Constant.CopyMode;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;

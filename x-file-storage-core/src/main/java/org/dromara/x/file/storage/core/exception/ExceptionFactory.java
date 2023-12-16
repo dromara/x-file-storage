@@ -11,7 +11,10 @@ public class ExceptionFactory {
     public static final String UPLOAD_NOT_SUPPORT_ACL_MESSAGE_FORMAT = "文件上传失败，当前存储平台不支持 ALC！platform：{}，fileInfo：{}";
     public static final String UPLOAD_NOT_SUPPORT_METADATA_MESSAGE_FORMAT =
             "文件上传失败，当前存储平台不支持 Metadata！platform：{}，fileInfo：{}";
+    public static final String UPLOAD_REQUIRE_SIZE_MESSAGE_FORMAT = "文件上传失败，当前存储平台需要传入文件大小！platform：{}，fileInfo：{}";
     public static final String INITIATE_MULTIPART_UPLOAD_MESSAGE_FORMAT = "手动文件分片上传-初始化失败！platform：{}，fileInfo：{}";
+    public static final String INITIATE_MULTIPART_UPLOAD_REQUIRE_SIZE_MESSAGE_FORMAT =
+            "手动文件分片上传-初始化失败，当前存储平台需要传入文件大小！platform：{}，fileInfo：{}";
     public static final String INITIATE_MULTIPART_UPLOAD_RECORDER_SAVE_MESSAGE_FORMAT =
             "手动文件分片上传-初始化失败，文件记录保存失败！platform：{}，fileInfo：{}";
     public static final String UPLOAD_PART_MESSAGE_FORMAT = "手动文件分片上传-上传分片失败！platform：{}，fileInfo：{}";
@@ -88,6 +91,15 @@ public class ExceptionFactory {
     }
 
     /**
+     * 上传时，未传入文件大小异常
+     * @param fileInfo 文件信息
+     * @param platform 存储平台名称
+     */
+    public static FileStorageRuntimeException uploadRequireFileSize(FileInfo fileInfo, String platform) {
+        return new FileStorageRuntimeException(StrUtil.format(UPLOAD_REQUIRE_SIZE_MESSAGE_FORMAT, platform, fileInfo));
+    }
+
+    /**
      * 手动分片上传-初始化异常
      * @param fileInfo 文件信息
      * @param platform 存储平台名称
@@ -98,6 +110,17 @@ public class ExceptionFactory {
         return new FileStorageRuntimeException(
                 StrUtil.format(INITIATE_MULTIPART_UPLOAD_MESSAGE_FORMAT, platform, fileInfo), e);
     }
+
+    /**
+     * 手动分片上传时，未传入文件大小异常
+     * @param fileInfo 文件信息
+     * @param platform 存储平台名称
+     */
+    public static FileStorageRuntimeException initiateMultipartUploadRequireFileSize(
+            FileInfo fileInfo, String platform) {
+        return new FileStorageRuntimeException(StrUtil.format(UPLOAD_REQUIRE_SIZE_MESSAGE_FORMAT, platform, fileInfo));
+    }
+
     /**
      * 手动分片上传-初始化失败，文件记录保存失败异常
      * @param fileInfo 文件信息
