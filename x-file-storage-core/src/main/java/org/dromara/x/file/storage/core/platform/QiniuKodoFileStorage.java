@@ -1,16 +1,18 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.lang.Dict;
 import cn.hutool.core.util.StrUtil;
 import com.qiniu.common.QiniuException;
-import com.qiniu.storage.BucketManager;
-import com.qiniu.storage.UploadManager;
+import com.qiniu.storage.*;
 import com.qiniu.util.StringMap;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.Date;
+import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,6 +26,7 @@ import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.QiniuKodoFileStorageClientFactory.QiniuKodoClient;
+import org.dromara.x.file.storage.core.upload.*;
 
 /**
  * 七牛云 Kodo 存储
@@ -98,6 +101,163 @@ public class QiniuKodoFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.upload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public MultipartUploadSupportInfo isSupportMultipartUpload() {
+        return MultipartUploadSupportInfo.supportAll();
+    }
+
+    @Override
+    public void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
+        fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
+        fileInfo.setUrl(domain + newFileKey);
+        Check.uploadNotSupportAcl(platform, fileInfo, pre);
+        QiniuKodoClient client = getClient();
+
+        try {
+            String token = client.getAuth().uploadToken(bucketName);
+            QiniuKodoClient.UploadActionResult<ApiUploadV2InitUpload.Response> result = client.retryUploadAction(
+                    host -> {
+                        ApiUploadV2InitUpload api = new ApiUploadV2InitUpload(client.getClient());
+                        ApiUploadV2InitUpload.Request request =
+                                new ApiUploadV2InitUpload.Request(host, token).setKey(newFileKey);
+                        ApiUploadV2InitUpload.Response response = api.request(request);
+                        return new QiniuKodoClient.UploadActionResult<>(response.getResponse(), response);
+                    },
+                    token);
+            fileInfo.setUploadId(result.getData().getUploadId());
+        } catch (Exception e) {
+            throw ExceptionFactory.initiateMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public FilePartInfo uploadPart(UploadPartPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        QiniuKodoClient client = getClient();
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
+            String token = client.getAuth().uploadToken(bucketName);
+            QiniuKodoClient.UploadActionResult<ApiUploadV2UploadPart.Response> result = client.retryUploadAction(
+                    host -> {
+                        ApiUploadV2UploadPart api = new ApiUploadV2UploadPart(client.getClient());
+                        ApiUploadV2UploadPart.Request request = new ApiUploadV2UploadPart.Request(
+                                        host, token, fileInfo.getUploadId(), pre.getPartNumber())
+                                .setKey(newFileKey)
+                                .setUploadData(in, null, -1);
+                        ApiUploadV2UploadPart.Response response = api.request(request);
+                        return new QiniuKodoClient.UploadActionResult<>(response.getResponse(), response);
+                    },
+                    token);
+            FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+            filePartInfo.setETag(result.getData().getEtag());
+            filePartInfo.setPartNumber(pre.getPartNumber());
+            filePartInfo.setPartSize(in.getProgressSize());
+            filePartInfo.setCreateTime(new Date());
+            return filePartInfo;
+        } catch (Exception e) {
+            throw ExceptionFactory.uploadPart(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        QiniuKodoClient client = getClient();
+        try {
+            List<Map<String, Object>> partsInfo = pre.getPartInfoList().stream()
+                    .map(part -> {
+                        HashMap<String, Object> map = new HashMap<>();
+                        map.put("partNumber", part.getPartNumber());
+                        map.put("etag", part.getETag());
+                        return map;
+                    })
+                    .collect(Collectors.toList());
+            StringMap metadata = getObjectMetadata(fileInfo);
+            ProgressListener.quickStart(pre.getProgressListener(), fileInfo.getSize());
+            String token = client.getAuth().uploadToken(bucketName);
+            client.retryUploadAction(
+                    host -> {
+                        ApiUploadV2CompleteUpload api = new ApiUploadV2CompleteUpload(client.getClient());
+                        ApiUploadV2CompleteUpload.Request request = new ApiUploadV2CompleteUpload.Request(
+                                        "https://upload-z2.qiniup.com", token, fileInfo.getUploadId(), partsInfo)
+                                .setKey(newFileKey)
+                                .setFileMimeType(fileInfo.getContentType())
+                                .setFileName(null)
+                                .setCustomParam(metadata.map())
+                                .setCustomMetaParam(metadata.map());
+                        ApiUploadV2CompleteUpload.Response response = api.request(request);
+                        return new QiniuKodoClient.UploadActionResult<>(response.getResponse(), response);
+                    },
+                    token);
+
+            ProgressListener.quickFinish(pre.getProgressListener(), fileInfo.getSize());
+        } catch (Exception e) {
+            throw ExceptionFactory.completeMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        QiniuKodoClient client = getClient();
+        try {
+            String token = client.getAuth().uploadToken(bucketName);
+            client.retryUploadAction(
+                    host -> {
+                        ApiUploadV2AbortUpload api = new ApiUploadV2AbortUpload(client.getClient());
+                        ApiUploadV2AbortUpload.Request request = new ApiUploadV2AbortUpload.Request(
+                                        "https://upload-z2.qiniup.com", token, fileInfo.getUploadId())
+                                .setKey(newFileKey);
+                        ApiUploadV2AbortUpload.Response response = api.request(request);
+                        return new QiniuKodoClient.UploadActionResult<>(response.getResponse(), response);
+                    },
+                    token);
+        } catch (Exception e) {
+            throw ExceptionFactory.abortMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public FilePartInfoList listParts(ListPartsPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        QiniuKodoClient client = getClient();
+        try {
+            String token = client.getAuth().uploadToken(bucketName);
+            ApiUploadV2ListParts api = new ApiUploadV2ListParts(client.getClient());
+            ApiUploadV2ListParts.Request request = new ApiUploadV2ListParts.Request(
+                            "https://upload-z2.qiniup.com", token, fileInfo.getUploadId())
+                    .setKey(newFileKey)
+                    .setMaxParts(pre.getMaxParts())
+                    .setPartNumberMarker(pre.getPartNumberMarker());
+            ApiUploadV2ListParts.Response response = api.request(request);
+            List<?> parts = response.getParts();
+            FilePartInfoList list = new FilePartInfoList();
+            list.setFileInfo(fileInfo);
+            list.setList(parts.stream()
+                    .map(p -> {
+                        Dict dict = new Dict(BeanUtil.beanToMap(p));
+                        FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+                        filePartInfo.setETag(dict.getStr("etag"));
+                        filePartInfo.setPartNumber(dict.getInt("partNumber"));
+                        filePartInfo.setPartSize(dict.getLong("size"));
+                        filePartInfo.setLastModified(new Date(dict.getLong("putTime") * 1000));
+                        return filePartInfo;
+                    })
+                    .collect(Collectors.toList()));
+            list.setMaxParts(pre.getMaxParts());
+            list.setIsTruncated(response.getPartNumberMarker() > 0);
+            list.setPartNumberMarker(pre.getPartNumberMarker());
+            list.setNextPartNumberMarker(response.getPartNumberMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listParts(fileInfo, platform, e);
         }
     }
 

@@ -170,7 +170,7 @@ public class UpyunUssFileStorage implements FileStorage {
             // Content-Length	是	String	请求的内容长度
             // Content-MD5	否	String	请求的 MD5 值，需要服务端进行 MD5 校验请填写，等效于签名认证中的 Content-MD5
 
-            // 百度云 BOS 比较特殊，上传分片必须传入分片大小，这里强制获取，可能会占用大量内存
+            // 又拍云 USS 比较特殊，上传分片必须传入分片大小，这里强制获取，可能会占用大量内存
             if (partSize == null) partSize = partFileWrapper.getInputStreamMaskResetReturn(Tools::getSize);
 
             Map<String, String> params = new HashMap<>();

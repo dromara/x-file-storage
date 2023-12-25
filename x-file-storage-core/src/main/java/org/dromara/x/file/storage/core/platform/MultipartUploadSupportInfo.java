@@ -39,13 +39,13 @@ public class MultipartUploadSupportInfo {
      * 不支持手动分片上传
      */
     public static MultipartUploadSupportInfo notSupport() {
-        return new MultipartUploadSupportInfo(true, true, true, 1000);
+        return new MultipartUploadSupportInfo(false, false, false, null);
     }
 
     /**
      * 支持全部的手动分片上传功能
      */
     public static MultipartUploadSupportInfo supportAll() {
-        return new MultipartUploadSupportInfo(false, false, false, null);
+        return new MultipartUploadSupportInfo(true, true, true, 1000);
     }
 }
