@@ -66,12 +66,28 @@ public class TencentCosFileStorage implements FileStorage {
     }
 
     public String getFileKey(FileInfo fileInfo) {
-        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename();
+        String basePath = fileInfo.getBasePath();
+        String path = fileInfo.getPath();
+        String filename = fileInfo.getFilename();
+
+        basePath = (basePath != null) ? basePath : "";
+        path = (path != null) ? path : "";
+        filename = (filename != null) ? filename : "";
+
+        return basePath + path + filename;
     }
 
     public String getThFileKey(FileInfo fileInfo) {
         if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
-        return fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename();
+        String basePath = fileInfo.getBasePath();
+        String path = fileInfo.getPath();
+        String filename = fileInfo.getFilename();
+
+        basePath = (basePath != null) ? basePath : "";
+        path = (path != null) ? path : "";
+        filename = (filename != null) ? filename : "";
+
+        return basePath + path + filename;
     }
 
     @Override

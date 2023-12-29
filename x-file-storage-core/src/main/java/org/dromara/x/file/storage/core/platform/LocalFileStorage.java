@@ -53,12 +53,23 @@ public class LocalFileStorage implements FileStorage {
     }
 
     public String getFileKey(FileInfo fileInfo) {
-        return fileInfo.getPath() + fileInfo.getFilename();
+        String path = fileInfo.getPath();
+        String filename = fileInfo.getFilename();
+
+        path = (path != null) ? path : "";
+        filename = (filename != null) ? filename : "";
+
+        return  path + filename;
     }
 
     public String getThFileKey(FileInfo fileInfo) {
         if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
-        return fileInfo.getPath() + fileInfo.getThFilename();
+
+        String path = fileInfo.getPath();
+        String filename = fileInfo.getFilename();
+        path = (path != null) ? path : "";
+        filename = (filename != null) ? filename : "";
+        return  path + filename;
     }
 
     @Override
