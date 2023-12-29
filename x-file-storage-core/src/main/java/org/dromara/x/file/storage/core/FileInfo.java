@@ -161,4 +161,48 @@ public class FileInfo implements Serializable {
     private Date createTime;
 
     private static final long serialVersionUID = 1L;
+
+    /**
+     * 获取文件全路径（相对路径）
+     *
+     * @param fileInfo 文件信息
+     * @return {@link String} 返回带文件名的全路径（相对路径）
+     */
+    public String getFilePath(FileInfo fileInfo) {
+        StringBuilder basePathStringBuilder = getBasePathStringBuilder(fileInfo);
+        if (null != fileInfo.getFilename()) {
+            basePathStringBuilder.append(fileInfo.getFilename());
+        }
+        return basePathStringBuilder.toString();
+    }
+    /**
+     * 获取缩略图全路径（相对路径）
+     *
+     * @param fileInfo 文件信息
+     * @return {@link String} 返回带文件名的全路径（相对路径）
+     */
+    public String getThFilePath(FileInfo fileInfo) {
+        StringBuilder basePathStringBuilder = getBasePathStringBuilder(fileInfo);
+        if (null != fileInfo.getThFilename()) {
+            basePathStringBuilder.append(fileInfo.getThFilename());
+        }
+        return basePathStringBuilder.toString();
+    }
+
+    /**
+     * 获取基本路径StringBuilder
+     *
+     * @param fileInfo 文件信息
+     * @return {@link StringBuilder}
+     */
+    private StringBuilder getBasePathStringBuilder(FileInfo fileInfo) {
+        StringBuilder filePathBuilder = new StringBuilder();
+        if (null != fileInfo.getBasePath()) {
+            filePathBuilder.append(fileInfo.getBasePath());
+        }
+        if (null != fileInfo.getPath()) {
+            filePathBuilder.append(fileInfo.getPath());
+        }
+        return filePathBuilder;
+    }
 }
