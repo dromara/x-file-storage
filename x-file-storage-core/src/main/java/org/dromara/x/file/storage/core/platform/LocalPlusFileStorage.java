@@ -54,15 +54,6 @@ public class LocalPlusFileStorage implements FileStorage {
         return storagePath + path;
     }
 
-    public String getFileKey(FileInfo fileInfo) {
-        return fileInfo.getFilePath(fileInfo);
-    }
-
-    public String getThFileKey(FileInfo fileInfo) {
-        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
-        return fileInfo.getThFilePath(fileInfo);
-    }
-
     @Override
     public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
         fileInfo.setBasePath(basePath);

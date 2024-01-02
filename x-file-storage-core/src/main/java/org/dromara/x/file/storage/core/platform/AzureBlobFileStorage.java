@@ -106,15 +106,6 @@ public class AzureBlobFileStorage implements FileStorage {
         return blobContainerClient.getBlobClient(getThFileKey(fileInfo));
     }
 
-    public String getFileKey(FileInfo fileInfo) {
-        return fileInfo.getFilePath(fileInfo);
-    }
-
-    public String getThFileKey(FileInfo fileInfo) {
-        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
-        return fileInfo.getThFilePath(fileInfo);
-    }
-
     @Override
     public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
         fileInfo.setBasePath(basePath);

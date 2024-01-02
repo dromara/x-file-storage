@@ -53,15 +53,6 @@ public class WebDavFileStorage implements FileStorage {
         clientFactory.close();
     }
 
-    public String getFileKey(FileInfo fileInfo) {
-        return fileInfo.getFilePath(fileInfo);
-    }
-
-    public String getThFileKey(FileInfo fileInfo) {
-        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
-        return fileInfo.getThFilePath(fileInfo);
-    }
-
     /**
      * 获取远程绝对路径
      */

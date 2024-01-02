@@ -1,5 +1,6 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.util.StrUtil;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.function.Consumer;
@@ -8,6 +9,7 @@ import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.util.Tools;
 
 /**
  * 文件存储接口，对应各个平台
@@ -166,4 +168,26 @@ public interface FileStorage extends AutoCloseable {
      * 释放相关资源
      */
     default void close() {}
+
+    /**
+     * 获取文件全路径（相对存储平台的存储路径）
+     *
+     * @param fileInfo 文件信息
+     */
+    default String getFileKey(FileInfo fileInfo) {
+        return Tools.getNotNull(fileInfo.getBasePath(), StrUtil.EMPTY)
+                + Tools.getNotNull(fileInfo.getPath(), StrUtil.EMPTY)
+                + Tools.getNotNull(fileInfo.getFilename(), StrUtil.EMPTY);
+    }
+    /**
+     * 获取缩略图全路径（相对存储平台的存储路径）
+     *
+     * @param fileInfo 文件信息
+     */
+    default String getThFileKey(FileInfo fileInfo) {
+        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
+        return Tools.getNotNull(fileInfo.getBasePath(), StrUtil.EMPTY)
+                + Tools.getNotNull(fileInfo.getPath(), StrUtil.EMPTY)
+                + Tools.getNotNull(fileInfo.getThFilename(), StrUtil.EMPTY);
+    }
 }
