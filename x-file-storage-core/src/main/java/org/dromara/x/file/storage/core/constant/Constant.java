@@ -157,4 +157,22 @@ public interface Constant {
          */
         int COMPLETE = 2;
     }
+
+    /**
+     * 哈希类型
+     */
+    interface Hash {
+
+        /**
+         * 摘要信息
+         */
+        interface MessageDigest {
+            String MD2 = "MD2";
+            String MD5 = "MD5";
+            String SHA1 = "SHA-1";
+            String SHA256 = "SHA-256";
+            String SHA384 = "SHA-384";
+            String SHA512 = "SHA-512";
+        }
+    }
 }

@@ -151,6 +151,7 @@ public class FileStorageService {
         return new UploadAspectChain(aspectList, (_fileInfo, _pre, _fileStorage, _fileRecorder) -> {
                     // 真正开始保存
                     if (_fileStorage.save(_fileInfo, _pre)) {
+                        _fileInfo.setHashInfo(_pre.getHashCalculatorManager().getHashInfo());
                         if (_fileRecorder.save(_fileInfo)) {
                             return _fileInfo;
                         }

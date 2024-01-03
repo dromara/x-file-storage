@@ -153,7 +153,7 @@ public class UpyunUssFileStorage implements FileStorage {
         RestManager manager = getClient();
         FileWrapper partFileWrapper = pre.getPartFileWrapper();
         Long partSize = partFileWrapper.getSize();
-
+        pre.setHashCalculatorMd5();
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
             // X-Upyun-Multi-Stage	是	String	值为 upload
             // X-Upyun-Multi-Uuid	是	String	任务标识，初始化时生成
@@ -185,10 +185,11 @@ public class UpyunUssFileStorage implements FileStorage {
                 }
                 throw e;
             }
+            String etag = pre.getHashCalculatorManager().getHashInfo().getMd5();
 
             fileInfo.setUploadId(fileInfo.getUploadId());
             FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
-            filePartInfo.setETag("暂无");
+            filePartInfo.setETag(etag);
             filePartInfo.setPartNumber(pre.getPartNumber());
             filePartInfo.setPartSize(in.getProgressSize());
             filePartInfo.setCreateTime(new Date());

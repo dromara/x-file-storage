@@ -6,10 +6,12 @@ import cn.hutool.core.lang.Assert;
 import java.io.InputStream;
 import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
+import org.dromara.x.file.storage.core.Downloader;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.constant.Constant;
+import org.dromara.x.file.storage.core.hash.HashInfo;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,6 +67,10 @@ class FileStorageServiceBaseTest {
                         System.out.println("上传结束");
                     }
                 })
+                .setHashCalculatorMd5()
+                .setHashCalculatorSha256()
+                .setHashCalculator(Constant.Hash.MessageDigest.MD2)
+                .setHashCalculator("MD5")
                 .upload();
         Assert.notNull(fileInfo, "文件上传失败！");
         log.info("文件上传成功：{}", fileInfo.toString());
@@ -227,13 +233,17 @@ class FileStorageServiceBaseTest {
         Assert.notNull(bytes, "文件下载失败！");
         log.info("文件下载成功，文件大小：{}", bytes.length);
 
-        byte[] thBytes = fileStorageService
+        Downloader downloader = fileStorageService
                 .downloadTh(fileInfo)
                 .setProgressListener((progressSize, allSize) ->
                         log.info("缩略图文件下载进度：{} {}%", progressSize, progressSize * 100 / allSize))
-                .bytes();
+                .setHashCalculatorMd5()
+                .setHashCalculatorSha256();
+
+        byte[] thBytes = downloader.bytes();
         Assert.notNull(thBytes, "缩略图文件下载失败！");
-        log.info("缩略图文件下载成功，文件大小：{}", thBytes.length);
+        HashInfo hashInfo = downloader.getHashCalculatorManager().getHashInfo();
+        log.info("缩略图文件下载成功，文件大小：{}，哈希信息：{}", thBytes.length, hashInfo);
     }
 
     /**

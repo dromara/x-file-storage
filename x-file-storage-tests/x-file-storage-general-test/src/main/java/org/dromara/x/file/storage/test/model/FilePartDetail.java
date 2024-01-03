@@ -50,6 +50,12 @@ public class FilePartDetail {
     private Long partSize;
 
     /**
+     * 哈希信息
+     */
+    @TableField(value = "hash_info")
+    private String hashInfo;
+
+    /**
      * 创建时间
      */
     @TableField(value = "create_time")
@@ -66,6 +72,8 @@ public class FilePartDetail {
     public static final String COL_PART_NUMBER = "part_number";
 
     public static final String COL_PART_SIZE = "part_size";
+
+    public static final String COL_HASH_INFO = "hash_info";
 
     public static final String COL_CREATE_TIME = "create_time";
 }

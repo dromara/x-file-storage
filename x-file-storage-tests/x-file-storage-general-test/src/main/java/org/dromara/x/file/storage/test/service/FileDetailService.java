@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import lombok.SneakyThrows;
 import org.dromara.x.file.storage.core.FileInfo;
+import org.dromara.x.file.storage.core.hash.HashInfo;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.upload.FilePartInfo;
 import org.dromara.x.file.storage.test.mapper.FileDetailMapper;
@@ -24,7 +25,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class FileDetailService extends ServiceImpl<FileDetailMapper, FileDetail> implements FileRecorder {
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     private FilePartDetailService filePartDetailService;
@@ -36,15 +37,17 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper, FileDetail>
     @Override
     public boolean save(FileInfo info) {
         FileDetail detail = BeanUtil.copyProperties(
-                info, FileDetail.class, "metadata", "userMetadata", "thMetadata", "thUserMetadata", "attr");
+                info, FileDetail.class, "metadata", "userMetadata", "thMetadata", "thUserMetadata", "attr", "hashInfo");
 
-        // 这是手动获 元数据 并转成 json 字符串，方便存储在数据库中
+        // 这里手动获 元数据 并转成 json 字符串，方便存储在数据库中
         detail.setMetadata(valueToJson(info.getMetadata()));
         detail.setUserMetadata(valueToJson(info.getUserMetadata()));
         detail.setThMetadata(valueToJson(info.getThMetadata()));
         detail.setThUserMetadata(valueToJson(info.getThUserMetadata()));
-        // 这是手动获 取附加属性字典 并转成 json 字符串，方便存储在数据库中
+        // 这里手动获 取附加属性字典 并转成 json 字符串，方便存储在数据库中
         detail.setAttr(valueToJson(info.getAttr()));
+        // 这里手动获 哈希信息 并转成 json 字符串，方便存储在数据库中
+        detail.setHashInfo(valueToJson(info.getHashInfo()));
         boolean b = save(detail);
         if (b) {
             info.setId(detail.getId());
@@ -60,15 +63,17 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper, FileDetail>
     @Override
     public void update(FileInfo info) {
         FileDetail detail = BeanUtil.copyProperties(
-                info, FileDetail.class, "metadata", "userMetadata", "thMetadata", "thUserMetadata", "attr");
+                info, FileDetail.class, "metadata", "userMetadata", "thMetadata", "thUserMetadata", "attr", "hashInfo");
 
-        // 这是手动获 元数据 并转成 json 字符串，方便存储在数据库中
+        // 这里手动获 元数据 并转成 json 字符串，方便存储在数据库中
         detail.setMetadata(valueToJson(info.getMetadata()));
         detail.setUserMetadata(valueToJson(info.getUserMetadata()));
         detail.setThMetadata(valueToJson(info.getThMetadata()));
         detail.setThUserMetadata(valueToJson(info.getThUserMetadata()));
-        // 这是手动获 取附加属性字典 并转成 json 字符串，方便存储在数据库中
+        // 这里手动获 取附加属性字典 并转成 json 字符串，方便存储在数据库中
         detail.setAttr(valueToJson(info.getAttr()));
+        // 这里手动获 哈希信息 并转成 json 字符串，方便存储在数据库中
+        detail.setHashInfo(valueToJson(info.getHashInfo()));
 
         QueryWrapper<FileDetail> qw = new QueryWrapper<FileDetail>()
                 .eq(detail.getUrl() != null, FileDetail.COL_URL, detail.getUrl())
@@ -84,15 +89,17 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper, FileDetail>
     public FileInfo getByUrl(String url) {
         FileDetail detail = getOne(new QueryWrapper<FileDetail>().eq(FileDetail.COL_URL, url));
         FileInfo info = BeanUtil.copyProperties(
-                detail, FileInfo.class, "metadata", "userMetadata", "thMetadata", "thUserMetadata", "attr");
+                detail, FileInfo.class, "metadata", "userMetadata", "thMetadata", "thUserMetadata", "attr", "hashInfo");
 
-        // 这是手动获取数据库中的 json 字符串 并转成 元数据，方便使用
+        // 这里手动获取数据库中的 json 字符串 并转成 元数据，方便使用
         info.setMetadata(jsonToMetadata(detail.getMetadata()));
         info.setUserMetadata(jsonToMetadata(detail.getUserMetadata()));
         info.setThMetadata(jsonToMetadata(detail.getThMetadata()));
         info.setThUserMetadata(jsonToMetadata(detail.getThUserMetadata()));
-        // 这是手动获取数据库中的 json 字符串 并转成 附加属性字典，方便使用
+        // 这里手动获取数据库中的 json 字符串 并转成 附加属性字典，方便使用
         info.setAttr(jsonToDict(detail.getAttr()));
+        // 这里手动获取数据库中的 json 字符串 并转成 哈希信息，方便使用
+        info.setHashInfo(jsonToHashInfo(detail.getHashInfo()));
         return info;
     }
 
@@ -144,5 +151,13 @@ public class FileDetailService extends ServiceImpl<FileDetailMapper, FileDetail>
     public Dict jsonToDict(String json) throws JsonProcessingException {
         if (StrUtil.isBlank(json)) return null;
         return objectMapper.readValue(json, Dict.class);
+    }
+
+    /**
+     * 将 json 字符串转换成哈希信息对象
+     */
+    public HashInfo jsonToHashInfo(String json) throws JsonProcessingException {
+        if (StrUtil.isBlank(json)) return null;
+        return objectMapper.readValue(json, HashInfo.class);
     }
 }

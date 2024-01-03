@@ -3,7 +3,9 @@ package org.dromara.x.file.storage.core;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import lombok.Getter;
+import org.dromara.x.file.storage.core.hash.HashCalculatorManager;
 
 /**
  * 增强版本的 InputStream ，可以带进度监听、计算哈希等功能
@@ -15,12 +17,19 @@ public class InputStreamPlus extends FilterInputStream {
     protected long progressSize;
     protected final Long allSize;
     protected final ProgressListener listener;
+    protected final HashCalculatorManager hashCalculatorManager;
     protected int markFlag;
 
     public InputStreamPlus(InputStream in, ProgressListener listener, Long allSize) {
+        this(in, listener, allSize, null);
+    }
+
+    public InputStreamPlus(
+            InputStream in, ProgressListener listener, Long allSize, HashCalculatorManager hashCalculatorManager) {
         super(in);
         this.listener = listener;
         this.allSize = allSize;
+        this.hashCalculatorManager = hashCalculatorManager;
     }
 
     @Override
@@ -34,6 +43,9 @@ public class InputStreamPlus extends FilterInputStream {
     public int read() throws IOException {
         int b = super.read();
         onProgress(b == -1 ? -1 : 1);
+        if (hashCalculatorManager != null && b > -1) {
+            hashCalculatorManager.update(new byte[] {(byte) b});
+        }
         return b;
     }
 
@@ -41,6 +53,9 @@ public class InputStreamPlus extends FilterInputStream {
     public int read(byte[] b, int off, int len) throws IOException {
         onStart();
         int bytes = super.read(b, off, len);
+        if (hashCalculatorManager != null && bytes > 0) {
+            hashCalculatorManager.update(Arrays.copyOfRange(b, off, off + bytes));
+        }
         onProgress(bytes);
         return bytes;
     }

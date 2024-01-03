@@ -7,6 +7,7 @@ import java.util.Map;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.constant.Constant;
+import org.dromara.x.file.storage.core.hash.HashInfo;
 
 @Data
 @Accessors(chain = true)
@@ -143,6 +144,11 @@ public class FileInfo implements Serializable {
      * 详情见{@link FileInfo#setFileAcl}
      */
     private Object thFileAcl;
+
+    /**
+     * 哈希信息类，用来存储各种哈希值
+     */
+    private HashInfo hashInfo;
 
     /**
      * 上传ID，仅在手动分片上传时使用

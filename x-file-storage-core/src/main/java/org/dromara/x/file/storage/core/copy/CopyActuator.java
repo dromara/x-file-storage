@@ -14,6 +14,7 @@ import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.aspect.SameCopyAspectChain;
 import org.dromara.x.file.storage.core.constant.Constant.CopyMode;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.hash.HashInfo;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 
@@ -134,6 +135,9 @@ public class CopyActuator {
         }
         if (srcFileInfo.getAttr() != null) {
             destFileInfo.setAttr(new Dict(destFileInfo.getAttr()));
+        }
+        if (srcFileInfo.getHashInfo() != null) {
+            destFileInfo.setHashInfo(new HashInfo(destFileInfo.getHashInfo()));
         }
         destFileInfo.setFileAcl(srcFileInfo.getFileAcl());
         destFileInfo.setThFileAcl(srcFileInfo.getThFileAcl());

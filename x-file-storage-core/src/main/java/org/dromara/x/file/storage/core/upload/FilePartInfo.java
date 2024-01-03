@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.FileInfo;
+import org.dromara.x.file.storage.core.hash.HashInfo;
 
 /**
  * 文件分片信息
@@ -37,6 +38,10 @@ public class FilePartInfo {
      * 分片大小，单位字节
      */
     private Long partSize;
+    /**
+     * 哈希信息类，用来存储各种哈希值
+     */
+    private HashInfo hashInfo;
     /**
      * 创建时间，仅在保存到数据库时使用
      */

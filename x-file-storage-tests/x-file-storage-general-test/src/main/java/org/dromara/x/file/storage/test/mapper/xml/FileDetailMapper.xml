@@ -25,6 +25,7 @@
     <result column="th_metadata" jdbcType="LONGVARCHAR" property="thMetadata" />
     <result column="th_user_metadata" jdbcType="LONGVARCHAR" property="thUserMetadata" />
     <result column="attr" jdbcType="LONGVARCHAR" property="attr" />
+    <result column="hash_info" jdbcType="LONGVARCHAR" property="hashInfo" />
     <result column="upload_id" jdbcType="VARCHAR" property="uploadId" />
     <result column="upload_status" jdbcType="INTEGER" property="uploadStatus" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
@@ -33,7 +34,7 @@
     <!--@mbg.generated-->
     id, url, `size`, filename, original_filename, base_path, `path`, ext, content_type, 
     platform, th_url, th_filename, th_size, th_content_type, object_id, object_type, 
-    metadata, user_metadata, th_metadata, th_user_metadata, attr, upload_id, upload_status, 
-    create_time
+    metadata, user_metadata, th_metadata, th_user_metadata, attr, hash_info, upload_id, 
+    upload_status, create_time
   </sql>
 </mapper>

@@ -83,7 +83,7 @@ class FileStorageServiceMultipartUploadTest {
                 if (bytes == null || bytes.length == 0) break;
 
                 int finalPartNumber = partNumber;
-                fileStorageService
+                FilePartInfo filePartInfo = fileStorageService
                         .uploadPart(fileInfo, partNumber, bytes, (long) bytes.length)
                         .setProgressListener(new ProgressListener() {
                             @Override
@@ -106,7 +106,10 @@ class FileStorageServiceMultipartUploadTest {
                                 System.out.println("分片 " + finalPartNumber + " 上传结束");
                             }
                         })
+                        .setHashCalculatorMd5()
+                        .setHashCalculatorSha256()
                         .upload();
+                log.info("手动分片上传-分片上传成功：{}", filePartInfo);
             }
         }
 

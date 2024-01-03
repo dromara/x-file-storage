@@ -128,14 +128,14 @@ public class LocalFileStorage implements FileStorage {
     public FilePartInfo uploadPart(UploadPartPretreatment pre) {
         FileInfo fileInfo = pre.getFileInfo();
         String newFileKey = getFileKey(fileInfo);
+        pre.setHashCalculatorMd5();
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
             String parent = FileUtil.file(getAbsolutePath(newFileKey)).getParent();
             File dir = FileUtil.file(parent, fileInfo.getUploadId());
             File part = FileUtil.file(dir, String.valueOf(pre.getPartNumber()));
             FileUtil.writeFromStream(in, part);
 
-            String etag = IdUtil.objectId();
-
+            String etag = pre.getHashCalculatorManager().getHashInfo().getMd5();
             LocalPartInfo partInfo =
                     new LocalPartInfo(pre.getPartNumber(), etag, part.length(), new Date(part.lastModified()));
             FileUtil.appendUtf8String(partInfo.toIndexString() + "\n", FileUtil.file(dir, "index"));
