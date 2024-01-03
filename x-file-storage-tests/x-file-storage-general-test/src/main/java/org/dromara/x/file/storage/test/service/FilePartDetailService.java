@@ -51,7 +51,6 @@ public class FilePartDetailService extends ServiceImpl<FilePartDetailMapper, Fil
         detail.setPartSize(info.getPartSize());
         detail.setHashInfo(valueToJson(info.getHashInfo()));
         detail.setCreateTime(info.getCreateTime());
-
         return detail;
     }
 
