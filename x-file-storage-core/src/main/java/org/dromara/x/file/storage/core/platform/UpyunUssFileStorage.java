@@ -69,15 +69,6 @@ public class UpyunUssFileStorage implements FileStorage {
         clientFactory.close();
     }
 
-    public String getFileKey(FileInfo fileInfo) {
-        return fileInfo.getFilePath(fileInfo);
-    }
-
-    public String getThFileKey(FileInfo fileInfo) {
-        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
-        return fileInfo.getThFilePath(fileInfo);
-    }
-
     @Override
     public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
         fileInfo.setBasePath(basePath);
@@ -162,7 +153,7 @@ public class UpyunUssFileStorage implements FileStorage {
         RestManager manager = getClient();
         FileWrapper partFileWrapper = pre.getPartFileWrapper();
         Long partSize = partFileWrapper.getSize();
-
+        pre.setHashCalculatorMd5();
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
             // X-Upyun-Multi-Stage	是	String	值为 upload
             // X-Upyun-Multi-Uuid	是	String	任务标识，初始化时生成
@@ -194,10 +185,11 @@ public class UpyunUssFileStorage implements FileStorage {
                 }
                 throw e;
             }
+            String etag = pre.getHashCalculatorManager().getHashInfo().getMd5();
 
             fileInfo.setUploadId(fileInfo.getUploadId());
             FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
-            filePartInfo.setETag("暂无");
+            filePartInfo.setETag(etag);
             filePartInfo.setPartNumber(pre.getPartNumber());
             filePartInfo.setPartSize(in.getProgressSize());
             filePartInfo.setCreateTime(new Date());

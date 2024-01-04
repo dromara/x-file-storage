@@ -52,4 +52,13 @@ public class Tools {
         while (in.read() != -1) size++;
         return size;
     }
+
+    /**
+     * 按照参数从前往后进行判断，返回第一个不为 null 的参数
+     */
+    @SafeVarargs
+    public static <T> T getNotNull(T... args) {
+        for (T t : args) if (t != null) return t;
+        throw new NullPointerException();
+    }
 }

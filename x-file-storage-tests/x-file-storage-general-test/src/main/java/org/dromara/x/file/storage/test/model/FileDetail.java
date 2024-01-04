@@ -140,6 +140,12 @@ public class FileDetail {
     private String attr;
 
     /**
+     * 哈希信息
+     */
+    @TableField(value = "hash_info")
+    private String hashInfo;
+
+    /**
      * 上传ID，仅在手动分片上传时使用
      */
     @TableField(value = "upload_id")
@@ -198,6 +204,8 @@ public class FileDetail {
     public static final String COL_TH_USER_METADATA = "th_user_metadata";
 
     public static final String COL_ATTR = "attr";
+
+    public static final String COL_HASH_INFO = "hash_info";
 
     public static final String COL_UPLOAD_ID = "upload_id";
 

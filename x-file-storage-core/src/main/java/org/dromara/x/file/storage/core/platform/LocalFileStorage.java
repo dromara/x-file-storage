@@ -27,6 +27,7 @@ import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.util.Tools;
 
 /**
  * 本地文件存储
@@ -53,13 +54,14 @@ public class LocalFileStorage implements FileStorage {
     }
 
     public String getFileKey(FileInfo fileInfo) {
-        fileInfo.setBasePath(null);
-        return fileInfo.getFilePath(fileInfo);
+        return Tools.getNotNull(fileInfo.getPath(), StrUtil.EMPTY)
+                + Tools.getNotNull(fileInfo.getFilename(), StrUtil.EMPTY);
     }
 
     public String getThFileKey(FileInfo fileInfo) {
-        fileInfo.setBasePath(null);
-        return fileInfo.getThFilePath(fileInfo);
+        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
+        return Tools.getNotNull(fileInfo.getPath(), StrUtil.EMPTY)
+                + Tools.getNotNull(fileInfo.getThFilename(), StrUtil.EMPTY);
     }
 
     @Override
@@ -126,14 +128,14 @@ public class LocalFileStorage implements FileStorage {
     public FilePartInfo uploadPart(UploadPartPretreatment pre) {
         FileInfo fileInfo = pre.getFileInfo();
         String newFileKey = getFileKey(fileInfo);
+        pre.setHashCalculatorMd5();
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
             String parent = FileUtil.file(getAbsolutePath(newFileKey)).getParent();
             File dir = FileUtil.file(parent, fileInfo.getUploadId());
             File part = FileUtil.file(dir, String.valueOf(pre.getPartNumber()));
             FileUtil.writeFromStream(in, part);
 
-            String etag = IdUtil.objectId();
-
+            String etag = pre.getHashCalculatorManager().getHashInfo().getMd5();
             LocalPartInfo partInfo =
                     new LocalPartInfo(pre.getPartNumber(), etag, part.length(), new Date(part.lastModified()));
             FileUtil.appendUtf8String(partInfo.toIndexString() + "\n", FileUtil.file(dir, "index"));

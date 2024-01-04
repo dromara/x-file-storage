@@ -18,6 +18,9 @@ import net.coobird.thumbnailator.Thumbnails;
 import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.hash.HashCalculator;
+import org.dromara.x.file.storage.core.hash.HashCalculatorManager;
+import org.dromara.x.file.storage.core.hash.HashCalculatorSetter;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 
@@ -27,7 +30,8 @@ import org.dromara.x.file.storage.core.recorder.FileRecorder;
 @Getter
 @Setter
 @Accessors(chain = true)
-public class UploadPretreatment implements ProgressListenerSetter<UploadPretreatment> {
+public class UploadPretreatment
+        implements ProgressListenerSetter<UploadPretreatment>, HashCalculatorSetter<UploadPretreatment> {
     private FileStorageService fileStorageService;
     /**
      * 要上传到的平台
@@ -132,6 +136,11 @@ public class UploadPretreatment implements ProgressListenerSetter<UploadPretreat
      * 详情见{@link FileInfo#setFileAcl}
      */
     private Object thFileAcl;
+
+    /**
+     * 哈希计算器管理器
+     */
+    private HashCalculatorManager hashCalculatorManager = new HashCalculatorManager();
 
     /**
      * 设置要上传到的平台
@@ -740,6 +749,26 @@ public class UploadPretreatment implements ProgressListenerSetter<UploadPretreat
     }
 
     /**
+     * 添加一个哈希计算器
+     * @param hashCalculator 哈希计算器
+     */
+    @Override
+    public UploadPretreatment setHashCalculator(HashCalculator hashCalculator) {
+        hashCalculatorManager.setHashCalculator(hashCalculator);
+        return this;
+    }
+
+    /**
+     * 设置哈希计算器管理器（如果条件为 true）
+     * @param flag 条件
+     * @param hashCalculatorManager 哈希计算器管理器
+     */
+    public UploadPretreatment setHashCalculatorManager(boolean flag, HashCalculatorManager hashCalculatorManager) {
+        if (flag) setHashCalculatorManager(hashCalculatorManager);
+        return this;
+    }
+
+    /**
      * 上传文件，成功返回文件信息，失败返回null
      */
     public FileInfo upload() {
@@ -766,7 +795,10 @@ public class UploadPretreatment implements ProgressListenerSetter<UploadPretreat
     public InputStreamPlus getInputStreamPlus(boolean hasListener) throws IOException {
         if (inputStreamPlus == null) {
             inputStreamPlus = new InputStreamPlus(
-                    fileWrapper.getInputStream(), hasListener ? progressListener : null, fileWrapper.getSize());
+                    fileWrapper.getInputStream(),
+                    hasListener ? progressListener : null,
+                    fileWrapper.getSize(),
+                    hashCalculatorManager);
         }
         return inputStreamPlus;
     }

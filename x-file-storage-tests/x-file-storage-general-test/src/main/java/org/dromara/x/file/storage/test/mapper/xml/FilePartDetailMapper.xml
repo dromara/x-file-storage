@@ -10,10 +10,11 @@
     <result column="e_tag" jdbcType="VARCHAR" property="eTag" />
     <result column="part_number" jdbcType="INTEGER" property="partNumber" />
     <result column="part_size" jdbcType="BIGINT" property="partSize" />
+    <result column="hash_info" jdbcType="LONGVARCHAR" property="hashInfo" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
   </resultMap>
   <sql id="Base_Column_List">
     <!--@mbg.generated-->
-    id, platform, upload_id, e_tag, part_number, part_size, create_time
+    id, platform, upload_id, e_tag, part_number, part_size, hash_info, create_time
   </sql>
 </mapper>

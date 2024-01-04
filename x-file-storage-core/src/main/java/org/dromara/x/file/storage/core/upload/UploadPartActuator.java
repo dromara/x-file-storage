@@ -34,6 +34,7 @@ public class UploadPartActuator {
 
         return new UploadPartAspectChain(aspectList, (_pre, _fileStorage, _fileRecorder) -> {
                     FilePartInfo filePartInfo = _fileStorage.uploadPart(_pre);
+                    filePartInfo.setHashInfo(_pre.getHashCalculatorManager().getHashInfo());
                     _fileRecorder.saveFilePart(filePartInfo);
                     return filePartInfo;
                 })
