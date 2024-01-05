@@ -251,16 +251,9 @@ public class FileStorageServiceBuilder {
         // 本体
         FileStorageService service = new FileStorageService();
         service.setSelf(service);
+        service.setProperties(properties);
         service.setFileStorageList(new CopyOnWriteArrayList<>(fileStorageList));
         service.setFileRecorder(fileRecorder);
-        service.setDefaultPlatform(properties.getDefaultPlatform());
-        service.setThumbnailSuffix(properties.getThumbnailSuffix());
-        service.setUploadNotSupportMetadataThrowException(properties.getUploadNotSupportMetadataThrowException());
-        service.setUploadNotSupportAclThrowException(properties.getUploadNotSupportAclThrowException());
-        service.setCopyNotSupportMetadataThrowException(properties.getCopyNotSupportMetadataThrowException());
-        service.setCopyNotSupportAclThrowException(properties.getCopyNotSupportAclThrowException());
-        service.setMoveNotSupportMetadataThrowException(properties.getMoveNotSupportMetadataThrowException());
-        service.setMoveNotSupportAclThrowException(properties.getMoveNotSupportAclThrowException());
         service.setAspectList(new CopyOnWriteArrayList<>(aspectList));
         service.setFileWrapperAdapterList(new CopyOnWriteArrayList<>(fileWrapperAdapterList));
         service.setContentTypeDetect(contentTypeDetect);
