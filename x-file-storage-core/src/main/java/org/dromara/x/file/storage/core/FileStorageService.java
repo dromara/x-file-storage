@@ -1,7 +1,5 @@
 package org.dromara.x.file.storage.core;
 
-import cn.hutool.core.io.file.FileNameUtil;
-import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import java.io.IOException;
@@ -25,6 +23,7 @@ import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.upload.UploadPretreatment;
 import org.dromara.x.file.storage.core.util.Tools;
 
 /**
@@ -96,78 +95,11 @@ public class FileStorageService {
     }
 
     /**
-     * 上传文件，成功返回文件信息，失败返回 null
+     * 上传文件，成功返回文件信息，失败返回 null，请使用 pre.upload() 代替
      */
+    @Deprecated
     public FileInfo upload(UploadPretreatment pre) {
-        return upload(pre, self.getFileStorage(pre.getPlatform()), fileRecorder, aspectList);
-    }
-
-    /**
-     * 上传文件，成功返回文件信息，失败返回 null。此方法仅限内部使用
-     */
-    public FileInfo upload(
-            UploadPretreatment pre,
-            FileStorage fileStorage,
-            FileRecorder fileRecorder,
-            List<FileStorageAspect> aspectList) {
-        if (fileStorage == null)
-            throw new FileStorageRuntimeException(StrUtil.format("没有找到对应的存储平台！platform:{}", pre.getPlatform()));
-
-        FileWrapper file = pre.getFileWrapper();
-        if (file == null) throw new FileStorageRuntimeException("文件不允许为 null ！");
-        if (pre.getPlatform() == null) throw new FileStorageRuntimeException("platform 不允许为 null ！");
-
-        FileInfo fileInfo = new FileInfo();
-        fileInfo.setCreateTime(new Date());
-        fileInfo.setSize(file.getSize());
-        fileInfo.setOriginalFilename(file.getName());
-        fileInfo.setExt(FileNameUtil.getSuffix(file.getName()));
-        fileInfo.setObjectId(pre.getObjectId());
-        fileInfo.setObjectType(pre.getObjectType());
-        fileInfo.setPath(pre.getPath());
-        fileInfo.setPlatform(pre.getPlatform());
-        fileInfo.setMetadata(pre.getMetadata());
-        fileInfo.setUserMetadata(pre.getUserMetadata());
-        fileInfo.setThMetadata(pre.getThMetadata());
-        fileInfo.setThUserMetadata(pre.getThUserMetadata());
-        fileInfo.setAttr(pre.getAttr());
-        fileInfo.setFileAcl(pre.getFileAcl());
-        fileInfo.setThFileAcl(pre.getThFileAcl());
-        if (StrUtil.isNotBlank(pre.getSaveFilename())) {
-            fileInfo.setFilename(pre.getSaveFilename());
-        } else {
-            fileInfo.setFilename(
-                    IdUtil.objectId() + (StrUtil.isEmpty(fileInfo.getExt()) ? StrUtil.EMPTY : "." + fileInfo.getExt()));
-        }
-        fileInfo.setContentType(file.getContentType());
-
-        byte[] thumbnailBytes = pre.getThumbnailBytes();
-        if (thumbnailBytes != null) {
-            fileInfo.setThSize((long) thumbnailBytes.length);
-            if (StrUtil.isNotBlank(pre.getSaveThFilename())) {
-                fileInfo.setThFilename(pre.getSaveThFilename() + pre.getThumbnailSuffix());
-            } else {
-                fileInfo.setThFilename(fileInfo.getFilename() + pre.getThumbnailSuffix());
-            }
-            if (StrUtil.isNotBlank(pre.getThContentType())) {
-                fileInfo.setThContentType(pre.getThContentType());
-            } else {
-                fileInfo.setThContentType(contentTypeDetect.detect(thumbnailBytes, fileInfo.getThFilename()));
-            }
-        }
-
-        // 处理切面
-        return new UploadAspectChain(aspectList, (_fileInfo, _pre, _fileStorage, _fileRecorder) -> {
-                    // 真正开始保存
-                    if (_fileStorage.save(_fileInfo, _pre)) {
-                        _fileInfo.setHashInfo(_pre.getHashCalculatorManager().getHashInfo());
-                        if (_fileRecorder.save(_fileInfo)) {
-                            return _fileInfo;
-                        }
-                    }
-                    return null;
-                })
-                .next(fileInfo, pre, fileStorage, fileRecorder);
+        return pre.upload();
     }
 
     /**

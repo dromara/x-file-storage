@@ -21,6 +21,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.*;
 import org.dromara.x.file.storage.core.ProgressListener;
+import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;

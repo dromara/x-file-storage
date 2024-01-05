@@ -138,6 +138,7 @@ public class FileStorageProperties {
      * 基本的存储平台配置
      */
     @Data
+    @Accessors(chain = true)
     public static class BaseConfig {
 
         /**
@@ -150,6 +151,7 @@ public class FileStorageProperties {
      * 本地存储
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class LocalConfig extends BaseConfig {
 
@@ -173,6 +175,7 @@ public class FileStorageProperties {
      * 本地存储升级版
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class LocalPlusConfig extends BaseConfig {
 
@@ -201,6 +204,7 @@ public class FileStorageProperties {
      * 华为云 OBS
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class HuaweiObsConfig extends BaseConfig {
 
@@ -247,6 +251,7 @@ public class FileStorageProperties {
      * 阿里云 OSS
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class AliyunOssConfig extends BaseConfig {
 
@@ -293,6 +298,7 @@ public class FileStorageProperties {
      * 七牛云 Kodo
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class QiniuKodoConfig extends BaseConfig {
 
@@ -322,6 +328,7 @@ public class FileStorageProperties {
      * 腾讯云 COS
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class TencentCosConfig extends BaseConfig {
 
@@ -368,6 +375,7 @@ public class FileStorageProperties {
      * 百度云 BOS
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class BaiduBosConfig extends BaseConfig {
 
@@ -414,6 +422,7 @@ public class FileStorageProperties {
      * 又拍云 USS
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class UpyunUssConfig extends BaseConfig {
 
@@ -450,6 +459,7 @@ public class FileStorageProperties {
      * MinIO
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class MinioConfig extends BaseConfig {
 
@@ -490,6 +500,7 @@ public class FileStorageProperties {
      * Amazon S3
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class AmazonS3Config extends BaseConfig {
 
@@ -538,6 +549,7 @@ public class FileStorageProperties {
      * FTP
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class FtpConfig extends BaseConfig {
 
@@ -622,6 +634,7 @@ public class FileStorageProperties {
      * SFTP
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SftpConfig extends BaseConfig {
 
@@ -690,6 +703,7 @@ public class FileStorageProperties {
      * WebDAV
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class WebDavConfig extends BaseConfig {
 
@@ -730,6 +744,7 @@ public class FileStorageProperties {
     }
 
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class GoogleCloudStorageConfig extends BaseConfig {
 
@@ -767,6 +782,7 @@ public class FileStorageProperties {
      * FastDFS
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class FastDfsConfig extends BaseConfig {
 
@@ -805,6 +821,7 @@ public class FileStorageProperties {
         }
 
         @Data
+        @Accessors(chain = true)
         @EqualsAndHashCode
         public static class FastDfsTrackerServer {
 
@@ -820,6 +837,7 @@ public class FileStorageProperties {
         }
 
         @Data
+        @Accessors(chain = true)
         @EqualsAndHashCode
         public static class FastDfsStorageServer {
 
@@ -835,6 +853,7 @@ public class FileStorageProperties {
         }
 
         @Data
+        @Accessors(chain = true)
         @EqualsAndHashCode
         public static class FastDfsExtra {
 
@@ -891,6 +910,7 @@ public class FileStorageProperties {
     }
 
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class AzureBlobStorageConfig extends BaseConfig {
 
@@ -943,6 +963,7 @@ public class FileStorageProperties {
      * 通用的 Client 对象池配置，详情见 {@link org.apache.commons.pool2.impl.GenericObjectPoolConfig}
      */
     @Data
+    @Accessors(chain = true)
     public static class CommonClientPoolConfig {
 
         /**

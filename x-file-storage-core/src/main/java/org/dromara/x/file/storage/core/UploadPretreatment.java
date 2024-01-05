@@ -23,10 +23,12 @@ import org.dromara.x.file.storage.core.hash.HashCalculatorManager;
 import org.dromara.x.file.storage.core.hash.HashCalculatorSetter;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
+import org.dromara.x.file.storage.core.upload.UploadActuator;
 
 /**
- * 文件上传预处理对象
+ * 文件上传预处理对象，请使用 org.dromara.x.file.storage.core.upload.UploadPretreatment 代替
  */
+@Deprecated
 @Getter
 @Setter
 @Accessors(chain = true)
@@ -772,14 +774,14 @@ public class UploadPretreatment
      * 上传文件，成功返回文件信息，失败返回null
      */
     public FileInfo upload() {
-        return fileStorageService.upload(this);
+        return new UploadActuator(this).execute();
     }
 
     /**
      * 上传文件，成功返回文件信息，失败返回null。此方法仅限内部使用
      */
     public FileInfo upload(FileStorage fileStorage, FileRecorder fileRecorder, List<FileStorageAspect> aspectList) {
-        return fileStorageService.upload(this, fileStorage, fileRecorder, aspectList);
+        return new UploadActuator(this).execute(fileStorage, fileRecorder, aspectList);
     }
 
     /**
@@ -800,6 +802,14 @@ public class UploadPretreatment
                     fileWrapper.getSize(),
                     hashCalculatorManager);
         }
+        return inputStreamPlus;
+    }
+
+    /**
+     * 直接获取 InputStreamPlus，仅限内部使用
+     */
+    @Deprecated
+    public InputStreamPlus getInputStreamPlusDirect() {
         return inputStreamPlus;
     }
 }
