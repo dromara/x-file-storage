@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.FileStorageProperties;
 import org.dromara.x.file.storage.core.FileStorageProperties.AliyunOssConfig;
 import org.dromara.x.file.storage.core.FileStorageProperties.AmazonS3Config;
@@ -27,6 +28,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Data
+@Accessors(chain = true)
 @Component
 @ConditionalOnMissingBean(SpringFileStorageProperties.class)
 @ConfigurationProperties(prefix = "dromara.x-file-storage")
@@ -219,6 +221,7 @@ public class SpringFileStorageProperties {
      * 本地存储
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringLocalConfig extends LocalConfig {
         /**
@@ -239,6 +242,7 @@ public class SpringFileStorageProperties {
      * 本地存储升级版
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringLocalPlusConfig extends LocalPlusConfig {
         /**
@@ -259,6 +263,7 @@ public class SpringFileStorageProperties {
      * 华为云 OBS
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringHuaweiObsConfig extends HuaweiObsConfig {
         /**
@@ -271,6 +276,7 @@ public class SpringFileStorageProperties {
      * 阿里云 OSS
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringAliyunOssConfig extends AliyunOssConfig {
         /**
@@ -283,6 +289,7 @@ public class SpringFileStorageProperties {
      * 七牛云 Kodo
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringQiniuKodoConfig extends QiniuKodoConfig {
         /**
@@ -295,6 +302,7 @@ public class SpringFileStorageProperties {
      * 腾讯云 COS
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringTencentCosConfig extends TencentCosConfig {
         /**
@@ -307,6 +315,7 @@ public class SpringFileStorageProperties {
      * 百度云 BOS
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringBaiduBosConfig extends BaiduBosConfig {
         /**
@@ -319,6 +328,7 @@ public class SpringFileStorageProperties {
      * 又拍云 USS
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringUpyunUssConfig extends UpyunUssConfig {
         /**
@@ -331,6 +341,7 @@ public class SpringFileStorageProperties {
      * MinIO
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringMinioConfig extends MinioConfig {
         /**
@@ -343,6 +354,7 @@ public class SpringFileStorageProperties {
      * Amazon S3
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringAmazonS3Config extends AmazonS3Config {
         /**
@@ -355,6 +367,7 @@ public class SpringFileStorageProperties {
      * FTP
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringFtpConfig extends FtpConfig {
         /**
@@ -367,6 +380,7 @@ public class SpringFileStorageProperties {
      * SFTP
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringSftpConfig extends SftpConfig {
         /**
@@ -379,6 +393,7 @@ public class SpringFileStorageProperties {
      * WebDAV
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringWebDavConfig extends WebDavConfig {
         /**
@@ -391,6 +406,7 @@ public class SpringFileStorageProperties {
      * GoogleCloud Storage
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringGoogleCloudStorageConfig extends GoogleCloudStorageConfig {
         /**
@@ -405,6 +421,7 @@ public class SpringFileStorageProperties {
      * @date 2023/10/23
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringFastDfsConfig extends FastDfsConfig {
         /**
@@ -417,6 +434,7 @@ public class SpringFileStorageProperties {
      * AzureBlob Storage
      */
     @Data
+    @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringAzureBlobStorageConfig extends AzureBlobStorageConfig {
         /**
