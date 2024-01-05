@@ -36,25 +36,34 @@ import org.dromara.x.file.storage.core.util.Tools;
 public class FileStorageService {
 
     private FileStorageService self;
+    private FileStorageProperties properties;
     private FileRecorder fileRecorder;
     private CopyOnWriteArrayList<FileStorage> fileStorageList;
-    private String defaultPlatform;
-    private String thumbnailSuffix;
-    private Boolean uploadNotSupportMetadataThrowException;
-    private Boolean uploadNotSupportAclThrowException;
-    private Boolean copyNotSupportMetadataThrowException;
-    private Boolean copyNotSupportAclThrowException;
-    private Boolean moveNotSupportMetadataThrowException;
-    private Boolean moveNotSupportAclThrowException;
     private CopyOnWriteArrayList<FileStorageAspect> aspectList;
     private CopyOnWriteArrayList<FileWrapperAdapter> fileWrapperAdapterList;
     private ContentTypeDetect contentTypeDetect;
 
     /**
+     * 获取默认的存储平台，请使用 getProperties().getDefaultPlatform() 代替
+     */
+    @Deprecated
+    public String getDefaultPlatform() {
+        return properties.getDefaultPlatform();
+    }
+
+    /**
+     * 缩略图后缀，例如【.min.jpg】【.png】，请使用 getProperties().getThumbnailSuffix() 代替
+     */
+    @Deprecated
+    public String getThumbnailSuffix() {
+        return properties.getThumbnailSuffix();
+    }
+
+    /**
      * 获取默认的存储平台
      */
     public <T extends FileStorage> T getFileStorage() {
-        return self.getFileStorage(defaultPlatform);
+        return self.getFileStorage(properties.getDefaultPlatform());
     }
 
     /**
@@ -362,10 +371,10 @@ public class FileStorageService {
     public UploadPretreatment of() {
         UploadPretreatment pre = new UploadPretreatment();
         pre.setFileStorageService(self);
-        pre.setPlatform(defaultPlatform);
-        pre.setThumbnailSuffix(thumbnailSuffix);
-        pre.setNotSupportMetadataThrowException(uploadNotSupportMetadataThrowException);
-        pre.setNotSupportAclThrowException(uploadNotSupportAclThrowException);
+        pre.setPlatform(properties.getDefaultPlatform());
+        pre.setThumbnailSuffix(properties.getThumbnailSuffix());
+        pre.setNotSupportMetadataThrowException(properties.getUploadNotSupportMetadataThrowException());
+        pre.setNotSupportAclThrowException(properties.getUploadNotSupportAclThrowException());
         return pre;
     }
 
@@ -403,7 +412,7 @@ public class FileStorageService {
      * 默认使用的存储平台是否支持手动分片上传
      */
     public MultipartUploadSupportInfo isSupportMultipartUpload() {
-        return self.isSupportMultipartUpload(defaultPlatform);
+        return self.isSupportMultipartUpload(properties.getDefaultPlatform());
     }
 
     /**
@@ -429,9 +438,9 @@ public class FileStorageService {
     public InitiateMultipartUploadPretreatment initiateMultipartUpload() {
         InitiateMultipartUploadPretreatment pre = new InitiateMultipartUploadPretreatment();
         pre.setFileStorageService(self);
-        pre.setPlatform(defaultPlatform);
-        pre.setNotSupportMetadataThrowException(uploadNotSupportMetadataThrowException);
-        pre.setNotSupportAclThrowException(uploadNotSupportAclThrowException);
+        pre.setPlatform(properties.getDefaultPlatform());
+        pre.setNotSupportMetadataThrowException(properties.getUploadNotSupportMetadataThrowException());
+        pre.setNotSupportAclThrowException(properties.getUploadNotSupportAclThrowException());
         return pre;
     }
 
@@ -601,8 +610,8 @@ public class FileStorageService {
      */
     public CopyPretreatment copy(FileInfo fileInfo) {
         return new CopyPretreatment(fileInfo, self)
-                .setNotSupportMetadataThrowException(copyNotSupportMetadataThrowException)
-                .setNotSupportAclThrowException(copyNotSupportAclThrowException);
+                .setNotSupportMetadataThrowException(properties.getCopyNotSupportMetadataThrowException())
+                .setNotSupportAclThrowException(properties.getCopyNotSupportAclThrowException());
     }
 
     /**
@@ -633,8 +642,8 @@ public class FileStorageService {
      */
     public MovePretreatment move(FileInfo fileInfo) {
         return new MovePretreatment(fileInfo, self)
-                .setNotSupportMetadataThrowException(moveNotSupportMetadataThrowException)
-                .setNotSupportAclThrowException(moveNotSupportAclThrowException);
+                .setNotSupportMetadataThrowException(properties.getMoveNotSupportMetadataThrowException())
+                .setNotSupportAclThrowException(properties.getMoveNotSupportAclThrowException());
     }
 
     /**
