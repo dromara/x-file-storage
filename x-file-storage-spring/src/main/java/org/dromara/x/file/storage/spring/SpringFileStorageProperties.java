@@ -93,6 +93,7 @@ public class SpringFileStorageProperties {
     /**
      * 本地存储
      */
+    @Deprecated
     private List<? extends SpringLocalConfig> local = new ArrayList<>();
     /**
      * 本地存储
@@ -220,6 +221,7 @@ public class SpringFileStorageProperties {
     /**
      * 本地存储
      */
+    @Deprecated
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)

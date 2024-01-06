@@ -1,6 +1,6 @@
 # 计算哈希
 
-可以在上传、下载的同时计算文件的哈希值，例如 `MD5` `SHA256` 等，更多哈希以实际API为准
+可以在上传、下载的同时计算文件的哈希值，例如 `MD5` `SHA256` 等，更多哈希以实际 API 为准
 
 ### 直接上传文件时
 
@@ -62,7 +62,7 @@ String sha256 = hashInfo.getSha256();
 只需要实现 `HashCalculator` 接口即可，这里用 `MD5` 举例
 
 ```java
-FilePartInfo filePartInfo = fileStorageService.of(file)
+FileInfo fileInfo = fileStorageService.of(file)
         .setHashCalculator(new HashCalculator() {
             private final MessageDigest messageDigest = MessageDigest.getInstance("MD5");
         
@@ -94,7 +94,7 @@ FilePartInfo filePartInfo = fileStorageService.of(file)
         .upload();
 
 //上传成功后即可这样获取到对应的哈希值
-HashInfo hashInfo = filePartInfo.getHashInfo();
+HashInfo hashInfo = fileInfo.getHashInfo();
 String md5 = hashInfo.get("MD5");
 ```
 

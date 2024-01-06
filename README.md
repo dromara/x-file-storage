@@ -27,7 +27,7 @@
     </a>
     <br />
     <a href='https://jq.qq.com/?_wv=1027&k=eGfeNqka'>
-        <img src='https://img.shields.io/badge/QQ%E7%BE%A4-515706495-orange' alt='' />
+        <img src='https://img.shields.io/badge/QQ%E7%BE%A4-515706495-orange' alt='515706495' />
     </a>
 </p>
 
@@ -97,6 +97,8 @@ Gitee：https://gitee.com/dromara/x-file-storage
 ```  
 
 `application.yml` 配置文件中添加以下基础配置
+
+关于配置文件及 FileInfo 中各种路径（path）的区别，可以参考 [常见问题](https://x-file-storage.xuyanwu.cn/#/常见问题?id=配置文件及-fileinfo-中各种路径（path）的区别？)
 
 ```yaml
 dromara:
