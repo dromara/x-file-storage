@@ -103,5 +103,10 @@
         <!--            <artifactId>google-cloud-storage</artifactId>-->
         <!--        </dependency>-->
         <!--因存在较多冲突版本导致谷歌云无法使用，故引入独立版本-->
+        <!-- 微软 Azure blob-->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob</artifactId>
+        </dependency>
     </dependencies>
 </project>

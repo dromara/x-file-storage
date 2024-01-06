@@ -150,6 +150,7 @@ public class FileStorageProperties {
     /**
      * 本地存储
      */
+    @Deprecated
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
@@ -831,9 +832,9 @@ public class FileStorageProperties {
             private String serverAddr;
 
             /**
-             * 默认：80
+             * HTTP端口，默认：80
              */
-            private Integer httpPort;
+            private Integer httpPort = 80;
         }
 
         @Data
@@ -847,7 +848,7 @@ public class FileStorageProperties {
             private String serverAddr;
 
             /**
-             * Store path
+             * Store path，默认 0
              */
             private Integer storePath = 0;
         }
@@ -860,52 +861,52 @@ public class FileStorageProperties {
             /**
              * 组名，可以为空
              */
-            private String groupName;
+            private String groupName = "";
 
             /**
              * 连接超时，单位：秒，默认：5s
              */
-            private Integer connectTimeoutInSeconds;
+            private Integer connectTimeoutInSeconds = 5;
 
             /**
              * 套接字超时，单位：秒，默认：30s
              */
-            private Integer networkTimeoutInSeconds;
+            private Integer networkTimeoutInSeconds = 30;
 
             /**
              * 字符编码，默认：UTF-8
              */
-            private Charset charset;
+            private Charset charset = StandardCharsets.UTF_8;
 
             /**
-             * 默认：false
+             * token 防盗链 默认：false
              */
-            private Boolean httpAntiStealToken;
+            private Boolean httpAntiStealToken = false;
 
             /**
              * 安全密钥，默认：FastDFS1234567890
              */
-            private String httpSecretKey;
+            private String httpSecretKey = "FastDFS1234567890";
 
             /**
              * 是否启用连接池。默认：true
              */
-            private Boolean connectionPoolEnabled;
+            private Boolean connectionPoolEnabled = true;
 
             /**
-             * 默认：100
+             * #每一个IP:Port的最大连接数，0为没有限制，默认：100
              */
-            private Integer connectionPoolMaxCountPerEntry;
+            private Integer connectionPoolMaxCountPerEntry = 100;
 
             /**
              * 连接池最大空闲时间。单位：秒，默认：3600
              */
-            private Integer connectionPoolMaxIdleTime;
+            private Integer connectionPoolMaxIdleTime = 3600;
 
             /**
              * 连接池最大等待时间。单位：毫秒，默认：1000
              */
-            private Integer connectionPoolMaxWaitTimeInMs;
+            private Integer connectionPoolMaxWaitTimeInMs = 1000;
         }
     }
 

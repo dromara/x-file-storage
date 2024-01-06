@@ -9,6 +9,7 @@ import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.aspect.*;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
@@ -284,6 +285,51 @@ public class LogFileStorageAspect implements FileStorageAspect {
             CopyAspectChain chain,
             FileInfo srcFileInfo,
             CopyPretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        log.info("复制文件 before -> {}", srcFileInfo);
+        srcFileInfo = chain.next(srcFileInfo, pre, fileStorage, fileRecorder);
+        log.info("复制文件 after -> {}", srcFileInfo);
+        return srcFileInfo;
+    }
+
+    /**
+     * 是否支持同存储平台移动
+     */
+    @Override
+    public boolean isSupportSameMoveAround(IsSupportSameMoveAspectChain chain, FileStorage fileStorage) {
+        log.info("是否支持同存储平台移动 before -> {}", fileStorage.getPlatform());
+        boolean res = chain.next(fileStorage);
+        log.info("是否支持同存储平台移动 -> {}", res);
+        return res;
+    }
+
+    /**
+     * 同存储平台移动，成功返回文件信息
+     */
+    @Override
+    public FileInfo sameMoveAround(
+            SameMoveAspectChain chain,
+            FileInfo srcFileInfo,
+            FileInfo destFileInfo,
+            MovePretreatment pre,
+            FileStorage fileStorage,
+            FileRecorder fileRecorder) {
+        log.info("同存储平台复制文件 before -> srcFileInfo：{}，destFileInfo：{}", srcFileInfo, pre.getFileInfo());
+
+        destFileInfo = chain.next(srcFileInfo, destFileInfo, pre, fileStorage, fileRecorder);
+        log.info("同存储平台复制文件 after -> srcFileInfo：{}，destFileInfo：{}", srcFileInfo, destFileInfo);
+        return destFileInfo;
+    }
+
+    /**
+     * 移动，成功返回文件信息
+     */
+    @Override
+    public FileInfo moveAround(
+            MoveAspectChain chain,
+            FileInfo srcFileInfo,
+            MovePretreatment pre,
             FileStorage fileStorage,
             FileRecorder fileRecorder) {
         log.info("复制文件 before -> {}", srcFileInfo);

@@ -30,9 +30,9 @@ dromara:
       - platform: local-plus-1 # 存储平台标识
         enable-storage: true  #启用存储
         enable-access: true #启用访问（线上请使用 Nginx 配置，效率更高）
-        domain: "" # 访问域名，例如：“http://127.0.0.1:8030/”，注意后面要和 path-patterns 保持一致，“/”结尾，本地存储建议使用相对路径，方便后期更换域名
+        domain: http://127.0.0.1:8030/file/ # 访问域名，访问域名，例如：“http://127.0.0.1:8030/file/”，注意后面要和 path-patterns 保持一致，“/”结尾，本地存储建议使用相对路径，方便后期更换域名
         base-path: local-plus/ # 基础路径
-        path-patterns: /** # 访问路径
+        path-patterns: /file/** # 访问路径
         storage-path: D:/Temp/ # 存储路径
     huawei-obs: # 华为云 OBS ，不使用的情况下可以不写
       - platform: huawei-obs-1 # 存储平台标识
@@ -142,4 +142,22 @@ dromara:
         bucket-name: ??
         credentials-path: file:/deploy/example-key.json # 授权 key json 路径，兼容Spring的ClassPath路径、文件路径、HTTP路径等
         domain: ?? # 访问域名，注意“/”结尾，例如：https://storage.googleapis.com/test-bucket/
+        base-path: hy/ # 基础路径
+    fastdfs:
+      - platform: fastdfs-1 # 存储平台标识
+        tracker-server: # Tracker Server 配置
+          server-addr: ?? # Tracker Server 地址（IP:PORT），多个用英文逗号隔开
+          http-port: 80 # 默认：80
+        extra: # 额外扩展配置
+          group-name: group2 # 组名，可以为空
+          http-secret-key: FastDFS1234567890 # 安全密钥，默认：FastDFS1234567890
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://file.abc.com/
+        base-path: hy/ # 基础路径
+    azure-blob:
+      - platform: azure-blob-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        connection-string: ?? #连接字符串
+        end-point: ??
+        container-name: ?? # 容器名称，类似于s3的bucketName
+        domain: ?? # 访问域名，注意“/”结尾，例如：https://file.abc.com/
         base-path: hy/ # 基础路径

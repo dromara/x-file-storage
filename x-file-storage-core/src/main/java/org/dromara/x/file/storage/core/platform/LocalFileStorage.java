@@ -32,6 +32,7 @@ import org.dromara.x.file.storage.core.util.Tools;
 /**
  * 本地文件存储
  */
+@Deprecated
 @Getter
 @Setter
 @NoArgsConstructor

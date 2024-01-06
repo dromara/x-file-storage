@@ -6,7 +6,7 @@
 
 ## 生成
 
-目前仅 华为云 OBS、阿里云 OSS、七牛云 Kodo、腾讯云 COS、百度云 BOS、MinIO、Amazon S3、GoogleCloud Storage 平台支持
+目前仅 华为云 OBS、阿里云 OSS、七牛云 Kodo、腾讯云 COS、百度云 BOS、MinIO、Amazon S3、GoogleCloud Storage、Azure Blob 平台支持
 
 ```java
 //判断对应的存储平台是否支持预签名 URL
