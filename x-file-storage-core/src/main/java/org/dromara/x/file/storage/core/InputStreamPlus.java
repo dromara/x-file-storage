@@ -4,6 +4,7 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.function.Consumer;
 import lombok.Getter;
 import org.dromara.x.file.storage.core.hash.HashCalculatorManager;
 
@@ -19,6 +20,24 @@ public class InputStreamPlus extends FilterInputStream {
     protected final ProgressListener listener;
     protected final HashCalculatorManager hashCalculatorManager;
     protected int markFlag;
+
+    public InputStreamPlus(InputStream in, Consumer<Long> listener) {
+        this(
+                in,
+                new ProgressListener() {
+                    @Override
+                    public void start() {}
+
+                    @Override
+                    public void progress(long progressSize, Long allSize) {
+                        listener.accept(progressSize);
+                    }
+
+                    @Override
+                    public void finish() {}
+                },
+                null);
+    }
 
     public InputStreamPlus(InputStream in, ProgressListener listener, Long allSize) {
         this(in, listener, allSize, null);

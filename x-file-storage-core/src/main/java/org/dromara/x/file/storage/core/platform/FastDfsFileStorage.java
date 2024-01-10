@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.Getter;
@@ -94,30 +95,47 @@ public class FastDfsFileStorage implements FileStorage {
         fileInfo.setBasePath(config.getBasePath());
         FileWrapper fileWrapper = pre.getFileWrapper();
         NameValuePair[] metadata = getObjectMetadata(fileInfo);
+
         ProgressListener listener = pre.getProgressListener();
         StorageClient client = getClient();
-        boolean useMultipartUpload = fileInfo.getSize() == null || fileInfo.getSize() >= config.getMultipartThreshold();
+        boolean useMultipartUpload =
+                true; // fileInfo.getSize() == null || fileInfo.getSize() >= config.getMultipartThreshold();
+        boolean hasListener = !useMultipartUpload;
         String[] fileUpload = null;
-        try (InputStreamPlus in = pre.getInputStreamPlus()) {
-            Long size = fileWrapper.getSize();
+        try (InputStreamPlus in = pre.getInputStreamPlus(hasListener)) {
             if (useMultipartUpload) {
                 int i = 0;
+                AtomicLong progressSize = new AtomicLong();
+                ProgressListener.quickStart(listener, fileInfo.getSize());
                 while (true) {
                     byte[] bytes = IoUtil.readBytes(in, config.getMultipartPartSize());
                     if (bytes == null || bytes.length == 0) break;
+                    UploadStream uploadStream = new UploadStream(
+                            new InputStreamPlus(
+                                    new ByteArrayInputStream(bytes),
+                                    currentSize -> ProgressListener.quickProgress(
+                                            listener, progressSize.get() + currentSize, fileInfo.getSize())),
+                            bytes.length);
                     if (++i == 1) {
-                        fileUpload =
-                                client.upload_appender_file(config.getGroupName(), bytes, fileInfo.getExt(), metadata);
+                        fileUpload = client.upload_appender_file(
+                                config.getGroupName(), bytes.length, uploadStream, fileInfo.getExt(), metadata);
+                        if (fileUpload == null) {
+                            throw new RuntimeException("FastDFS 上传失败");
+                        }
                     } else {
-                        int code = client.append_file(fileUpload[0], fileUpload[1], bytes);
+                        int code = client.append_file(fileUpload[0], fileUpload[1], bytes.length, uploadStream);
                         if (code != 0) throw new RuntimeException("errno " + code);
                     }
+
+                    progressSize.addAndGet(bytes.length);
                 }
+                ProgressListener.quickFinish(listener);
             } else {
+                Long size = fileWrapper.getSize();
                 fileUpload = client.upload_file(
                         config.getGroupName(), size, new UploadStream(in, size), fileInfo.getExt(), metadata);
+                if (fileUpload == null) throw new RuntimeException("FastDFS 上传失败");
             }
-            if (fileUpload == null) throw new RuntimeException("FastDFS 上传失败");
             setGroupAndFilename(fileInfo, fileUpload);
 
             if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
@@ -365,6 +383,7 @@ public class FastDfsFileStorage implements FileStorage {
      */
     public String[] getThGroupAndFilename(FileInfo fileInfo) {
         if (config.getRunMod() == FastDfsConfig.RunMod.COVER) {
+            if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
             String url = config.getDomain()
                     + Tools.getNotNull(fileInfo.getPath(), StrUtil.EMPTY)
                     + Tools.getNotNull(fileInfo.getThFilename(), StrUtil.EMPTY);
