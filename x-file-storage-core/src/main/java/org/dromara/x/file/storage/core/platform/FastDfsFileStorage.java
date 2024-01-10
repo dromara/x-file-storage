@@ -98,8 +98,7 @@ public class FastDfsFileStorage implements FileStorage {
 
         ProgressListener listener = pre.getProgressListener();
         StorageClient client = getClient();
-        boolean useMultipartUpload =
-                true; // fileInfo.getSize() == null || fileInfo.getSize() >= config.getMultipartThreshold();
+        boolean useMultipartUpload = fileInfo.getSize() == null || fileInfo.getSize() >= config.getMultipartThreshold();
         boolean hasListener = !useMultipartUpload;
         String[] fileUpload = null;
         try (InputStreamPlus in = pre.getInputStreamPlus(hasListener)) {
