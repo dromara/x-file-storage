@@ -1,8 +1,6 @@
 package org.dromara.x.file.storage.core.platform;
 
 import static org.csource.fastdfs.ClientGlobal.*;
-import static org.dromara.x.file.storage.core.constant.Regex.IP_COLON_PORT;
-import static org.dromara.x.file.storage.core.constant.Regex.IP_COLON_PORT_COMMA;
 
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.lang.Assert;
@@ -34,6 +32,17 @@ import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 @Getter
 @Setter
 public class FastDfsFileStorageClientFactory implements FileStorageClientFactory<StorageClient> {
+
+    /**
+     * IP:PORT
+     */
+    private static final String IP_COLON_PORT =
+            "^.*:(?:[1-9]\\d{0,3}|[1-5]\\d{4}|[1-5][0-9]{0,3}\\d{0,3}|6[0-4]\\d{0,3}|65[0-4]\\d{0,2}|655[0-2]\\d?)$";
+
+    /**
+     * IP1:PORT1,IP2:PORT2
+     */
+    private static final String IP_COLON_PORT_COMMA = "^(.*?):\\d+(?:,(.*?):\\d+)*$";
 
     /**
      * FastDFS 配置

@@ -145,6 +145,8 @@ dromara:
         base-path: hy/ # 基础路径
     fastdfs:
       - platform: fastdfs-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        run-mod: COVER #运行模式
         tracker-server: # Tracker Server 配置
           server-addr: ?? # Tracker Server 地址（IP:PORT），多个用英文逗号隔开
           http-port: 80 # 默认：80
