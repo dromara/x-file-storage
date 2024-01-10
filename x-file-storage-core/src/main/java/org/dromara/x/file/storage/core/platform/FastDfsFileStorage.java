@@ -133,8 +133,8 @@ public class FastDfsFileStorage implements FileStorage {
                 Long size = fileWrapper.getSize();
                 fileUpload = client.upload_file(
                         config.getGroupName(), size, new UploadStream(in, size), fileInfo.getExt(), metadata);
-                if (fileUpload == null) throw new RuntimeException("FastDFS 上传失败");
             }
+            if (fileUpload == null) throw new RuntimeException("FastDFS 上传失败");
             setGroupAndFilename(fileInfo, fileUpload);
 
             if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
