@@ -4,10 +4,7 @@ import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.StrUtil;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
@@ -25,6 +22,7 @@ import org.csource.fastdfs.UploadStream;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.FastDfsConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
+import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
@@ -96,15 +94,29 @@ public class FastDfsFileStorage implements FileStorage {
         fileInfo.setBasePath(config.getBasePath());
         FileWrapper fileWrapper = pre.getFileWrapper();
         NameValuePair[] metadata = getObjectMetadata(fileInfo);
+        ProgressListener listener = pre.getProgressListener();
         StorageClient client = getClient();
-
+        boolean useMultipartUpload = fileInfo.getSize() == null || fileInfo.getSize() >= config.getMultipartThreshold();
         String[] fileUpload = null;
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
             Long size = fileWrapper.getSize();
-            if (size == null) size = fileWrapper.getInputStreamMaskResetReturn(Tools::getSize);
-
-            fileUpload = client.upload_file(
-                    config.getGroupName(), size, new UploadStream(in, size), fileInfo.getExt(), metadata);
+            if (useMultipartUpload) {
+                int i = 0;
+                while (true) {
+                    byte[] bytes = IoUtil.readBytes(in, config.getMultipartPartSize());
+                    if (bytes == null || bytes.length == 0) break;
+                    if (++i == 1) {
+                        fileUpload =
+                                client.upload_appender_file(config.getGroupName(), bytes, fileInfo.getExt(), metadata);
+                    } else {
+                        int code = client.append_file(fileUpload[0], fileUpload[1], bytes);
+                        if (code != 0) throw new RuntimeException("errno " + code);
+                    }
+                }
+            } else {
+                fileUpload = client.upload_file(
+                        config.getGroupName(), size, new UploadStream(in, size), fileInfo.getExt(), metadata);
+            }
             if (fileUpload == null) throw new RuntimeException("FastDFS 上传失败");
             setGroupAndFilename(fileInfo, fileUpload);
 
