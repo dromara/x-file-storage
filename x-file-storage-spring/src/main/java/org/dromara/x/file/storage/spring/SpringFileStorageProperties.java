@@ -159,7 +159,7 @@ public class SpringFileStorageProperties {
     private List<? extends SpringFastDfsConfig> fastdfs = new ArrayList<>();
 
     /**
-     * 微软Azure Blob
+     * Azure Blob Storage
      */
     private List<? extends SpringAzureBlobStorageConfig> azureBlob = new ArrayList<>();
 

@@ -103,10 +103,20 @@
         <!--            <artifactId>google-cloud-storage</artifactId>-->
         <!--        </dependency>-->
         <!--因存在较多冲突版本导致谷歌云无法使用，故引入独立版本-->
-        <!-- 微软 Azure blob-->
+        <!-- FastDFS -->
+        <!--        <dependency>-->
+        <!--            <groupId>io.github.rui8832</groupId>-->
+        <!--            <artifactId>fastdfs-client-java</artifactId>-->
+        <!--        </dependency>-->
+        <!-- Azure Blob -->
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-blob</artifactId>
+        </dependency>
+        <!-- Azure File Data Lake 用于处理 ACL -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-file-datalake</artifactId>
         </dependency>
     </dependencies>
 </project>
