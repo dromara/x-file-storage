@@ -158,8 +158,8 @@ dromara:
     azure-blob:
       - platform: azure-blob-1 # 存储平台标识
         enable-storage: true  # 启用存储
-        connection-string: ?? #连接字符串
-        end-point: ??
-        container-name: ?? # 容器名称，类似于s3的bucketName
-        domain: ?? # 访问域名，注意“/”结尾，例如：https://file.abc.com/
+        connection-string: ?? # 连接字符串，AzureBlob控制台-安全性和网络-访问秘钥-连接字符串
+        end-point: ?? # 终结点 AzureBlob控制台-设置-终结点-主终结点-Blob服务
+        container-name: ?? # 容器名称，类似于 s3 的 bucketName，AzureBlob控制台-数据存储-容器
+        domain: ?? # 访问域名，注意“/”结尾，与 end-point 保持一致
         base-path: hy/ # 基础路径
