@@ -130,7 +130,7 @@ public class FileStorageProperties {
     private List<? extends FastDfsConfig> fastdfs = new ArrayList<>();
 
     /**
-     * 微软Azure Blob
+     * Azure Blob Storage
      */
     private List<? extends AzureBlobStorageConfig> azureBlob = new ArrayList<>();
 
@@ -970,6 +970,11 @@ public class FileStorageProperties {
          * 基础路径
          */
         private String basePath = "";
+
+        /**
+         * 默认的 ACL，详情 {@link Constant.AzureBlobStorageACL}
+         */
+        private String defaultAcl;
 
         /**
          * 连接字符串，AzureBlob控制台-安全性和网络-访问秘钥-连接字符串

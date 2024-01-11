@@ -83,6 +83,14 @@ public interface Constant {
     }
 
     /**
+     * Azure Blob Storage 的 ACL（已经做了命名规则转换）
+     * {@link com.azure.storage.file.datalake.models.PathPermissions}
+     * {@link com.azure.storage.file.datalake.models.PathAccessControlEntry}
+     * 文档：https://learn.microsoft.com/zh-cn/azure/storage/blobs/data-lake-storage-access-control
+     */
+    interface AzureBlobStorageACL extends ACL {}
+
+    /**
      * 元数据名称，这里列举的是一些相对通用的名称，但不一定每个存储平台都支持，具体支持情况自行查阅对应存储的相关文档
      * <p>阿里云 OSS {@link com.aliyun.oss.model.ObjectMetadata} {@link com.aliyun.oss.internal.OSSHeaders}</p>
      * <p>Amazon S3 {@link com.amazonaws.services.s3.model.ObjectMetadata} {@link com.amazonaws.services.s3.Headers}</p>
@@ -93,6 +101,7 @@ public interface Constant {
      * <p>又拍云 USS {@link com.upyun.RestManager.PARAMS}</p>
      * <p>MinIO {@link io.minio.ObjectWriteArgs}</p>
      * <p>GoogleCloud Storage {@link com.google.cloud.storage.BlobInfo} {@link com.google.cloud.storage.Storage.BlobField}</p>
+     * <p>Azure Blob Storage {@link com.azure.storage.blob.models.BlobHttpHeaders}</p>
      */
     interface Metadata {
         String CACHE_CONTROL = "Cache-Control";

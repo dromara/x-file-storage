@@ -108,10 +108,15 @@
         <!--            <groupId>io.github.rui8832</groupId>-->
         <!--            <artifactId>fastdfs-client-java</artifactId>-->
         <!--        </dependency>-->
-        <!-- 微软 Azure blob-->
+        <!-- Azure Blob -->
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-blob</artifactId>
+        </dependency>
+        <!-- Azure File Data Lake 用于处理 ACL -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-file-datalake</artifactId>
         </dependency>
     </dependencies>
 </project>

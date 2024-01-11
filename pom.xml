@@ -44,6 +44,14 @@
                 <role>Contrib</role>
             </roles>
         </developer>
+        <developer>
+            <id>dongfeng</id>
+            <name>dongfeng</name>
+            <email>dongfeng@51ddi.com</email>
+            <roles>
+                <role>Contrib</role>
+            </roles>
+        </developer>
     </developers>
 
     <modules>
@@ -92,7 +100,8 @@
         <tika-core.version>2.4.1</tika-core.version>
         <upyun-java-sdk.version>4.2.3</upyun-java-sdk.version>
         <fastdfs-client-java.version>1.30-20230328</fastdfs-client-java.version>
-        <azure-storage-blob-sdk.version>12.23.1</azure-storage-blob-sdk.version>
+        <azure-storage-blob.version>12.23.1</azure-storage-blob.version>
+        <azure-storage-file-datalake.version>12.18.1</azure-storage-file-datalake.version>
         <!--endregion-->
 
         <!--region Maven Plugins-->
@@ -259,13 +268,18 @@
                 <artifactId>fastdfs-client-java</artifactId>
                 <version>${fastdfs-client-java.version}</version>
             </dependency>
-            <!-- 微软 Azure blob-->
+            <!-- Azure Blob -->
             <dependency>
                 <groupId>com.azure</groupId>
                 <artifactId>azure-storage-blob</artifactId>
-                <version>${azure-storage-blob-sdk.version}</version>
+                <version>${azure-storage-blob.version}</version>
             </dependency>
-            <!--endregion-->
+            <!-- Azure File Data Lake 用于处理 ACL -->
+            <dependency>
+                <groupId>com.azure</groupId>
+                <artifactId>azure-storage-file-datalake</artifactId>
+                <version>${azure-storage-file-datalake.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
