@@ -134,10 +134,10 @@ public class CopyActuator {
             destFileInfo.setThUserMetadata(new LinkedHashMap<>(srcFileInfo.getThUserMetadata()));
         }
         if (srcFileInfo.getAttr() != null) {
-            destFileInfo.setAttr(new Dict(destFileInfo.getAttr()));
+            destFileInfo.setAttr(new Dict(srcFileInfo.getAttr()));
         }
         if (srcFileInfo.getHashInfo() != null) {
-            destFileInfo.setHashInfo(new HashInfo(destFileInfo.getHashInfo()));
+            destFileInfo.setHashInfo(new HashInfo(srcFileInfo.getHashInfo()));
         }
         destFileInfo.setFileAcl(srcFileInfo.getFileAcl());
         destFileInfo.setThFileAcl(srcFileInfo.getThFileAcl());

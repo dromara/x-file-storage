@@ -1,17 +1,21 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.text.NamingCase;
+import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
 import com.azure.core.util.Context;
+import com.azure.core.util.polling.PollResponse;
+import com.azure.core.util.polling.SyncPoller;
 import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
-import com.azure.storage.blob.models.ParallelTransferOptions;
-import com.azure.storage.blob.models.UserDelegationKey;
+import com.azure.storage.blob.models.*;
 import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -90,53 +94,52 @@ public class AzureBlobFileStorage implements FileStorage {
         this.clientFactory = clientFactory;
     }
 
-    private BlobContainerClient getBlobContainerClient() {
-        return clientFactory.getClient().getBlobContainerClient(containerName);
+    public BlobClient getBlobClient(String fileKey) {
+        if (StrUtil.isBlank(fileKey)) return null;
+        return clientFactory.getClient().getBlobContainerClient(containerName).getBlobClient(fileKey);
     }
 
-    public BlobClient getBlobClient(FileInfo fileInfo) {
-        fileInfo.setBasePath(basePath);
-        BlobContainerClient blobContainerClient = getBlobContainerClient();
-        return blobContainerClient.getBlobClient(getFileKey(fileInfo));
-    }
-
-    public BlobClient getThBlobClient(FileInfo fileInfo) {
-        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
-        BlobContainerClient blobContainerClient = getBlobContainerClient();
-        return blobContainerClient.getBlobClient(getThFileKey(fileInfo));
+    public String getUrl(String fileKey) {
+        return domain + containerName + "/" + fileKey;
     }
 
     @Override
     public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
         fileInfo.setBasePath(basePath);
-        fileInfo.setUrl(getUrl(getFileKey(fileInfo)));
-        BlobClient blobClient = getBlobClient(fileInfo);
+        String newFileKey = getFileKey(fileInfo);
+        Check.uploadNotSupportAcl(getPlatform(), fileInfo, pre);
+        fileInfo.setBasePath(basePath);
+        fileInfo.setUrl(getUrl(newFileKey));
         ProgressListener listener = pre.getProgressListener();
+        BlobClient blobClient = getBlobClient(newFileKey);
         try (InputStreamPlus in = pre.getInputStreamPlus(false)) {
-            // 构建上传参数
-            BlobParallelUploadOptions blobParallelUploadOptions = new BlobParallelUploadOptions(in);
-            ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions();
-            parallelTransferOptions.setBlockSizeLong(multipartPartSize);
-            parallelTransferOptions.setMaxConcurrency(maxConcurrency);
-            parallelTransferOptions.setMaxSingleUploadSizeLong(multipartThreshold);
+            // 构建上传参数，经测试，大文件会自动多线程分片上传，且无需指定文件大小
+            BlobParallelUploadOptions options = new BlobParallelUploadOptions(in);
+            setMetadata(options, fileInfo);
+            options.setParallelTransferOptions(new ParallelTransferOptions()
+                    .setBlockSizeLong(multipartPartSize)
+                    .setMaxConcurrency(maxConcurrency)
+                    .setMaxSingleUploadSizeLong(multipartThreshold));
             if (listener != null) {
-                parallelTransferOptions.setProgressListener(
-                        progress -> listener.progress(progress, fileInfo.getSize()));
+                options.getParallelTransferOptions()
+                        .setProgressListener(progressSize -> listener.progress(progressSize, fileInfo.getSize()));
             }
-            blobParallelUploadOptions.setParallelTransferOptions(parallelTransferOptions);
-            blobParallelUploadOptions.setMetadata(fileInfo.getMetadata());
-            blobClient.uploadWithResponse(blobParallelUploadOptions, null, Context.NONE);
+            ProgressListener.quickStart(listener, fileInfo.getSize());
+            blobClient.uploadWithResponse(options, null, Context.NONE);
+            ProgressListener.quickFinish(listener);
             if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
             // 上传缩略图
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) {
-                BlobClient thBlobClient = getThBlobClient(fileInfo);
-                fileInfo.setThUrl(getUrl(getThFileKey(fileInfo)));
-                ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(thumbnailBytes);
-                thBlobClient.upload(byteArrayInputStream);
+                String newThFileKey = getThFileKey(fileInfo);
+                fileInfo.setThUrl(getUrl(newThFileKey));
+                BlobParallelUploadOptions thOptions =
+                        new BlobParallelUploadOptions(new ByteArrayInputStream(thumbnailBytes));
+                setThMetadata(thOptions, fileInfo);
+                getBlobClient(newThFileKey).uploadWithResponse(thOptions, null, Context.NONE);
             }
             return true;
-        } catch (IOException e) {
+        } catch (Exception e) {
             try {
                 blobClient.deleteIfExists();
             } catch (Exception ignored) {
@@ -149,15 +152,45 @@ public class AzureBlobFileStorage implements FileStorage {
         return true;
     }
 
+    /**
+     * 设置对象的元数据
+     */
+    public void setMetadata(BlobParallelUploadOptions options, FileInfo fileInfo) {
+        options.setMetadata(fileInfo.getUserMetadata());
+        BlobHttpHeaders headers = new BlobHttpHeaders();
+        if (StrUtil.isNotBlank(fileInfo.getContentType())) headers.setContentType(fileInfo.getContentType());
+        if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
+            CopyOptions copyOptions = CopyOptions.create()
+                    .ignoreCase()
+                    .setFieldNameEditor(name -> NamingCase.toCamelCase(name, CharUtil.DASHED));
+            BeanUtil.copyProperties(fileInfo.getMetadata(), headers, copyOptions);
+        }
+        options.setHeaders(headers);
+    }
+
+    /**
+     * 设置缩略图对象的元数据
+     */
+    public void setThMetadata(BlobParallelUploadOptions options, FileInfo fileInfo) {
+        options.setMetadata(fileInfo.getThUserMetadata());
+        BlobHttpHeaders headers = new BlobHttpHeaders();
+        if (StrUtil.isNotBlank(fileInfo.getThContentType())) headers.setContentType(fileInfo.getThContentType());
+        if (CollUtil.isNotEmpty(fileInfo.getThMetadata())) {
+            CopyOptions copyOptions = CopyOptions.create()
+                    .ignoreCase()
+                    .setFieldNameEditor(name -> NamingCase.toCamelCase(name, CharUtil.DASHED));
+            BeanUtil.copyProperties(fileInfo.getThMetadata(), headers, copyOptions);
+        }
+        options.setHeaders(headers);
+    }
+
     @Override
     public boolean delete(FileInfo fileInfo) {
         try {
-            BlobClient blobClient = getBlobClient(fileInfo);
             if (fileInfo.getThFilename() != null) { // 删除缩略图
-                BlobClient thBlobClient = getThBlobClient(fileInfo);
-                thBlobClient.deleteIfExists();
+                getBlobClient(getThFileKey(fileInfo)).deleteIfExists();
             }
-            blobClient.deleteIfExists();
+            getBlobClient(getFileKey(fileInfo)).deleteIfExists();
             return true;
         } catch (Exception e) {
             throw ExceptionFactory.delete(fileInfo, platform, e);
@@ -167,7 +200,7 @@ public class AzureBlobFileStorage implements FileStorage {
     @Override
     public boolean exists(FileInfo fileInfo) {
         try {
-            return getBlobClient(fileInfo).exists();
+            return getBlobClient(getFileKey(fileInfo)).exists();
         } catch (Exception e) {
             throw ExceptionFactory.exists(fileInfo, platform, e);
         }
@@ -175,10 +208,10 @@ public class AzureBlobFileStorage implements FileStorage {
 
     @Override
     public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
-        BlobClient blobClient = getBlobClient(fileInfo);
+        BlobClient blobClient = getBlobClient(getFileKey(fileInfo));
         try (InputStream in = blobClient.openInputStream()) {
             consumer.accept(in);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw ExceptionFactory.download(fileInfo, platform, e);
         }
     }
@@ -186,10 +219,10 @@ public class AzureBlobFileStorage implements FileStorage {
     @Override
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
         Check.downloadThBlankThFilename(platform, fileInfo);
-        BlobClient blobClient = getThBlobClient(fileInfo);
+        BlobClient blobClient = getBlobClient(getThFileKey(fileInfo));
         try (InputStream in = blobClient.openInputStream()) {
             consumer.accept(in);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw ExceptionFactory.downloadTh(fileInfo, platform, e);
         }
     }
@@ -208,7 +241,7 @@ public class AzureBlobFileStorage implements FileStorage {
     @Override
     public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
         try {
-            BlobClient blobClient = getBlobClient(fileInfo);
+            BlobClient blobClient = getBlobClient(getFileKey(fileInfo));
             return blobClient.getBlobUrl() + "?" + blobClient.generateSas(getBlobServiceSasSignatureValues(expiration));
         } catch (Exception e) {
             throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
@@ -220,7 +253,7 @@ public class AzureBlobFileStorage implements FileStorage {
         try {
             String key = getThFileKey(fileInfo);
             if (key == null) return null;
-            BlobClient thBlobClient = getThBlobClient(fileInfo);
+            BlobClient thBlobClient = getBlobClient(getThFileKey(fileInfo));
             return thBlobClient.getBlobUrl() + "?"
                     + thBlobClient.generateSas(getBlobServiceSasSignatureValues(expiration));
         } catch (Exception e) {
@@ -233,39 +266,53 @@ public class AzureBlobFileStorage implements FileStorage {
         return true;
     }
 
+    /**
+     * 等待复制完成并处理复制结果
+     */
+    public void awaitCopy(SyncPoller<BlobCopyInfo, Void> copySyncPoller) {
+        while (true) {
+            PollResponse<BlobCopyInfo> copyInfo = copySyncPoller.poll();
+            CopyStatusType copyStatus = copyInfo.getValue().getCopyStatus();
+            if (copyStatus == CopyStatusType.PENDING) continue;
+            else if (copyStatus == CopyStatusType.SUCCESS) break;
+            else throw new RuntimeException(copyStatus.toString());
+        }
+    }
+
     @Override
     public void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
+        Check.sameCopyNotSupportAcl(platform, srcFileInfo, destFileInfo, pre);
         Check.sameCopyBasePath(platform, basePath, srcFileInfo, destFileInfo);
         // 获取远程文件信息
-        BlobClient srcClient = getBlobClient(srcFileInfo);
-        BlobClient destClient = getBlobClient(destFileInfo);
-        BlobClient srcThClient = getThBlobClient(srcFileInfo);
-        BlobClient destThClient = getThBlobClient(destFileInfo);
-        if (Boolean.FALSE.equals(srcClient.exists())) {
+        String destFileKey = getFileKey(destFileInfo);
+        String destThFileKey = getThFileKey(destFileInfo);
+        BlobClient srcClient = getBlobClient(getFileKey(srcFileInfo));
+        BlobClient destClient = getBlobClient(destFileKey);
+        BlobClient srcThClient = getBlobClient(getThFileKey(srcFileInfo));
+        BlobClient destThClient = getBlobClient(destThFileKey);
+        if (!Boolean.TRUE.equals(srcClient.exists())) {
             throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, null);
         }
         // 复制缩略图文件
-        String destThFileKey = null;
-        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
-            destThFileKey = getThFileKey(destFileInfo);
-            destFileInfo.setThUrl(getUrl(getThFileKey(destFileInfo)));
+        if (destThClient != null) {
+            destFileInfo.setThUrl(getUrl(destThFileKey));
             try {
-                destThClient.beginCopy(srcThClient.getBlobUrl(), Duration.ofSeconds(1));
+                awaitCopy(destThClient.beginCopy(srcThClient.getBlobUrl(), Duration.ofSeconds(1)));
+
             } catch (Exception e) {
                 throw ExceptionFactory.sameCopyTh(srcFileInfo, destFileInfo, platform, e);
             }
         }
 
         // 复制文件
-        destFileInfo.setUrl(getUrl(getFileKey(destFileInfo)));
+        destFileInfo.setUrl(getUrl(destFileKey));
         try {
-            ProgressListener.quickStart(
-                    pre.getProgressListener(), srcClient.getProperties().getBlobSize());
-            destClient.beginCopy(srcClient.getBlobUrl(), Duration.ofSeconds(1));
-            ProgressListener.quickFinish(
-                    pre.getProgressListener(), srcClient.getProperties().getBlobSize());
+            long size = srcClient.getProperties().getBlobSize();
+            ProgressListener.quickStart(pre.getProgressListener(), size);
+            awaitCopy(destClient.beginCopy(srcClient.getBlobUrl(), Duration.ofSeconds(1)));
+            ProgressListener.quickFinish(pre.getProgressListener(), size);
         } catch (Exception e) {
-            if (destThFileKey != null)
+            if (destThClient != null)
                 try {
                     destThClient.deleteIfExists();
                 } catch (Exception ignored) {
@@ -280,9 +327,6 @@ public class AzureBlobFileStorage implements FileStorage {
 
     /**
      * 构建sas参数,设置操作权限和过期时间
-     *
-     * @param expiration
-     * @return
      */
     private BlobServiceSasSignatureValues getBlobServiceSasSignatureValues(Date expiration) {
         // 设置只读权限
@@ -291,13 +335,7 @@ public class AzureBlobFileStorage implements FileStorage {
                 expiration.toInstant().atZone(ZoneOffset.UTC).toOffsetDateTime();
 
         // 生成签名
-        BlobServiceSasSignatureValues blobServiceSasSignatureValues =
-                new BlobServiceSasSignatureValues(offsetDateTime, blobPermission);
-        return blobServiceSasSignatureValues;
-    }
-
-    public String getUrl(String fileKey) {
-        return domain + containerName + "/" + fileKey;
+        return new BlobServiceSasSignatureValues(offsetDateTime, blobPermission);
     }
 
     @Override

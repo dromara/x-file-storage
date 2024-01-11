@@ -951,15 +951,18 @@ public class FileStorageProperties {
     @EqualsAndHashCode(callSuper = true)
     public static class AzureBlobStorageConfig extends BaseConfig {
 
+        /**
+         * 终结点 AzureBlob控制台-设置-终结点-主终结点-Blob服务
+         */
         private String endPoint;
 
         /**
-         * 访问域名
+         * 访问域名，注意“/”结尾，与 end-point 保持一致
          */
         private String domain = "";
 
         /**
-         * 容器名称，类似于s3的bucketName
+         * 容器名称，类似于 s3 的 bucketName，AzureBlob控制台-数据存储-容器
          */
         private String containerName;
 
@@ -969,7 +972,7 @@ public class FileStorageProperties {
         private String basePath = "";
 
         /**
-         * 连接字符串
+         * 连接字符串，AzureBlob控制台-安全性和网络-访问秘钥-连接字符串
          */
         private String connectionString;
 
