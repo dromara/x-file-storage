@@ -101,6 +101,7 @@ public interface Constant {
      * <p>又拍云 USS {@link com.upyun.RestManager.PARAMS}</p>
      * <p>MinIO {@link io.minio.ObjectWriteArgs}</p>
      * <p>GoogleCloud Storage {@link com.google.cloud.storage.BlobInfo} {@link com.google.cloud.storage.Storage.BlobField}</p>
+     * <p>FastDFS {@link org.dromara.x.file.storage.core.platform.FastDfsFileStorage#getObjectMetadata(org.dromara.x.file.storage.core.FileInfo)}</p>
      * <p>Azure Blob Storage {@link com.azure.storage.blob.models.BlobHttpHeaders}</p>
      */
     interface Metadata {
