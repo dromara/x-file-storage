@@ -19,7 +19,6 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.azure.storage.file.datalake.*;
-import com.azure.storage.file.datalake.models.PathAccessControl;
 import com.azure.storage.file.datalake.models.PathAccessControlEntry;
 import com.azure.storage.file.datalake.models.PathPermissions;
 import com.azure.storage.file.datalake.models.RolePermissions;
@@ -346,9 +345,9 @@ public class AzureBlobStorageFileStorage implements FileStorage {
         if (acl == null) return;
         if (StrUtil.isBlank(fileKey)) return;
         DataLakeFileClient fileClient = getDataLakeFileClient(fileKey);
-        PathAccessControl fileAccessControl = fileClient.getAccessControl();
-        List<PathAccessControlEntry> pathPermissions = fileAccessControl.getAccessControlList();
-        System.out.println(PathAccessControlEntry.serializeList(pathPermissions));
+        //        PathAccessControl fileAccessControl = fileClient.getAccessControl();
+        //        List<PathAccessControlEntry> pathPermissions = fileAccessControl.getAccessControlList();
+        //        System.out.println(PathAccessControlEntry.serializeList(pathPermissions));
         if (acl.getPermissions() != null) {
             fileClient.setPermissions(acl.getPermissions(), null, null);
         } else if (acl.getAclList() != null) {
@@ -356,8 +355,8 @@ public class AzureBlobStorageFileStorage implements FileStorage {
         } else {
             throw new NullPointerException();
         }
-        pathPermissions = fileClient.getAccessControl().getAccessControlList();
-        System.out.println(PathAccessControlEntry.serializeList(pathPermissions));
+        //        pathPermissions = fileClient.getAccessControl().getAccessControlList();
+        //        System.out.println(PathAccessControlEntry.serializeList(pathPermissions));
     }
 
     @Override
