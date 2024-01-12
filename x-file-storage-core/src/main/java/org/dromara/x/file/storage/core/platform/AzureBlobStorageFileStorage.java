@@ -252,8 +252,8 @@ public class AzureBlobStorageFileStorage implements FileStorage {
             BlockBlobCommitBlockListOptions options = new BlockBlobCommitBlockListOptions(partList);
             options.setMetadata(fileInfo.getUserMetadata());
             options.setHeaders(getBlobHttpHeaders(fileInfo.getContentType(), fileInfo.getMetadata()));
-            client.commitBlockListWithResponse(options, null, Context.NONE).getValue();
             setFileAcl(newFileKey, acl);
+            client.commitBlockListWithResponse(options, null, Context.NONE).getValue();
             if (fileInfo.getSize() == null)
                 fileInfo.setSize(client.getProperties().getBlobSize());
         } catch (Exception e) {
@@ -517,8 +517,12 @@ public class AzureBlobStorageFileStorage implements FileStorage {
             destFileInfo.setThUrl(getUrl(destThFileKey));
             try {
                 awaitCopy(destThClient.beginCopy(srcThClient.getBlobUrl(), Duration.ofSeconds(1)));
-
+                setFileAcl(destThFileKey, getAcl(srcFileInfo.getThFileAcl()));
             } catch (Exception e) {
+                try {
+                    destThClient.deleteIfExists();
+                } catch (Exception ignored) {
+                }
                 throw ExceptionFactory.sameCopyTh(srcFileInfo, destFileInfo, platform, e);
             }
         }
@@ -529,6 +533,7 @@ public class AzureBlobStorageFileStorage implements FileStorage {
             long size = srcClient.getProperties().getBlobSize();
             ProgressListener.quickStart(pre.getProgressListener(), size);
             awaitCopy(destClient.beginCopy(srcClient.getBlobUrl(), Duration.ofSeconds(1)));
+            setFileAcl(destFileKey, getAcl(srcFileInfo.getFileAcl()));
             ProgressListener.quickFinish(pre.getProgressListener(), size);
         } catch (Exception e) {
             if (destThClient != null)
