@@ -157,6 +157,8 @@
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-extra</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
         <!-- Tika -->
         <dependency>
