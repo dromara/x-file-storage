@@ -3,6 +3,8 @@ package org.dromara.x.file.storage.core.upload;
 import cn.hutool.core.io.IoUtil;
 import java.io.IOException;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import cn.hutool.core.util.StrUtil;
 import org.dromara.x.file.storage.core.Downloader;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
@@ -58,21 +60,23 @@ public class CompleteMultipartUploadActuator {
                             _fileRecorder.deleteFilePartByUploadId(_fileInfo.getUploadId());
 
                             // 文件上传完成，识别文件 ContentType
-                            if (_fileInfo.getContentType() == null) {
-                                new Downloader(_fileInfo, aspectList, _fileStorage, Downloader.TARGET_FILE)
-                                        .inputStream(in -> {
-                                            try {
-                                                _fileInfo.setContentType(
-                                                        _contentTypeDetect.detect(in, _fileInfo.getOriginalFilename()));
-                                                // 这里静默关闭流，防止出现 Premature end of Content-Length delimited message body
-                                                // 错误
-                                                IoUtil.close(in);
-                                            } catch (IOException e) {
-                                                throw new RuntimeException(e);
-                                            }
-                                        });
-
-                                _fileRecorder.update(_fileInfo);
+                            if (StrUtil.isNotBlank(_fileInfo.getContentType())) {
+                                try {
+                                    new Downloader(_fileInfo, aspectList, _fileStorage, Downloader.TARGET_FILE)
+                                            .inputStream(in -> {
+                                                try {
+                                                    _fileInfo.setContentType(_contentTypeDetect.detect(
+                                                            in, _fileInfo.getOriginalFilename()));
+                                                    // 这里静默关闭流，防止出现 Premature end of Content-Length
+                                                    // delimited message body 错误
+                                                    IoUtil.close(in);
+                                                } catch (IOException e) {
+                                                    throw new RuntimeException(e);
+                                                }
+                                            });
+                                    _fileRecorder.update(_fileInfo);
+                                } catch (Exception ignored) {
+                                }
                             }
                             return _fileInfo;
                         })
