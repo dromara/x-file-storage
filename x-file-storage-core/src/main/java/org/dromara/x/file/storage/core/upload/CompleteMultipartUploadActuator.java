@@ -1,10 +1,9 @@
 package org.dromara.x.file.storage.core.upload;
 
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.util.StrUtil;
 import java.io.IOException;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import cn.hutool.core.util.StrUtil;
 import org.dromara.x.file.storage.core.Downloader;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
