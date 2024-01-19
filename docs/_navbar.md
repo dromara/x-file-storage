@@ -1,4 +1,4 @@
-* 🌟文档版本 2.0.0
+* 🌟文档版本 2.1.0
 
   * [2.0.0](https://x-file-storage.xuyanwu.cn/2.0.0/)
   * [1.0.3](https://x-file-storage.xuyanwu.cn/1.0.3/)
