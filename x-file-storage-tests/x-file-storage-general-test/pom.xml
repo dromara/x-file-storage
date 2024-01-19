@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.dromara.x-file-storage</groupId>
+        <artifactId>x-file-storage-tests</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>x-file-storage-general-test</artifactId>
+
+    <name>X File Storage General Test</name>
+
+    <properties>
+        <guava.version>32.1.2-jre</guava.version>
+        <mybatis-plus-boot-starter.version>3.5.3.1</mybatis-plus-boot-starter.version>
+    </properties>
+
+    <dependencies>
+        <!-- Apache commons-pool2 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
+        <!--糊涂工具类扩展-->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-extra</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <version>${mybatis-plus-boot-starter.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- WebDAV -->
+        <!--                <dependency>-->
+        <!--                    <groupId>com.github.lookfirst</groupId>-->
+        <!--                    <artifactId>sardine</artifactId>-->
+        <!--                </dependency>-->
+        <!-- SFTP -->
+        <!--        <dependency>-->
+        <!--            <groupId>com.jcraft</groupId>-->
+        <!--            <artifactId>jsch</artifactId>-->
+        <!--        </dependency>-->
+        <!-- FTP -->
+        <!--        <dependency>-->
+        <!--            <groupId>commons-net</groupId>-->
+        <!--            <artifactId>commons-net</artifactId>-->
+        <!--        </dependency>-->
+        <!-- Amazon S3 -->
+        <!--        <dependency>-->
+        <!--            <groupId>com.amazonaws</groupId>-->
+        <!--            <artifactId>aws-java-sdk-s3</artifactId>-->
+        <!--        </dependency>-->
+        <!-- MinIO -->
+        <!--        <dependency>-->
+        <!--            <groupId>io.minio</groupId>-->
+        <!--            <artifactId>minio</artifactId>-->
+        <!--        </dependency>-->
+        <!-- 又拍云 USS -->
+        <!--        <dependency>-->
+        <!--            <groupId>com.upyun</groupId>-->
+        <!--            <artifactId>java-sdk</artifactId>-->
+        <!--        </dependency>-->
+        <!-- 百度云 BOS -->
+        <!--        <dependency>-->
+        <!--            <groupId>com.baidubce</groupId>-->
+        <!--            <artifactId>bce-java-sdk</artifactId>-->
+        <!--        </dependency>-->
+        <!-- 腾讯云 COS -->
+        <!--        <dependency>-->
+        <!--            <groupId>com.qcloud</groupId>-->
+        <!--            <artifactId>cos_api</artifactId>-->
+        <!--        </dependency>-->
+        <!-- 七牛云 Kodo -->
+        <!--        <dependency>-->
+        <!--            <groupId>com.qiniu</groupId>-->
+        <!--            <artifactId>qiniu-java-sdk</artifactId>-->
+        <!--        </dependency>-->
+        <!-- 阿里云 OSS -->
+        <!--        <dependency>-->
+        <!--            <groupId>com.aliyun.oss</groupId>-->
+        <!--            <artifactId>aliyun-sdk-oss</artifactId>-->
+        <!--        </dependency>-->
+        <!-- 华为云 OBS -->
+        <dependency>
+            <groupId>com.huaweicloud</groupId>
+            <artifactId>esdk-obs-java</artifactId>
+        </dependency>
+        <!--        &lt;!&ndash; 谷歌云 Google Cloud Platform Storage&ndash;&gt;-->
+        <!--        <dependency>-->
+        <!--            <groupId>com.google.cloud</groupId>-->
+        <!--            <artifactId>google-cloud-storage</artifactId>-->
+        <!--        </dependency>-->
+        <!--因存在较多冲突版本导致谷歌云无法使用，故引入独立版本-->
+        <!-- FastDFS -->
+        <!--        <dependency>-->
+        <!--            <groupId>io.github.rui8832</groupId>-->
+        <!--            <artifactId>fastdfs-client-java</artifactId>-->
+        <!--        </dependency>-->
+        <!-- Azure Blob -->
+        <!--        <dependency>-->
+        <!--            <groupId>com.azure</groupId>-->
+        <!--            <artifactId>azure-storage-blob</artifactId>-->
+        <!--        </dependency>-->
+        <!-- Azure File Data Lake 用于处理 ACL -->
+        <!--        <dependency>-->
+        <!--            <groupId>com.azure</groupId>-->
+        <!--            <artifactId>azure-storage-file-datalake</artifactId>-->
+        <!--        </dependency>-->
+    </dependencies>
+</project>

@@ -15,13 +15,12 @@ public interface FileWrapperAdapter {
     /**
      * 获取文件包装
      */
-    FileWrapper getFileWrapper(Object source,String name,String contentType,Long size) throws IOException;
-
+    FileWrapper getFileWrapper(Object source, String name, String contentType, Long size) throws IOException;
 
     /**
      * 更新文件包装参数
      */
-    default FileWrapper updateFileWrapper(FileWrapper fileWrapper,String name,String contentType,Long size) {
+    default FileWrapper updateFileWrapper(FileWrapper fileWrapper, String name, String contentType, Long size) {
         if (name != null) fileWrapper.setName(name);
         if (contentType != null) fileWrapper.setContentType(contentType);
         if (size != null) fileWrapper.setSize(size);

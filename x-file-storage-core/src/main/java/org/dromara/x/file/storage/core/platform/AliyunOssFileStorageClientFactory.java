@@ -32,7 +32,7 @@ public class AliyunOssFileStorageClientFactory implements FileStorageClientFacto
         if (client == null) {
             synchronized (this) {
                 if (client == null) {
-                    client = new OSSClientBuilder().build(endPoint,accessKey,secretKey);
+                    client = new OSSClientBuilder().build(endPoint, accessKey, secretKey);
                 }
             }
         }

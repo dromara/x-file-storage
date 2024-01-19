@@ -1,13 +1,11 @@
 package org.dromara.x.file.storage.core.file;
 
-
-import org.dromara.x.file.storage.core.IOExceptionConsumer;
-import org.dromara.x.file.storage.core.IOExceptionFunction;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import org.dromara.x.file.storage.core.IOExceptionConsumer;
+import org.dromara.x.file.storage.core.IOExceptionFunction;
+import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
 /**
  * 文件包装接口
@@ -51,7 +49,7 @@ public interface FileWrapper {
     /**
      * 获取文件的 InputStream 并读取，会自动标记和重置流的位置
      */
-    default <R> R getInputStreamMaskResetReturn(IOExceptionFunction<InputStream,R> function) throws IOException {
+    default <R> R getInputStreamMaskResetReturn(IOExceptionFunction<InputStream, R> function) throws IOException {
         InputStream in = getInputStream();
         in.mark(Integer.MAX_VALUE);
         try {
@@ -65,7 +63,6 @@ public interface FileWrapper {
      * 获取文件大小
      */
     Long getSize();
-
 
     /**
      * 设置文件大小
@@ -85,5 +82,4 @@ public interface FileWrapper {
     default boolean supportTransfer() {
         return false;
     }
-
 }

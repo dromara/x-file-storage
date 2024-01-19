@@ -1,6 +1,8 @@
 # ACL 访问控制列表
 
-也叫预定义访问策略，目前仅 华为云 OBS、阿里云 OSS、腾讯云 COS、百度云 BOS、Amazon S3、GoogleCloud Storage 平台支持
+也叫预定义访问策略，目前仅 华为云 OBS、阿里云 OSS、腾讯云 COS、百度云 BOS、Amazon S3、GoogleCloud Storage、Azure Blob Storage 平台支持
+
+Azure Blob Storage 即使将文件的 ACL 设置为 公共读`PUBLIC_READ` ，上传成功后的 `url` 也无法通过浏览器直接公开访问 ，详情阅读 [兼容性说明-AzureBlobStorage](存储平台?id=OCI_AzureBlobStorage) 章节
 
 ## 设置 ACL
 
@@ -109,6 +111,27 @@ fileStorageService.of(file).setFileAcl(Arrays.asList(acl2,acl3)).upload();
 
 ```
 
+#### **Azure Blob Storage**
+
+ACL 参考文档：https://learn.microsoft.com/zh-cn/azure/storage/blobs/data-lake-storage-access-control <br>
+SDK 参考文档：https://learn.microsoft.com/zh-cn/azure/storage/blobs/data-lake-storage-acl-java#set-acls
+
+```java
+//第一种：使用官方 SDK 中的 PathPermissions 对象
+PathPermissions permissions = new PathPermissions()
+    .setGroup(new RolePermissions().setReadPermission(true))
+    .setOwner(new RolePermissions().setReadPermission(true).setWritePermission(true));
+fileStorageService.of(file).setFileAcl(permissions).upload();
+
+//第二种，使用官方 SDK 中的 PathAccessControlEntry 对象
+PathAccessControlEntry acl = PathAccessControlEntry.parse("user::rw-");
+fileStorageService.of(file).setFileAcl(acl).upload();
+
+//第二种可以一次设置多个
+List<PathAccessControlEntry> acl = PathAccessControlEntry.parseList("user::rw-,group::r--,other::---");
+fileStorageService.of(file).setFileAcl(acl).upload();
+```
+
 <!-- tabs:end -->
 
 > [!WARNING|label:重要提示：] 
@@ -142,13 +165,28 @@ AccessControlList acl = client.getObjectAcl(fileStorage.getBucketName(),fileStor
 ```yaml
 dromara:
   x-file-storage:
-    upload-not-support-alc-throw-exception: false
+    upload-not-support-alc-throw-exception: false # 上传时
+    copy-not-support-alc-throw-exception: false # 复制时
+    move-not-support-alc-throw-exception: false # 移动时
 ```
 
 **第二种（仅当前）**
 ```java
+//上传时
 FileInfo fileInfo = fileStorageService.of(file)
         .setNotSupportAclThrowException(false) //在不支持 ACL 的存储平台不抛出异常
         .setAcl(Constant.ACL.PRIVATE)
         .upload();
+
+//复制时
+FileInfo fileInfo = fileStorageService.copy(fileInfo)
+        .setNotSupportAclThrowException(false) //在不支持 ACL 的存储平台不抛出异常
+        .setPlatform("local-plus-1")
+        .copy();
+
+//移动时
+FileInfo fileInfo = fileStorageService.move(fileInfo)
+        .setNotSupportAclThrowException(false) //在不支持 ACL 的存储平台不抛出异常
+        .setPlatform("local-plus-1")
+        .move();
 ```

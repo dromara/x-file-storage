@@ -31,7 +31,7 @@ public class UpyunUssFileStorageClientFactory implements FileStorageClientFactor
         if (client == null) {
             synchronized (this) {
                 if (client == null) {
-                    client = new RestManager(bucketName,username,password);
+                    client = new RestManager(bucketName, username, password);
                 }
             }
         }

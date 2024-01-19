@@ -1,43 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <parent>
-        <artifactId>x-file-storage-parent</artifactId>
-        <groupId>org.dromara.x-file-storage</groupId>
-        <version>2.0.0</version>
-    </parent>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.dromara.x-file-storage</groupId>
+        <artifactId>x-file-storage-parent</artifactId>
+        <version>${revision}</version>
+    </parent>
 
     <artifactId>x-file-storage-core</artifactId>
-    <version>2.0.0</version>
-
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+    <name>X File Storage Core</name>
 
     <dependencies>
-
         <!-- javax.servlet-api -->
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
-            <version>4.0.1</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- jakarta.servlet-api -->
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
-            <version>5.0.0</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- Apache commons-pool2 -->
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -45,7 +32,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 华为云 OBS -->
         <dependency>
             <groupId>com.huaweicloud</groupId>
@@ -53,7 +39,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- Amazon S3 -->
         <dependency>
             <groupId>com.amazonaws</groupId>
@@ -61,7 +46,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 阿里云 OSS -->
         <dependency>
             <groupId>com.aliyun.oss</groupId>
@@ -69,15 +53,23 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 百度云 BOS -->
         <dependency>
             <groupId>com.baidubce</groupId>
             <artifactId>bce-java-sdk</artifactId>
             <scope>provided</scope>
             <optional>true</optional>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework</groupId>
+                    <artifactId>spring-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>jdk.tools</groupId>
+                    <artifactId>jdk.tools</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
-
         <!-- WebDAV -->
         <dependency>
             <groupId>com.github.lookfirst</groupId>
@@ -85,7 +77,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- SFTP -->
         <dependency>
             <groupId>com.jcraft</groupId>
@@ -93,7 +84,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- FTP -->
         <dependency>
             <groupId>commons-net</groupId>
@@ -101,7 +91,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- MinIO -->
         <dependency>
             <groupId>io.minio</groupId>
@@ -109,7 +98,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 又拍云 USS -->
         <dependency>
             <groupId>com.upyun</groupId>
@@ -117,7 +105,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 腾讯云 COS -->
         <dependency>
             <groupId>com.qcloud</groupId>
@@ -125,7 +112,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 七牛云 Kodo -->
         <dependency>
             <groupId>com.qiniu</groupId>
@@ -133,11 +119,31 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- 谷歌云 Google Cloud Platform Storage-->
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-storage</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <!-- FastDFS Storage -->
+        <dependency>
+            <groupId>io.github.rui8832</groupId>
+            <artifactId>fastdfs-client-java</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <!-- Azure Blob -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <!-- Azure File Data Lake 用于处理 ACL -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-file-datalake</artifactId>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
@@ -147,7 +153,6 @@
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-core</artifactId>
         </dependency>
-
         <!--糊涂工具类扩展-->
         <dependency>
             <groupId>cn.hutool</groupId>
@@ -155,22 +160,20 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- Tika -->
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
         </dependency>
-
         <!-- 图片处理 https://github.com/coobird/thumbnailator -->
         <dependency>
             <groupId>net.coobird</groupId>
             <artifactId>thumbnailator</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <scope>provided</scope>
             <optional>true</optional>
         </dependency>
     </dependencies>

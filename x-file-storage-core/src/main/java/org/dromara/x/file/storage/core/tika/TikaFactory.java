@@ -8,5 +8,4 @@ import org.apache.tika.Tika;
 public interface TikaFactory {
 
     Tika getTika();
-
 }

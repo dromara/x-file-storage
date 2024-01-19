@@ -22,21 +22,22 @@
 	<a target="_blank" href='https://github.com/dromara/x-file-storage'>
 		<img src="https://img.shields.io/github/stars/dromara/x-file-storage.svg?style=social" alt="github star"/>
 	</a>
-    <a href='https://gitee.com/dromara/x-file-storage'>
+    <a target="_blank" href='https://gitee.com/dromara/x-file-storage'>
         <img src='https://gitee.com/dromara/x-file-storage/badge/star.svg?theme=dark' alt='star' />
     </a>
-    <br />
-    <a href='https://jq.qq.com/?_wv=1027&k=eGfeNqka'>
-        <img src='https://img.shields.io/badge/QQ%E7%BE%A4-515706495-orange' alt='' />
+    <a target="_blank" href='https://jq.qq.com/?_wv=1027&k=eGfeNqka'>
+        <img src='https://img.shields.io/badge/QQ%E7%BE%A4-515706495-orange' alt='515706495' />
     </a>
 </p>
+
+[tg.md](https://x-file-storage.xuyanwu.cn/assets/tg/tg.md ':include')
 
 -------
 
 # 📚简介
 
 一行代码将文件存储到本地、FTP、SFTP、WebDAV、阿里云 OSS、华为云 OBS、七牛云 Kodo、腾讯云 COS、百度云 BOS、又拍云 USS、MinIO、
-Amazon S3、GoogleCloud Storage、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动 云EOS、沃云 OSS、
+Amazon S3、GoogleCloud Storage、FastDFS、 Azure Blob Storage、Cloudflare R2、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动 云EOS、沃云 OSS、
 网易数帆 NOS、Ucloud US3、青云 QingStor、平安云 OBS、首云 OSS、IBM COS、其它兼容 S3 协议的存储平台。查看 [所有支持的存储平台](存储平台)
 
 💡 通过 WebDAV 连接到 Alist 后，可以使用百度网盘、天翼云盘、阿里云盘、迅雷网盘等常见存储服务，查看 [Alist 支持的存储平台](https://alist-doc.nn.ci/docs/webdav)
@@ -51,6 +52,8 @@ Gitee：https://gitee.com/dromara/x-file-storage
 
 这里是简要的更新记录，查看 [详细的更新记录](更新记录)
 
+`2.0.0` 修复了大量问题，新增存储平台 FastDFS 和 Azure Blob Storage，新增复制、移动（重命名）文件，大文件手动分片上传（断点续传）和计算哈希等功能，详情查看 [更新记录](更新记录?id=_210)
+<br />
 `2.0.0` 捐赠至 [dromara](https://dromara.org/zh) 开源社区，更改项目名、包名，优化项目结构、支持 Metadata 元数据等，从旧版升级需要注意，详情查看 [更新记录](更新记录?id=_200)
 <br />
 `1.0.3` 修复了 FileStorageClientFactory 未自动加载等问题，查看 [更新记录](更新记录?id=_103)
@@ -65,11 +68,11 @@ Gitee：https://gitee.com/dromara/x-file-storage
 
 # 📅更新计划
 
-- 接入存储平台：HDFS、FastDFS、杉岩 OBS、Samba、NFS
-- 大文件手动分片上传（1.0.0 已支持大文件自动分片上传）
-- 复制或移动文件
+- 接入存储平台：HDFS、火山云 TOS、Samba、NFS
+- 用户端直传
+- 追加缩略图
+- 列出文件
 - 文件内容预加载
-- 上传无需强制获取 Size
 - 新增 Access 模块，尝试通过 HTTP、FTP、WebDAV 等协议对外提供接口，方便其它程序使用
 
 -------
@@ -287,6 +290,15 @@ X File Storage 感谢各位小伙伴的信任与支持，如果您已经在项�
     </a>
     <a href="https://x-file-storage.xuyanwu.cn" target="_blank">
         <img src="https://x-file-storage.xuyanwu.cn/assets/logo3.svg" alt="x-file-storage" title="">
+    </a>
+    <a href="https://wemq.nicholasld.cn" target="_blank">
+        <img src="https://x-file-storage.xuyanwu.cn/assets/link/WeMQ.png" alt="WeMQAQ" title="开源、高性能、安全、功能强大的物联网调试和管理解决方案。">
+    </a>
+    <a href="https://www.yuque.com/may-fly/mayfly-go" target="_blank">
+        <img src="https://x-file-storage.xuyanwu.cn/assets/link/mayfly-go.png" alt="Mayfly-Go" title="web版 linux、数据库、redis、mongo统一管理操作平台。">
+    </a>
+    <a href="https://akali.yomahub.com" target="_blank">
+        <img src="https://x-file-storage.xuyanwu.cn/assets/link/Akali.png" alt="Akali" title="Akali(阿卡丽)，轻量级本地化热点检测/降级框架，10秒钟即可接入使用！大流量下的神器">
     </a>
     <a href="https://dromara.org/zh/projects/" target="_blank">
         <img src="https://x-file-storage.xuyanwu.cn/assets/link/dromara.png" alt="dromara" title="让每一位开源爱好者，体会到开源的快乐。">
