@@ -6,10 +6,8 @@ import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.file.FileWrapperAdapter;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-
 /**
- * Multipart 文件包装适配器
+ * MultipartFile 文件包装适配器
  */
 @Getter
 @Setter
@@ -21,15 +19,15 @@ public class MultipartFileWrapperAdapter implements FileWrapperAdapter {
     }
 
     @Override
-    public FileWrapper getFileWrapper(Object source,String name,String contentType,Long size) throws IOException {
+    public FileWrapper getFileWrapper(Object source, String name, String contentType, Long size) {
         if (source instanceof MultipartFileWrapper) {
-            return updateFileWrapper((MultipartFileWrapper) source,name,contentType,size);
+            return updateFileWrapper((MultipartFileWrapper) source, name, contentType, size);
         } else {
             MultipartFile file = (MultipartFile) source;
             if (name == null) name = file.getOriginalFilename();
             if (contentType == null) contentType = file.getContentType();
             if (size == null) size = file.getSize();
-            return new MultipartFileWrapper(file,name,contentType,size);
+            return new MultipartFileWrapper(file, name, contentType, size);
         }
     }
 }

@@ -1,6 +1,11 @@
 package org.dromara.x.file.storage.spring.file;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.IoUtil;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -8,13 +13,8 @@ import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-
 /**
- * Multipart 文件包装类
+ * MultipartFile 文件包装类
  */
 @Getter
 @Setter
@@ -26,8 +26,7 @@ public class MultipartFileWrapper implements FileWrapper {
     private InputStream inputStream;
     private Long size;
 
-
-    public MultipartFileWrapper(MultipartFile file,String name,String contentType,Long size) {
+    public MultipartFileWrapper(MultipartFile file, String name, String contentType, Long size) {
         this.file = file;
         this.name = name;
         this.contentType = contentType;
@@ -49,11 +48,12 @@ public class MultipartFileWrapper implements FileWrapper {
         // 根据文档来看 MultipartFile 最终都会由框架从临时目录中删除
         try {
             file.transferTo(dest);
+            IoUtil.close(inputStream);
         } catch (Exception ignored) {
             try {
-                FileUtil.writeFromStream(getInputStream(),dest);
+                FileUtil.writeFromStream(getInputStream(), dest);
             } catch (Exception e) {
-                throw new FileStorageRuntimeException("文件移动失败",e);
+                throw new FileStorageRuntimeException("文件移动失败", e);
             }
         }
     }
@@ -62,5 +62,4 @@ public class MultipartFileWrapper implements FileWrapper {
     public boolean supportTransfer() {
         return true;
     }
-
 }

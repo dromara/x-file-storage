@@ -1,0 +1,14 @@
+dromara:
+  x-file-storage: #文件存储配置，不使用的情况下可以不写
+    default-platform: fastdfs-1 #默认使用的存储平台
+    fastdfs: # 谷歌云存储
+      - platform: fastdfs-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+#        tracker-server:
+#          server-addr: 172.28.133.14:22122
+        storage-server:
+          server-addr: 172.28.133.14:23000
+        extra:
+          group-name: group2
+          http-anti-steal-token: false
+          http-secret-key: FastDFS1234567890

@@ -1,6 +1,5 @@
 package org.dromara.x.file.storage.core.constant;
 
-
 public interface Constant {
 
     /**
@@ -28,7 +27,6 @@ public interface Constant {
     interface AliyunOssACL extends ACL {
         String DEFAULT = "default";
     }
-
 
     /**
      * Aws S3 的 ACL
@@ -60,10 +58,7 @@ public interface Constant {
      * 百度云 BOS 的 ACL
      * {@link com.baidubce.services.bos.model.CannedAccessControlList}
      */
-    interface BaiduBosACL extends ACL {
-
-    }
-
+    interface BaiduBosACL extends ACL {}
 
     /**
      * 腾讯云 COS 的 ACL
@@ -87,6 +82,13 @@ public interface Constant {
         String BUCKET_OWNER_FULL_CONTROL = "bucket-owner-full-control";
     }
 
+    /**
+     * Azure Blob Storage 的 ACL（已经做了命名规则转换）
+     * {@link com.azure.storage.file.datalake.models.PathPermissions}
+     * {@link com.azure.storage.file.datalake.models.PathAccessControlEntry}
+     * 文档：https://learn.microsoft.com/zh-cn/azure/storage/blobs/data-lake-storage-access-control
+     */
+    interface AzureBlobStorageACL extends ACL {}
 
     /**
      * 元数据名称，这里列举的是一些相对通用的名称，但不一定每个存储平台都支持，具体支持情况自行查阅对应存储的相关文档
@@ -99,6 +101,8 @@ public interface Constant {
      * <p>又拍云 USS {@link com.upyun.RestManager.PARAMS}</p>
      * <p>MinIO {@link io.minio.ObjectWriteArgs}</p>
      * <p>GoogleCloud Storage {@link com.google.cloud.storage.BlobInfo} {@link com.google.cloud.storage.Storage.BlobField}</p>
+     * <p>FastDFS {@link org.dromara.x.file.storage.core.platform.FastDfsFileStorage#getObjectMetadata(org.dromara.x.file.storage.core.FileInfo)}</p>
+     * <p>Azure Blob Storage {@link com.azure.storage.blob.models.BlobHttpHeaders}</p>
      */
     interface Metadata {
         String CACHE_CONTROL = "Cache-Control";
@@ -112,4 +116,73 @@ public interface Constant {
         String LAST_MODIFIED = "Last-Modified";
     }
 
+    /**
+     * 复制模式
+     */
+    enum CopyMode {
+        /**
+         * 自动选择，优先使用同存储平台复制，不支持同存储平台复制的情况下走跨存储平台复制
+         */
+        AUTO,
+        /**
+         * 仅使用同存储平台复制，如果不支持同存储平台复制则抛出异常。FTP、SFTP等存储平台不支持同存储平台复制，只能走跨存储平台复制
+         */
+        SAME,
+        /**
+         * 仅使用跨存储平台复制
+         */
+        CROSS
+    }
+
+    /**
+     * 移动模式
+     */
+    enum MoveMode {
+        /**
+         * 自动选择，优先使用同存储平台复制，不支持同存储平台复制的情况下走跨存储平台复制
+         */
+        AUTO,
+        /**
+         * 仅使用同存储平台复制，如果不支持同存储平台复制则抛出异常。FTP、SFTP等存储平台不支持同存储平台复制，只能走跨存储平台复制
+         */
+        SAME,
+        /**
+         * 仅使用跨存储平台复制
+         */
+        CROSS
+    }
+
+    /**
+     * FileInfo 中上传状态的常量
+     * {@link org.dromara.x.file.storage.core.FileInfo#uploadStatus}
+     */
+    interface FileInfoUploadStatus {
+        /**
+         * 1：初始化完成
+         */
+        int INITIATE = 1;
+
+        /**
+         * 2：上传完成
+         */
+        int COMPLETE = 2;
+    }
+
+    /**
+     * 哈希类型
+     */
+    interface Hash {
+
+        /**
+         * 摘要信息
+         */
+        interface MessageDigest {
+            String MD2 = "MD2";
+            String MD5 = "MD5";
+            String SHA1 = "SHA-1";
+            String SHA256 = "SHA-256";
+            String SHA384 = "SHA-384";
+            String SHA512 = "SHA-512";
+        }
+    }
 }

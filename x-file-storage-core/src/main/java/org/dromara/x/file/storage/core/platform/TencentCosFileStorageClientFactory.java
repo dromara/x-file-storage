@@ -39,7 +39,7 @@ public class TencentCosFileStorageClientFactory implements FileStorageClientFact
                     if (StrUtil.isNotBlank(region)) {
                         clientConfig.setRegion(new Region(region));
                     }
-                    client = new COSClient(new BasicCOSCredentials(secretId,secretKey),clientConfig);
+                    client = new COSClient(new BasicCOSCredentials(secretId, secretKey), clientConfig);
                 }
             }
         }

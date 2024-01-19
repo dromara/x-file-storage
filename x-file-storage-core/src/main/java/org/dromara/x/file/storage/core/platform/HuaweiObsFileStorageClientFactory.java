@@ -32,7 +32,7 @@ public class HuaweiObsFileStorageClientFactory implements FileStorageClientFacto
         if (client == null) {
             synchronized (this) {
                 if (client == null) {
-                    client = new ObsClient(accessKey,secretKey,endPoint);
+                    client = new ObsClient(accessKey, secretKey, endPoint);
                 }
             }
         }

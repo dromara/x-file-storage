@@ -1,13 +1,12 @@
 package org.dromara.x.file.storage.core.tika;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 
 /**
  * 基于 Tika 识别文件的 MIME 类型
@@ -30,12 +29,12 @@ public class TikaContentTypeDetect implements ContentTypeDetect {
     }
 
     @Override
-    public String detect(byte[] bytes,String filename) {
-        return tikaFactory.getTika().detect(bytes,filename);
+    public String detect(byte[] bytes, String filename) {
+        return tikaFactory.getTika().detect(bytes, filename);
     }
 
     @Override
-    public String detect(InputStream in,String filename) throws IOException {
-        return tikaFactory.getTika().detect(in,filename);
+    public String detect(InputStream in, String filename) throws IOException {
+        return tikaFactory.getTika().detect(in, filename);
     }
 }

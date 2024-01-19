@@ -37,7 +37,7 @@ public class BaiduBosFileStorageClientFactory implements FileStorageClientFactor
                 if (client == null) {
                     BosClientConfiguration configuration = new BosClientConfiguration();
                     configuration.setProtocol(Protocol.HTTPS);
-                    configuration.setCredentials(new DefaultBceCredentials(accessKey,secretKey));
+                    configuration.setCredentials(new DefaultBceCredentials(accessKey, secretKey));
                     if (StrUtil.isNotBlank(endPoint)) {
                         configuration.setEndpoint(endPoint);
                     }

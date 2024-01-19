@@ -1,14 +1,13 @@
 package org.dromara.x.file.storage.core;
 
-
 import cn.hutool.core.lang.Dict;
-import lombok.Data;
-import lombok.experimental.Accessors;
-import org.dromara.x.file.storage.core.constant.Constant;
-
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Map;
+import lombok.Data;
+import lombok.experimental.Accessors;
+import org.dromara.x.file.storage.core.constant.Constant;
+import org.dromara.x.file.storage.core.hash.HashInfo;
 
 @Data
 @Accessors(chain = true)
@@ -145,6 +144,22 @@ public class FileInfo implements Serializable {
      * 详情见{@link FileInfo#setFileAcl}
      */
     private Object thFileAcl;
+
+    /**
+     * 哈希信息类，用来存储各种哈希值
+     */
+    private HashInfo hashInfo;
+
+    /**
+     * 上传ID，仅在手动分片上传时使用
+     */
+    private String uploadId;
+
+    /**
+     * 上传状态，仅在手动分片上传时使用，1：初始化完成，2：上传完成
+     * {@link org.dromara.x.file.storage.core.constant.Constant.FileInfoUploadStatus}
+     */
+    private Integer uploadStatus;
 
     /**
      * 创建时间
