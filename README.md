@@ -29,6 +29,9 @@
     <a href='https://jq.qq.com/?_wv=1027&k=eGfeNqka'>
         <img src='https://img.shields.io/badge/QQ%E7%BE%A4-515706495-orange' alt='515706495' />
     </a>
+    <a target="_blank" href='https://x-file-storage.xuyanwu.cn/#/?id=🌶%ef%b8%8fvip交流群'>
+        <img src='https://img.shields.io/badge/付费-VIP交流群-brightgreen' alt='' />
+    </a>
 </p>
 
 -------
@@ -305,8 +308,19 @@ X File Storage 感谢各位小伙伴的信任与支持，如果您已经在项�
 如果你觉得这个项目不错，可以点个 Star 或捐赠请作者吃包辣条~，不想打赏的话用支付宝扫最后一个码可以领取个红包，在此表示感谢^_^
 
 <img src="https://x-file-storage.xuyanwu.cn/assets/wx.png" height="300px" alt="微信"> <img src="https://x-file-storage.xuyanwu.cn/assets/zfb.jpg" height="300px" alt="支付宝"> <img src="https://x-file-storage.xuyanwu.cn/assets/zfb2.jpg" height="300px" alt="支付宝2">
+<img src="https://x-file-storage.xuyanwu.cn/assets/elm.jpg" height="300px" alt="饿了么"> <img src="https://x-file-storage.xuyanwu.cn/assets/mt.jpeg" height="300px" alt="美团外卖">
 
 或者点击以下链接，将页面拉到最下方点击“捐赠”即可
 
 [Gitee上捐赠](https://gitee.com/dromara/x-file-storage)
 
+-------
+
+# 🌶️VIP交流群
+
+扫描上方二维码捐赠 99 元，截图发我 `QQ1171736840` 即可加入 VIP 交流群（超过一年则需要再次捐赠，否则将进行清退）
+
+也可以点击添加免费交流群
+<a target="_blank" href='https://jq.qq.com/?_wv=1027&k=eGfeNqka'>
+<img src='https://img.shields.io/badge/QQ%E7%BE%A4-515706495-orange' alt='515706495' />
+</a> 一起交流
