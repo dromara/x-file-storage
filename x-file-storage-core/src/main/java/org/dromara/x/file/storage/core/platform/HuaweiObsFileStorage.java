@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.text.NamingCase;
 import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
@@ -30,6 +31,7 @@ import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.upload.*;
 
 /**
@@ -260,6 +262,67 @@ public class HuaweiObsFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listParts(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll().setListPartsSupportMaxParts(1);
+    }
+
+    @Override
+    public FileFileInfoList listFiles(ListFilesPretreatment pre) {
+        ObsClient client = getClient();
+        try {
+            ListObjectsRequest request = new ListObjectsRequest(bucketName);
+            request.setMaxKeys(pre.getMaxFiles());
+            request.setMarker(pre.getMarker());
+            request.setDelimiter("/");
+            request.setPrefix(basePath + pre.getPath() + pre.getFilenamePrefix());
+            ObjectListing result = client.listObjects(request);
+            FileFileInfoList list = new FileFileInfoList();
+
+            list.setDirList(result.getCommonPrefixes().stream()
+                    .map(p -> {
+                        FileDirInfo dir = new FileDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(FileNameUtil.getName(p));
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+
+            list.setFileList(result.getObjects().stream()
+                    .map(p -> {
+                        FileFileInfo fileFileInfo = new FileFileInfo();
+                        fileFileInfo.setPlatform(pre.getPlatform());
+                        fileFileInfo.setBasePath(basePath);
+                        fileFileInfo.setPath(pre.getPath());
+                        fileFileInfo.setFilename(FileNameUtil.getName(p.getObjectKey()));
+                        ObjectMetadata metadata = p.getMetadata();
+                        fileFileInfo.setSize(metadata.getContentLength());
+                        fileFileInfo.setExt(FileNameUtil.extName(fileFileInfo.getFilename()));
+                        fileFileInfo.setContentType(metadata.getContentType());
+                        fileFileInfo.setContentMd5(metadata.getContentMd5());
+                        fileFileInfo.setLastModified(metadata.getLastModified());
+                        fileFileInfo.setMetadata(BeanUtil.beanToMap(metadata));
+                        fileFileInfo.setUserMetadata(BeanUtil.beanToMap(metadata.getAllMetadata()));
+                        fileFileInfo.setOriginal(p);
+                        return fileFileInfo;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(result.getMaxKeys());
+            list.setIsTruncated(result.isTruncated());
+            list.setMarker(result.getMarker());
+            list.setNextMarker(result.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
         }
     }
 

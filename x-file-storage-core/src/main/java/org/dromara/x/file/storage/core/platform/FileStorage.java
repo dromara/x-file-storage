@@ -7,6 +7,9 @@ import java.util.function.Consumer;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.get.FileFileInfoList;
+import org.dromara.x.file.storage.core.get.ListFilesPretreatment;
+import org.dromara.x.file.storage.core.get.ListFilesSupportInfo;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
@@ -64,6 +67,20 @@ public interface FileStorage extends AutoCloseable {
      * 手动分片上传-列举已上传的分片
      */
     default FilePartInfoList listParts(ListPartsPretreatment pre) {
+        return null;
+    }
+
+    /**
+     * 是否支持列举文件
+     */
+    default ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.notSupport();
+    }
+
+    /**
+     * 列举文件
+     */
+    default FileFileInfoList listFiles(ListFilesPretreatment pre) {
         return null;
     }
 
