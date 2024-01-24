@@ -17,6 +17,8 @@ import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.file.FileWrapperAdapter;
 import org.dromara.x.file.storage.core.file.HttpServletRequestFileWrapper;
 import org.dromara.x.file.storage.core.file.MultipartFormDataReader;
+import org.dromara.x.file.storage.core.get.ListFilesPretreatment;
+import org.dromara.x.file.storage.core.get.ListFilesSupportInfo;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
@@ -441,6 +443,40 @@ public class FileStorageService {
         ListPartsPretreatment pre = new ListPartsPretreatment();
         pre.setFileStorageService(self);
         pre.setFileInfo(fileInfo);
+        return pre;
+    }
+
+    /**
+     * 默认使用的存储平台是否支持列举文件
+     */
+    public ListFilesSupportInfo isSupportListFiles() {
+        return self.isSupportListFiles(properties.getDefaultPlatform());
+    }
+
+    /**
+     * 是否支持列举文件
+     */
+    public ListFilesSupportInfo isSupportListFiles(String platform) {
+        FileStorage storage = self.getFileStorageVerify(platform);
+        return self.isSupportListFiles(storage);
+    }
+
+    /**
+     * 是否支持列举文件
+     */
+    public ListFilesSupportInfo isSupportListFiles(FileStorage fileStorage) {
+        if (fileStorage == null) return ListFilesSupportInfo.notSupport();
+        return new IsSupportListFilesAspectChain(aspectList, FileStorage::isSupportListFiles)
+                .next(fileStorage);
+    }
+
+    /**
+     * 列举文件
+     */
+    public ListFilesPretreatment listFiles() {
+        ListFilesPretreatment pre = new ListFilesPretreatment();
+        pre.setPlatform(properties.getDefaultPlatform());
+        pre.setFileStorageService(self);
         return pre;
     }
 

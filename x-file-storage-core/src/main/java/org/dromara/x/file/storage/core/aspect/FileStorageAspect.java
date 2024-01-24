@@ -6,6 +6,9 @@ import java.util.function.Consumer;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.get.FileFileInfoList;
+import org.dromara.x.file.storage.core.get.ListFilesPretreatment;
+import org.dromara.x.file.storage.core.get.ListFilesSupportInfo;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
@@ -88,6 +91,20 @@ public interface FileStorageAspect {
      * 手动分片上传-列举已上传的分片
      */
     default FilePartInfoList listParts(ListPartsAspectChain chain, ListPartsPretreatment pre, FileStorage fileStorage) {
+        return chain.next(pre, fileStorage);
+    }
+
+    /**
+     * 是否支持手列举文件
+     */
+    default ListFilesSupportInfo isSupportListFiles(IsSupportListFilesAspectChain chain, FileStorage fileStorage) {
+        return chain.next(fileStorage);
+    }
+
+    /**
+     * 列举文件
+     */
+    default FileFileInfoList listFiles(ListFilesAspectChain chain, ListFilesPretreatment pre, FileStorage fileStorage) {
         return chain.next(pre, fileStorage);
     }
 
