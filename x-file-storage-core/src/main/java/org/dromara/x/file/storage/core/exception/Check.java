@@ -253,11 +253,8 @@ public class Check {
      * @param pre 列举文件预处理器
      */
     public static void listFiles(ListFilesPretreatment pre) {
-        if (pre.getPlatform() == null)
-            throw new FileStorageRuntimeException("列举文件失败，请传入 platform 参数");
-        if (pre.getPath() == null)
-            throw new FileStorageRuntimeException("列举文件失败，请传入 path 参数");
-        if (pre.getFilenamePrefix() == null)
-            throw new FileStorageRuntimeException("列举文件失败，请传入 filenamePrefix 参数");
+        if (pre.getPlatform() == null) throw new FileStorageRuntimeException("列举文件失败，请传入 platform 参数");
+        if (pre.getPath() == null) throw new FileStorageRuntimeException("列举文件失败，请传入 path 参数");
+        if (pre.getFilenamePrefix() == null) throw new FileStorageRuntimeException("列举文件失败，请传入 filenamePrefix 参数");
     }
 }

@@ -4,9 +4,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.util.Date;
-import java.util.Map;
-
 /**
  * 目录信息
  */
@@ -30,5 +27,4 @@ public class FileDirInfo {
      * 目录名称
      */
     private String name;
-
 }

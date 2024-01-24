@@ -1,5 +1,6 @@
 package org.dromara.x.file.storage.core.get;
 
+import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -7,8 +8,6 @@ import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.platform.FileStorage;
-
-import java.util.List;
 
 /**
  * 列举文件预处理器

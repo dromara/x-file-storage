@@ -466,8 +466,7 @@ public class FileStorageService {
      */
     public ListFilesSupportInfo isSupportListFiles(FileStorage fileStorage) {
         if (fileStorage == null) return ListFilesSupportInfo.notSupport();
-        return new IsSupportListFilesAspectChain(aspectList, FileStorage::isSupportListFiles)
-                .next(fileStorage);
+        return new IsSupportListFilesAspectChain(aspectList, FileStorage::isSupportListFiles).next(fileStorage);
     }
 
     /**

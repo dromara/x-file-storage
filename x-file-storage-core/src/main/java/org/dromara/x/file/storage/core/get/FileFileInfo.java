@@ -1,13 +1,10 @@
 package org.dromara.x.file.storage.core.get;
 
+import java.util.Date;
+import java.util.Map;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.dromara.x.file.storage.core.FileInfo;
-import org.dromara.x.file.storage.core.hash.HashInfo;
-
-import java.util.Date;
-import java.util.Map;
 
 /**
  * 文件信息
@@ -64,5 +61,4 @@ public class FileFileInfo {
      * 原始数据
      */
     private Object original;
-
 }

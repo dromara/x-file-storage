@@ -1,10 +1,9 @@
 package org.dromara.x.file.storage.core.get;
 
+import java.util.List;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-
-import java.util.List;
 
 /**
  * 文件信息列出结果
