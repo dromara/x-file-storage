@@ -2,6 +2,7 @@ package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.StrUtil;
 import com.upyun.RestManager;
 import com.upyun.UpException;
@@ -10,10 +11,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,12 +28,15 @@ import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.upload.CompleteMultipartUploadPretreatment;
 import org.dromara.x.file.storage.core.upload.FilePartInfo;
 import org.dromara.x.file.storage.core.upload.InitiateMultipartUploadPretreatment;
 import org.dromara.x.file.storage.core.upload.UploadPartPretreatment;
 import org.dromara.x.file.storage.core.util.Tools;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * 又拍云 USS 存储
@@ -236,6 +237,75 @@ public class UpyunUssFileStorage implements FileStorage {
         }
     }
 
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll().setSupportMaxFiles(1);
+    }
+
+    @Override
+    public FileFileInfoList listFiles(ListFilesPretreatment pre) {
+        RestManager manager = getClient();
+        try {
+            Map<String, String> params = new HashMap<>();
+            if (pre.getMarker() != null) params.put("x-list-iter", pre.getMarker());
+            if (pre.getMaxFiles() != null)
+                params.put("x-list-limit", pre.getMaxFiles().toString());
+            params.put("x-list-order", "asc");
+            params.put("Accept", "application/json");
+            JSONObject result;
+            try (Response response = checkResponse(
+                    manager.readDirIter(basePath + pre.getPath() + pre.getFilenamePrefix(), params), false); ) {
+                if (response.body() == null) {
+                    throw new UpException(response.toString());
+                }
+                result = new JSONObject(response.body().string());
+            }
+
+            ArrayList<FileDirInfo> dirList = new ArrayList<>();
+            ArrayList<FileFileInfo> fileList = new ArrayList<>();
+            JSONArray files = result.getJSONArray("files");
+            for (int i = 0; i < files.length(); i++) {
+                JSONObject item = files.getJSONObject(0);
+                if ("folder".equals(item.getString("type")) && Long.valueOf(0L).equals(item.getLong("length"))) {
+                    FileDirInfo dir = new FileDirInfo();
+                    dir.setPlatform(pre.getPlatform());
+                    dir.setBasePath(basePath);
+                    dir.setPath(pre.getPath());
+                    dir.setName(item.getString("name"));
+                    dirList.add(dir);
+                } else {
+                    FileFileInfo fileFileInfo = new FileFileInfo();
+                    fileFileInfo.setPlatform(pre.getPlatform());
+                    fileFileInfo.setBasePath(basePath);
+                    fileFileInfo.setPath(pre.getPath());
+                    fileFileInfo.setFilename(item.getString("name"));
+                    fileFileInfo.setSize(item.getLong("length"));
+                    fileFileInfo.setExt(FileNameUtil.extName(fileFileInfo.getFilename()));
+                    fileFileInfo.setETag(item.getString("etag"));
+                    fileFileInfo.setContentType(item.getString("type"));
+                    fileFileInfo.setLastModified(new Date(item.getLong("last_modified") * 1000));
+                    fileFileInfo.setOriginal(item);
+                    fileList.add(fileFileInfo);
+                }
+            }
+            String iter = result.getString("iter");
+            FileFileInfoList list = new FileFileInfoList();
+            list.setDirList(dirList);
+            list.setFileList(fileList);
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(pre.getMaxFiles());
+            list.setIsTruncated(!"g2gCZAAEbmV4dGQAA2VvZg".equals(iter));
+            list.setMarker(pre.getMarker());
+            list.setNextMarker(list.getIsTruncated() ? iter : null);
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
     /**
      * 获取对象的元数据
      */
@@ -347,6 +417,10 @@ public class UpyunUssFileStorage implements FileStorage {
     }
 
     public Response checkResponse(Response response) throws UpException, IOException {
+        return checkResponse(response, true);
+    }
+
+    public Response checkResponse(Response response, boolean close) throws UpException, IOException {
         if (!response.isSuccessful()) {
             if (response.body() != null) {
                 throw new UpException(response.body().string());
@@ -355,7 +429,7 @@ public class UpyunUssFileStorage implements FileStorage {
                 throw new UpException(response.toString());
             }
         }
-        response.close();
+        if (close) response.close();
         return response;
     }
 

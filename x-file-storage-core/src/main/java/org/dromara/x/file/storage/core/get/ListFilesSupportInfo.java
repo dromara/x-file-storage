@@ -19,9 +19,9 @@ public class ListFilesSupportInfo {
     private Boolean isSupport;
 
     /**
-     * 列举文件-每次获取的最大分片数，对象存储一般是 1000
+     * 每次获取的最大文件数，对象存储一般是 1000
      */
-    private Integer listPartsSupportMaxParts;
+    private Integer supportMaxFiles;
 
     /**
      * 不支持列举文件
