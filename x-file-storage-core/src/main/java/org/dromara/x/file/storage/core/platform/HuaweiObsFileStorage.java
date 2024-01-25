@@ -267,7 +267,7 @@ public class HuaweiObsFileStorage implements FileStorage {
 
     @Override
     public ListFilesSupportInfo isSupportListFiles() {
-        return ListFilesSupportInfo.supportAll().setListPartsSupportMaxParts(1);
+        return ListFilesSupportInfo.supportAll();
     }
 
     @Override
@@ -303,6 +303,7 @@ public class HuaweiObsFileStorage implements FileStorage {
                         ObjectMetadata metadata = p.getMetadata();
                         fileFileInfo.setSize(metadata.getContentLength());
                         fileFileInfo.setExt(FileNameUtil.extName(fileFileInfo.getFilename()));
+                        fileFileInfo.setETag(metadata.getEtag());
                         fileFileInfo.setContentType(metadata.getContentType());
                         fileFileInfo.setContentMd5(metadata.getContentMd5());
                         fileFileInfo.setLastModified(metadata.getLastModified());

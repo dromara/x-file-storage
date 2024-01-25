@@ -2,6 +2,7 @@ package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.StrUtil;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.event.ProgressEventType;
@@ -26,6 +27,7 @@ import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.upload.*;
 
 /**
@@ -265,6 +267,62 @@ public class AliyunOssFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listParts(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll();
+    }
+
+    @Override
+    public FileFileInfoList listFiles(ListFilesPretreatment pre) {
+        OSS client = getClient();
+        try {
+            ListObjectsRequest request = new ListObjectsRequest(bucketName);
+            request.setMaxKeys(pre.getMaxFiles());
+            request.setMarker(pre.getMarker());
+            request.setDelimiter("/");
+            request.setPrefix(basePath + pre.getPath() + pre.getFilenamePrefix());
+            ObjectListing result = client.listObjects(request);
+            FileFileInfoList list = new FileFileInfoList();
+
+            list.setDirList(result.getCommonPrefixes().stream()
+                    .map(p -> {
+                        FileDirInfo dir = new FileDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(FileNameUtil.getName(p));
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+            list.setFileList(result.getObjectSummaries().stream()
+                    .map(p -> {
+                        FileFileInfo fileFileInfo = new FileFileInfo();
+                        fileFileInfo.setPlatform(pre.getPlatform());
+                        fileFileInfo.setBasePath(basePath);
+                        fileFileInfo.setPath(pre.getPath());
+                        fileFileInfo.setFilename(FileNameUtil.getName(p.getKey()));
+                        fileFileInfo.setSize(p.getSize());
+                        fileFileInfo.setExt(FileNameUtil.extName(fileFileInfo.getFilename()));
+                        fileFileInfo.setETag(p.getETag());
+                        fileFileInfo.setLastModified(p.getLastModified());
+                        fileFileInfo.setOriginal(p);
+                        return fileFileInfo;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(result.getMaxKeys());
+            list.setIsTruncated(result.isTruncated());
+            list.setMarker(result.getMarker());
+            list.setNextMarker(result.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
         }
     }
 

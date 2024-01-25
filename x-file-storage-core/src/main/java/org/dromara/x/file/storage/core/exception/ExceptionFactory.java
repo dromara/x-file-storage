@@ -192,7 +192,7 @@ public class ExceptionFactory {
     public static FileStorageRuntimeException listFiles(ListFilesPretreatment pre, String basePath, Exception e) {
         return new FileStorageRuntimeException(
                 StrUtil.format(
-                        LIST_PARTS_MESSAGE_FORMAT,
+                        LIST_FILES_MESSAGE_FORMAT,
                         pre.getPlatform(),
                         basePath,
                         pre.getPath(),
