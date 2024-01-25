@@ -1,12 +1,14 @@
 package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.google.common.collect.Multimap;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
 import io.minio.http.Method;
+import io.minio.messages.ListBucketResultV1;
 import io.minio.messages.ListPartsResult;
 import io.minio.messages.Part;
 import java.io.ByteArrayInputStream;
@@ -32,6 +34,7 @@ import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
 
@@ -358,6 +361,97 @@ public class MinioFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listParts(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll();
+    }
+
+    /**
+     * 通过反射调用内部的列举文件方法
+     */
+    public ListBucketResultV1 listFiles(MinioClient client, ListObjectsArgs args)
+            throws ExecutionException, InterruptedException {
+        MinioAsyncClient asyncClient = getMinioAsyncClient(client);
+        java.lang.reflect.Method method = ReflectUtil.getMethod(
+                asyncClient.getClass(),
+                "listObjectsV1",
+                String.class,
+                String.class,
+                String.class,
+                String.class,
+                String.class,
+                Integer.class,
+                String.class,
+                Multimap.class,
+                Multimap.class);
+        ListObjectsV1Response result = ReflectUtil.invoke(
+                asyncClient,
+                method,
+                args.bucket(),
+                args.region(),
+                args.delimiter(),
+                args.useUrlEncodingType() ? "url" : null,
+                args.marker(),
+                args.maxKeys(),
+                args.prefix(),
+                args.extraHeaders(),
+                args.extraQueryParams());
+        return result.result();
+    }
+
+    @Override
+    public FileFileInfoList listFiles(ListFilesPretreatment pre) {
+        MinioClient client = getClient();
+        try {
+            ListObjectsArgs args = ListObjectsArgs.builder()
+                    .bucket(bucketName)
+                    .maxKeys(pre.getMaxFiles())
+                    .marker(pre.getMarker())
+                    .delimiter("/")
+                    .prefix(basePath + pre.getPath() + pre.getFilenamePrefix())
+                    .build();
+            ListBucketResultV1 result = listFiles(client, args);
+            FileFileInfoList list = new FileFileInfoList();
+            list.setDirList(result.commonPrefixes().stream()
+                    .map(p -> {
+                        FileDirInfo dir = new FileDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(FileNameUtil.getName(p.toItem().objectName()));
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+
+            list.setFileList(result.contents().stream()
+                    .map(p -> {
+                        FileFileInfo fileFileInfo = new FileFileInfo();
+                        fileFileInfo.setPlatform(pre.getPlatform());
+                        fileFileInfo.setBasePath(basePath);
+                        fileFileInfo.setPath(pre.getPath());
+                        fileFileInfo.setFilename(FileNameUtil.getName(p.objectName()));
+                        fileFileInfo.setSize(p.size());
+                        fileFileInfo.setExt(FileNameUtil.extName(fileFileInfo.getFilename()));
+                        fileFileInfo.setETag(p.etag());
+                        fileFileInfo.setLastModified(DateUtil.date(p.lastModified()));
+                        fileFileInfo.setOriginal(p);
+                        return fileFileInfo;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(result.maxKeys());
+            list.setIsTruncated(result.isTruncated());
+            list.setMarker(result.marker());
+            list.setNextMarker(result.nextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
         }
     }
 

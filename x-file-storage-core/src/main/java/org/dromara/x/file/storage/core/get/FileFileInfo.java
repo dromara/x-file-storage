@@ -38,11 +38,15 @@ public class FileFileInfo {
      */
     private String ext;
     /**
-     * MIME 类型
+     * 文件 ETag，仅部分存储平台支持
+     */
+    private String eTag;
+    /**
+     * MIME 类型，仅部分存储平台支持
      */
     private String contentType;
     /**
-     * MD5
+     * MD5，仅部分存储平台支持
      */
     private String contentMd5;
     /**
@@ -50,11 +54,11 @@ public class FileFileInfo {
      */
     private Date lastModified;
     /**
-     * 文件元数据
+     * 文件元数据，仅部分存储平台支持
      */
     private Map<String, Object> metadata;
     /**
-     * 文件用户元数据
+     * 文件用户元数据，仅部分存储平台支持
      */
     private Map<String, Object> userMetadata;
     /**
