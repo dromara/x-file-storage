@@ -35,10 +35,10 @@ public class ListFilesActuator {
         return new ListFilesAspectChain(aspectList, (_pre, _fileStorage) -> {
                     ListFilesSupportInfo supportInfo = fileStorageService.isSupportListFiles(_fileStorage);
 
-                    // 获取对应存储平台每次获取的最大分片数，对象存储一般是 1000
-                    Integer supportMaxFiles = supportInfo.getListPartsSupportMaxParts();
+                    // 获取对应存储平台每次获取的最大文件数，对象存储一般是 1000
+                    Integer supportMaxFiles = supportInfo.getSupportMaxFiles();
 
-                    // 如果要返回的最大分片数量为 null 或小于等于支持的最大分片数量，则直接调用，否则分多次调用后拼接成一个结果
+                    // 如果要返回的最大文件数量为 null 或小于等于支持的最大文件数量，则直接调用，否则分多次调用后拼接成一个结果
                     if (supportMaxFiles == null || _pre.getMaxFiles() <= supportMaxFiles) {
                         return _fileStorage.listFiles(_pre);
                     } else {

@@ -2,10 +2,12 @@ package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.lang.Dict;
 import cn.hutool.core.util.StrUtil;
 import com.qiniu.common.QiniuException;
 import com.qiniu.storage.*;
+import com.qiniu.storage.model.FileListing;
 import com.qiniu.util.StringMap;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -24,6 +26,7 @@ import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.QiniuKodoFileStorageClientFactory.QiniuKodoClient;
 import org.dromara.x.file.storage.core.upload.*;
@@ -249,6 +252,63 @@ public class QiniuKodoFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listParts(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll();
+    }
+
+    @Override
+    public FileFileInfoList listFiles(ListFilesPretreatment pre) {
+        BucketManager manager = getClient().getBucketManager();
+        try {
+            FileListing result = manager.listFilesV2(
+                    bucketName,
+                    basePath + pre.getPath() + pre.getFilenamePrefix(),
+                    pre.getMarker(),
+                    pre.getMaxFiles(),
+                    "/");
+            FileFileInfoList list = new FileFileInfoList();
+            list.setDirList(Arrays.stream(result.commonPrefixes)
+                    .map(p -> {
+                        FileDirInfo dir = new FileDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(FileNameUtil.getName(p));
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+            list.setFileList(Arrays.stream(result.items)
+                    .map(p -> {
+                        FileFileInfo fileFileInfo = new FileFileInfo();
+                        fileFileInfo.setPlatform(pre.getPlatform());
+                        fileFileInfo.setBasePath(basePath);
+                        fileFileInfo.setPath(pre.getPath());
+                        fileFileInfo.setFilename(FileNameUtil.getName(p.key));
+                        fileFileInfo.setSize(p.fsize);
+                        fileFileInfo.setExt(FileNameUtil.extName(fileFileInfo.getFilename()));
+                        fileFileInfo.setContentType(p.mimeType);
+                        fileFileInfo.setContentMd5(p.md5);
+                        fileFileInfo.setLastModified(new Date(p.putTime / 10000));
+                        fileFileInfo.setUserMetadata(p.meta);
+                        fileFileInfo.setOriginal(p);
+                        return fileFileInfo;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(pre.getMaxFiles());
+            list.setIsTruncated(!result.isEOF());
+            list.setMarker(pre.getMarker());
+            list.setNextMarker(result.marker);
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
         }
     }
 
