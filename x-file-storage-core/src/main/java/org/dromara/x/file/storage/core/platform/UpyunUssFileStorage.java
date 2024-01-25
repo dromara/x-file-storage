@@ -239,7 +239,7 @@ public class UpyunUssFileStorage implements FileStorage {
 
     @Override
     public ListFilesSupportInfo isSupportListFiles() {
-        return ListFilesSupportInfo.supportAll().setSupportMaxFiles(1);
+        return ListFilesSupportInfo.supportAll();
     }
 
     @Override

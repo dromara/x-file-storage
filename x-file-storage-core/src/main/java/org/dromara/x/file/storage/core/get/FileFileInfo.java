@@ -42,6 +42,10 @@ public class FileFileInfo {
      */
     private String eTag;
     /**
+     * Content-Disposition，仅部分存储平台支持
+     */
+    private String contentDisposition;
+    /**
      * MIME 类型，仅部分存储平台支持
      */
     private String contentType;
