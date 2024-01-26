@@ -403,7 +403,7 @@ public class MinioFileStorage implements FileStorage {
     }
 
     @Override
-    public FileFileInfoList listFiles(ListFilesPretreatment pre) {
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
         MinioClient client = getClient();
         try {
             ListObjectsArgs args = ListObjectsArgs.builder()
@@ -414,10 +414,10 @@ public class MinioFileStorage implements FileStorage {
                     .prefix(basePath + pre.getPath() + pre.getFilenamePrefix())
                     .build();
             ListBucketResultV1 result = listFiles(client, args);
-            FileFileInfoList list = new FileFileInfoList();
+            ListFilesResult list = new ListFilesResult();
             list.setDirList(result.commonPrefixes().stream()
                     .map(p -> {
-                        FileDirInfo dir = new FileDirInfo();
+                        RemoteDirInfo dir = new RemoteDirInfo();
                         dir.setPlatform(pre.getPlatform());
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
@@ -428,17 +428,17 @@ public class MinioFileStorage implements FileStorage {
 
             list.setFileList(result.contents().stream()
                     .map(p -> {
-                        FileFileInfo fileFileInfo = new FileFileInfo();
-                        fileFileInfo.setPlatform(pre.getPlatform());
-                        fileFileInfo.setBasePath(basePath);
-                        fileFileInfo.setPath(pre.getPath());
-                        fileFileInfo.setFilename(FileNameUtil.getName(p.objectName()));
-                        fileFileInfo.setSize(p.size());
-                        fileFileInfo.setExt(FileNameUtil.extName(fileFileInfo.getFilename()));
-                        fileFileInfo.setETag(p.etag());
-                        fileFileInfo.setLastModified(DateUtil.date(p.lastModified()));
-                        fileFileInfo.setOriginal(p);
-                        return fileFileInfo;
+                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
+                        remoteFileInfo.setPlatform(pre.getPlatform());
+                        remoteFileInfo.setBasePath(basePath);
+                        remoteFileInfo.setPath(pre.getPath());
+                        remoteFileInfo.setFilename(FileNameUtil.getName(p.objectName()));
+                        remoteFileInfo.setSize(p.size());
+                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
+                        remoteFileInfo.setETag(p.etag());
+                        remoteFileInfo.setLastModified(DateUtil.date(p.lastModified()));
+                        remoteFileInfo.setOriginal(p);
+                        return remoteFileInfo;
                     })
                     .collect(Collectors.toList()));
             list.setPlatform(pre.getPlatform());

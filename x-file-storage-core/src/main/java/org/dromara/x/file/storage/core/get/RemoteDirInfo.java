@@ -5,12 +5,12 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 /**
- * 目录信息
+ * 远程目录信息
  */
 @Data
 @NoArgsConstructor
 @Accessors(chain = true)
-public class FileDirInfo {
+public class RemoteDirInfo {
     /**
      * 存储平台
      */

@@ -282,7 +282,7 @@ public class AmazonS3FileStorage implements FileStorage {
     }
 
     @Override
-    public FileFileInfoList listFiles(ListFilesPretreatment pre) {
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
         AmazonS3 client = getClient();
         try {
             ListObjectsRequest request = new ListObjectsRequest();
@@ -292,11 +292,11 @@ public class AmazonS3FileStorage implements FileStorage {
             request.setDelimiter("/");
             request.setPrefix(basePath + pre.getPath() + pre.getFilenamePrefix());
             ObjectListing result = client.listObjects(request);
-            FileFileInfoList list = new FileFileInfoList();
+            ListFilesResult list = new ListFilesResult();
 
             list.setDirList(result.getCommonPrefixes().stream()
                     .map(p -> {
-                        FileDirInfo dir = new FileDirInfo();
+                        RemoteDirInfo dir = new RemoteDirInfo();
                         dir.setPlatform(pre.getPlatform());
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
@@ -307,17 +307,17 @@ public class AmazonS3FileStorage implements FileStorage {
 
             list.setFileList(result.getObjectSummaries().stream()
                     .map(p -> {
-                        FileFileInfo fileFileInfo = new FileFileInfo();
-                        fileFileInfo.setPlatform(pre.getPlatform());
-                        fileFileInfo.setBasePath(basePath);
-                        fileFileInfo.setPath(pre.getPath());
-                        fileFileInfo.setFilename(FileNameUtil.getName(p.getKey()));
-                        fileFileInfo.setSize(p.getSize());
-                        fileFileInfo.setExt(FileNameUtil.extName(fileFileInfo.getFilename()));
-                        fileFileInfo.setETag(p.getETag());
-                        fileFileInfo.setLastModified(p.getLastModified());
-                        fileFileInfo.setOriginal(p);
-                        return fileFileInfo;
+                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
+                        remoteFileInfo.setPlatform(pre.getPlatform());
+                        remoteFileInfo.setBasePath(basePath);
+                        remoteFileInfo.setPath(pre.getPath());
+                        remoteFileInfo.setFilename(FileNameUtil.getName(p.getKey()));
+                        remoteFileInfo.setSize(p.getSize());
+                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
+                        remoteFileInfo.setETag(p.getETag());
+                        remoteFileInfo.setLastModified(p.getLastModified());
+                        remoteFileInfo.setOriginal(p);
+                        return remoteFileInfo;
                     })
                     .collect(Collectors.toList()));
             list.setPlatform(pre.getPlatform());

@@ -1,12 +1,16 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.StrUtil;
 import com.github.sardine.DavResource;
 import com.github.sardine.Sardine;
 import com.github.sardine.impl.SardineException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,6 +22,7 @@ import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.util.Tools;
 
@@ -113,6 +118,66 @@ public class WebDavFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.upload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll().setSupportMaxFiles(Integer.MAX_VALUE);
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        Sardine client = getClient();
+        try {
+            List<DavResource> result = Collections.emptyList();
+            try {
+                result = client.list(getUrl(basePath + pre.getPath()), 1, false);
+                result.remove(0);
+            } catch (SardineException e) {
+                if (e.getStatusCode() != 404 && e.getStatusCode() != 409) throw e;
+            }
+            ListFilesMatchResult<DavResource> matchResult = listFilesMatch(result, DavResource::getName, pre, false);
+            ListFilesResult list = new ListFilesResult();
+            list.setDirList(matchResult.getList().stream()
+                    .filter(DavResource::isDirectory)
+                    .map(p -> {
+                        RemoteDirInfo dir = new RemoteDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(p.getName());
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+            list.setFileList(matchResult.getList().stream()
+                    .filter(p -> !p.isDirectory())
+                    .map(p -> {
+                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
+                        remoteFileInfo.setPlatform(pre.getPlatform());
+                        remoteFileInfo.setBasePath(basePath);
+                        remoteFileInfo.setPath(pre.getPath());
+                        remoteFileInfo.setFilename(p.getName());
+                        remoteFileInfo.setSize(p.getContentLength());
+                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
+                        remoteFileInfo.setETag(p.getEtag());
+                        remoteFileInfo.setContentType(p.getContentType());
+                        remoteFileInfo.setLastModified(p.getModified());
+                        remoteFileInfo.setOriginal(p);
+                        return remoteFileInfo;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(pre.getMaxFiles());
+            list.setIsTruncated(matchResult.getIsTruncated());
+            list.setMarker(pre.getMarker());
+            list.setNextMarker(matchResult.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
         }
     }
 

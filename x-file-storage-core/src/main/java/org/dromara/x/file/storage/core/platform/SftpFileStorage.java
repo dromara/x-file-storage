@@ -2,16 +2,22 @@ package org.dromara.x.file.storage.core.platform;
 
 import static com.jcraft.jsch.ChannelSftp.SSH_FX_NO_SUCH_FILE;
 
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.ssh.JschRuntimeException;
 import cn.hutool.extra.ssh.Sftp;
 import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.ChannelSftp.LsEntry;
 import com.jcraft.jsch.SftpATTRS;
 import com.jcraft.jsch.SftpException;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,6 +28,7 @@ import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 
 /**
@@ -102,6 +109,67 @@ public class SftpFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.upload(fileInfo, platform, e);
+        } finally {
+            returnClient(client);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll().setSupportMaxFiles(Integer.MAX_VALUE);
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        Sftp client = getClient();
+        try {
+            String path = getAbsolutePath(basePath + pre.getPath());
+            List<LsEntry> fileList = Collections.emptyList();
+            if (client.isDir(path)) {
+                fileList = client.lsEntries(path).stream()
+                        .filter(f -> f.getAttrs().isDir() || f.getAttrs().isReg())
+                        .collect(Collectors.toList());
+            }
+            ListFilesMatchResult<LsEntry> matchResult = listFilesMatch(fileList, LsEntry::getFilename, pre, true);
+            ListFilesResult list = new ListFilesResult();
+            list.setDirList(matchResult.getList().stream()
+                    .filter(f -> f.getAttrs().isDir())
+                    .map(p -> {
+                        RemoteDirInfo dir = new RemoteDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(p.getFilename());
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+            list.setFileList(matchResult.getList().stream()
+                    .filter(f -> f.getAttrs().isReg())
+                    .map(p -> {
+                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
+                        remoteFileInfo.setPlatform(pre.getPlatform());
+                        remoteFileInfo.setBasePath(basePath);
+                        remoteFileInfo.setPath(pre.getPath());
+                        remoteFileInfo.setFilename(p.getFilename());
+                        remoteFileInfo.setSize(p.getAttrs().getSize());
+                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
+                        remoteFileInfo.setLastModified(
+                                DateUtil.date(p.getAttrs().getMTime() * 1000L));
+                        remoteFileInfo.setOriginal(p);
+                        return remoteFileInfo;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(pre.getMaxFiles());
+            list.setIsTruncated(matchResult.getIsTruncated());
+            list.setMarker(pre.getMarker());
+            list.setNextMarker(matchResult.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
         } finally {
             returnClient(client);
         }

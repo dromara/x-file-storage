@@ -1,11 +1,16 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.ftp.Ftp;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,6 +23,7 @@ import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 
 /**
@@ -97,6 +103,64 @@ public class FtpFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.upload(fileInfo, platform, e);
+        } finally {
+            returnClient(client);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll().setSupportMaxFiles(Integer.MAX_VALUE);
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        Ftp client = getClient();
+        try {
+            String path = getAbsolutePath(basePath + pre.getPath());
+            List<FTPFile> fileList = Arrays.stream(client.isDir(path) ? client.lsFiles(path) : new FTPFile[0])
+                    .filter(f -> f.isFile() || f.isDirectory())
+                    .filter(f -> !(".".equals(f.getName()) || "..".equals(f.getName())))
+                    .collect(Collectors.toList());
+            ListFilesMatchResult<FTPFile> matchResult = listFilesMatch(fileList, FTPFile::getName, pre, true);
+            ListFilesResult list = new ListFilesResult();
+            list.setDirList(matchResult.getList().stream()
+                    .filter(FTPFile::isDirectory)
+                    .map(p -> {
+                        RemoteDirInfo dir = new RemoteDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(p.getName());
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+            list.setFileList(matchResult.getList().stream()
+                    .filter(FTPFile::isFile)
+                    .map(p -> {
+                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
+                        remoteFileInfo.setPlatform(pre.getPlatform());
+                        remoteFileInfo.setBasePath(basePath);
+                        remoteFileInfo.setPath(pre.getPath());
+                        remoteFileInfo.setFilename(p.getName());
+                        remoteFileInfo.setSize(p.getSize());
+                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
+                        remoteFileInfo.setLastModified(DateUtil.date(p.getTimestamp()));
+                        remoteFileInfo.setOriginal(p);
+                        return remoteFileInfo;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(pre.getMaxFiles());
+            list.setIsTruncated(matchResult.getIsTruncated());
+            list.setMarker(pre.getMarker());
+            list.setNextMarker(matchResult.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
         } finally {
             returnClient(client);
         }

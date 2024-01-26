@@ -73,7 +73,6 @@ Gitee：https://gitee.com/dromara/x-file-storage
 - 接入存储平台：HDFS、火山云 TOS、Samba、NFS
 - 用户端直传
 - 追加缩略图
-- 列出文件
 - 文件内容预加载
 - 新增 Access 模块，尝试通过 HTTP、FTP、WebDAV 等协议对外提供接口，方便其它程序使用
 

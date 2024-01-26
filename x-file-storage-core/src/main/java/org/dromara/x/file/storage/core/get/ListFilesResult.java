@@ -6,20 +6,20 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 /**
- * 文件信息列出结果
+ * 文件信息列举结果
  */
 @Data
 @NoArgsConstructor
 @Accessors(chain = true)
-public class FileFileInfoList {
+public class ListFilesResult {
     /**
      * 目录列表
      */
-    private List<FileDirInfo> dirList;
+    private List<RemoteDirInfo> dirList;
     /**
      * 文件列表
      */
-    private List<FileFileInfo> fileList;
+    private List<RemoteFileInfo> fileList;
     /**
      * 存储平台名称
      */
@@ -37,11 +37,11 @@ public class FileFileInfoList {
      */
     private String filenamePrefix = "";
     /**
-     * 本次列出的最大文件数量
+     * 本次列举的最大文件数量
      */
     private Integer maxFiles;
     /**
-     * 列表是否被截断，就是当前 uploadId下还有其它分片超出最大分片数量未被列出
+     * 列表是否被截断，就是当前目录下还有其它文件超出最大文件数量未被列举
      */
     private Boolean isTruncated;
     /**
