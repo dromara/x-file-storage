@@ -4,14 +4,23 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.codec.Base64;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.text.NamingCase;
 import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
+import com.azure.core.http.rest.ResponseBase;
 import com.azure.core.util.Context;
 import com.azure.core.util.polling.PollResponse;
 import com.azure.core.util.polling.SyncPoller;
 import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerAsyncClient;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.implementation.models.BlobItemPropertiesInternal;
+import com.azure.storage.blob.implementation.models.ContainersListBlobHierarchySegmentHeaders;
+import com.azure.storage.blob.implementation.models.ListBlobsHierarchySegmentResponse;
 import com.azure.storage.blob.models.*;
 import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import com.azure.storage.blob.options.BlockBlobCommitBlockListOptions;
@@ -24,10 +33,12 @@ import com.azure.storage.file.datalake.models.PathPermissions;
 import com.azure.storage.file.datalake.models.RolePermissions;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import lombok.Data;
@@ -45,9 +56,11 @@ import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.platform.AzureBlobStorageFileStorageClientFactory.AzureBlobStorageClient;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
+import reactor.core.publisher.Mono;
 
 /**
  * Azure Blob Storage
@@ -123,12 +136,13 @@ public class AzureBlobStorageFileStorage implements FileStorage {
         return clientFactory.getClient();
     }
 
+    public BlobContainerClient getBlobClient() {
+        return getClient().getBlobServiceClient().getBlobContainerClient(containerName);
+    }
+
     public BlobClient getBlobClient(String fileKey) {
         if (StrUtil.isBlank(fileKey)) return null;
-        return getClient()
-                .getBlobServiceClient()
-                .getBlobContainerClient(containerName)
-                .getBlobClient(fileKey);
+        return getBlobClient().getBlobClient(fileKey);
     }
 
     public DataLakeFileClient getDataLakeFileClient(String fileKey) {
@@ -293,6 +307,82 @@ public class AzureBlobStorageFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listParts(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll().setSupportMaxFiles(5000);
+    }
+
+    /**
+     * 通过反射调用内部的列举文件方法
+     */
+    public ListBlobsHierarchySegmentResponse listFiles(
+            BlobContainerClient client, String marker, String delimiter, ListBlobsOptions options, Duration timeout)
+            throws ExecutionException, InterruptedException {
+        BlobContainerAsyncClient asyncClient = (BlobContainerAsyncClient) ReflectUtil.getFieldValue(client, "client");
+        Method method = ReflectUtil.getMethodByName(asyncClient.getClass(), "listBlobsHierarchySegment");
+        Mono<ResponseBase<ContainersListBlobHierarchySegmentHeaders, ListBlobsHierarchySegmentResponse>> result =
+                ReflectUtil.invoke(asyncClient, method, marker, delimiter, options, timeout);
+        return Objects.requireNonNull(result.block()).getValue();
+    }
+
+    @Override
+    public FileFileInfoList listFiles(ListFilesPretreatment pre) {
+        BlobContainerClient client = getBlobClient();
+        try {
+
+            ListBlobsOptions options = new ListBlobsOptions()
+                    .setPrefix(basePath + pre.getPath() + pre.getFilenamePrefix())
+                    .setMaxResultsPerPage(pre.getMaxFiles())
+                    .setDetails(new BlobListDetails().setRetrieveMetadata(true));
+
+            ListBlobsHierarchySegmentResponse result = listFiles(client, pre.getMarker(), "/", options, null);
+
+            FileFileInfoList list = new FileFileInfoList();
+            list.setDirList(result.getSegment().getBlobPrefixes().stream()
+                    .map(p -> {
+                        FileDirInfo dir = new FileDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(FileNameUtil.getName(p.getName().getContent()));
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+            list.setFileList(result.getSegment().getBlobItems().stream()
+                    .map(p -> {
+                        FileFileInfo fileFileInfo = new FileFileInfo();
+                        fileFileInfo.setPlatform(pre.getPlatform());
+                        fileFileInfo.setBasePath(basePath);
+                        fileFileInfo.setPath(pre.getPath());
+                        fileFileInfo.setFilename(
+                                FileNameUtil.getName(p.getName().getContent()));
+                        BlobItemPropertiesInternal properties = p.getProperties();
+                        fileFileInfo.setSize(properties.getContentLength());
+                        fileFileInfo.setExt(FileNameUtil.extName(fileFileInfo.getFilename()));
+                        fileFileInfo.setContentDisposition(properties.getContentDisposition());
+                        fileFileInfo.setETag(properties.getETag());
+                        fileFileInfo.setContentType(properties.getContentType());
+                        fileFileInfo.setContentMd5(Base64.encode(properties.getContentMd5()));
+                        fileFileInfo.setLastModified(DateUtil.date(properties.getLastModified()));
+                        if (p.getMetadata() != null) fileFileInfo.setUserMetadata(new LinkedHashMap<>(p.getMetadata()));
+                        fileFileInfo.setOriginal(p);
+                        return fileFileInfo;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(result.getMaxResults());
+            list.setIsTruncated(StrUtil.isNotBlank(result.getNextMarker()));
+            list.setMarker(result.getMarker());
+            list.setNextMarker(result.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
         }
     }
 
