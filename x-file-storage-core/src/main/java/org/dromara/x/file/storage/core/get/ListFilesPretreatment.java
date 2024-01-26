@@ -34,25 +34,25 @@ public class ListFilesPretreatment {
      */
     private String filenamePrefix = "";
     /**
-     * 要列出的最大文件数量，这里默认最大值表示全部分片
+     * 要列举的最大文件数量，这里默认最大值表示全部文件
      */
     private Integer maxFiles = Integer.MAX_VALUE;
     /**
-     * 表示待列出文件的起始位置，从该标识符以后按文件名的字典顺序返回对象列表，默认从头开始
+     * 表示待列举文件的起始位置，从该标识符以后按文件名的字典顺序返回对象列表，默认从头开始
      */
     private String marker;
 
     /**
      * 执行列举文件
      */
-    public FileFileInfoList listFiles() {
+    public ListFilesResult listFiles() {
         return new ListFilesActuator(this).execute();
     }
 
     /**
      * 执行列举文件，此方法仅限内部使用
      */
-    public FileFileInfoList listFiles(FileStorage fileStorage, List<FileStorageAspect> aspectList) {
+    public ListFilesResult listFiles(FileStorage fileStorage, List<FileStorageAspect> aspectList) {
         return new ListFilesActuator(this).execute(fileStorage, aspectList);
     }
 

@@ -23,26 +23,32 @@ public class ListFilesActuator {
     /**
      * 执行列举文件
      */
-    public FileFileInfoList execute() {
+    public ListFilesResult execute() {
         return execute(fileStorageService.getFileStorageVerify(pre.getPlatform()), fileStorageService.getAspectList());
     }
 
     /**
      * 执行列举文件
      */
-    public FileFileInfoList execute(FileStorage fileStorage, List<FileStorageAspect> aspectList) {
+    public ListFilesResult execute(FileStorage fileStorage, List<FileStorageAspect> aspectList) {
         Check.listFiles(pre);
         return new ListFilesAspectChain(aspectList, (_pre, _fileStorage) -> {
+                    _pre = new ListFilesPretreatment(_pre);
                     ListFilesSupportInfo supportInfo = fileStorageService.isSupportListFiles(_fileStorage);
 
                     // 获取对应存储平台每次获取的最大文件数，对象存储一般是 1000
                     Integer supportMaxFiles = supportInfo.getSupportMaxFiles();
 
+                    // 如果超出范围则直接取最大值
+                    if (_pre.getMaxFiles() == null || _pre.getMaxFiles() < 1 || _pre.getMaxFiles() > supportMaxFiles) {
+                        _pre.setMaxFiles(supportMaxFiles);
+                    }
+
                     // 如果要返回的最大文件数量为 null 或小于等于支持的最大文件数量，则直接调用，否则分多次调用后拼接成一个结果
                     if (supportMaxFiles == null || _pre.getMaxFiles() <= supportMaxFiles) {
                         return _fileStorage.listFiles(_pre);
                     } else {
-                        FileFileInfoList list = new FileFileInfoList();
+                        ListFilesResult list = new ListFilesResult();
                         list.setDirList(new ArrayList<>());
                         list.setFileList(new ArrayList<>());
                         list.setPlatform(_pre.getPlatform());
@@ -57,7 +63,7 @@ public class ListFilesActuator {
                             ListFilesPretreatment tempPre = new ListFilesPretreatment(_pre);
                             tempPre.setMaxFiles(residueFileNum <= supportMaxFiles ? residueFileNum : supportMaxFiles);
                             tempPre.setMarker(marker);
-                            FileFileInfoList tempList = _fileStorage.listFiles(tempPre);
+                            ListFilesResult tempList = _fileStorage.listFiles(tempPre);
                             list.getFileList().addAll(tempList.getFileList());
                             list.getDirList().addAll(tempList.getDirList());
                             list.setBasePath(tempList.getBasePath());

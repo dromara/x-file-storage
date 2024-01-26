@@ -6,8 +6,8 @@ import java.util.function.Consumer;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
-import org.dromara.x.file.storage.core.get.FileFileInfoList;
 import org.dromara.x.file.storage.core.get.ListFilesPretreatment;
+import org.dromara.x.file.storage.core.get.ListFilesResult;
 import org.dromara.x.file.storage.core.get.ListFilesSupportInfo;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
@@ -104,7 +104,7 @@ public interface FileStorageAspect {
     /**
      * 列举文件
      */
-    default FileFileInfoList listFiles(ListFilesAspectChain chain, ListFilesPretreatment pre, FileStorage fileStorage) {
+    default ListFilesResult listFiles(ListFilesAspectChain chain, ListFilesPretreatment pre, FileStorage fileStorage) {
         return chain.next(pre, fileStorage);
     }
 

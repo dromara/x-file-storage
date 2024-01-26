@@ -2,9 +2,7 @@ package org.dromara.x.file.storage.test;
 
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileStorageService;
-import org.dromara.x.file.storage.core.get.FileDirInfo;
-import org.dromara.x.file.storage.core.get.FileFileInfo;
-import org.dromara.x.file.storage.core.get.FileFileInfoList;
+import org.dromara.x.file.storage.core.get.ListFilesResult;
 import org.dromara.x.file.storage.core.get.ListFilesSupportInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,16 +26,12 @@ class FileStorageServiceGetTest {
             return;
         }
 
-        FileFileInfoList list = fileStorageService.listFiles().setPath("test/").listFiles();
-        for (FileDirInfo info : list.getDirList()) {
-            log.info("列举目录：{}", info);
-        }
-        log.info("列举目录完成，共 {} 个目录", list.getDirList().size());
+        ListFilesResult result = fileStorageService.listFiles().setPath("test/").listFiles();
 
-        for (FileFileInfo info : list.getFileList()) {
-            log.info("列举文件：{}", info);
-        }
-        log.info("列举文件完成，共 {} 个文件", list.getFileList().size());
-        log.info("列举文件结果：{}", list);
+        result.getDirList().forEach(info -> log.info("目录：{}", info));
+        log.info("列举目录完成，共 {} 个目录", result.getDirList().size());
+        result.getFileList().forEach(info -> log.info("文件：{}", info));
+        log.info("列举文件完成，共 {} 个文件", result.getFileList().size());
+        log.info("列举文件全部结果：{}", result);
     }
 }

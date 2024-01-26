@@ -261,7 +261,7 @@ public class QiniuKodoFileStorage implements FileStorage {
     }
 
     @Override
-    public FileFileInfoList listFiles(ListFilesPretreatment pre) {
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
         BucketManager manager = getClient().getBucketManager();
         try {
             FileListing result = manager.listFilesV2(
@@ -270,10 +270,10 @@ public class QiniuKodoFileStorage implements FileStorage {
                     pre.getMarker(),
                     pre.getMaxFiles(),
                     "/");
-            FileFileInfoList list = new FileFileInfoList();
+            ListFilesResult list = new ListFilesResult();
             list.setDirList(Arrays.stream(result.commonPrefixes)
                     .map(p -> {
-                        FileDirInfo dir = new FileDirInfo();
+                        RemoteDirInfo dir = new RemoteDirInfo();
                         dir.setPlatform(pre.getPlatform());
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
@@ -283,19 +283,19 @@ public class QiniuKodoFileStorage implements FileStorage {
                     .collect(Collectors.toList()));
             list.setFileList(Arrays.stream(result.items)
                     .map(p -> {
-                        FileFileInfo fileFileInfo = new FileFileInfo();
-                        fileFileInfo.setPlatform(pre.getPlatform());
-                        fileFileInfo.setBasePath(basePath);
-                        fileFileInfo.setPath(pre.getPath());
-                        fileFileInfo.setFilename(FileNameUtil.getName(p.key));
-                        fileFileInfo.setSize(p.fsize);
-                        fileFileInfo.setExt(FileNameUtil.extName(fileFileInfo.getFilename()));
-                        fileFileInfo.setContentType(p.mimeType);
-                        fileFileInfo.setContentMd5(p.md5);
-                        fileFileInfo.setLastModified(new Date(p.putTime / 10000));
-                        fileFileInfo.setUserMetadata(p.meta);
-                        fileFileInfo.setOriginal(p);
-                        return fileFileInfo;
+                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
+                        remoteFileInfo.setPlatform(pre.getPlatform());
+                        remoteFileInfo.setBasePath(basePath);
+                        remoteFileInfo.setPath(pre.getPath());
+                        remoteFileInfo.setFilename(FileNameUtil.getName(p.key));
+                        remoteFileInfo.setSize(p.fsize);
+                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
+                        remoteFileInfo.setContentType(p.mimeType);
+                        remoteFileInfo.setContentMd5(p.md5);
+                        remoteFileInfo.setLastModified(new Date(p.putTime / 10000));
+                        remoteFileInfo.setUserMetadata(p.meta);
+                        remoteFileInfo.setOriginal(p);
+                        return remoteFileInfo;
                     })
                     .collect(Collectors.toList()));
             list.setPlatform(pre.getPlatform());

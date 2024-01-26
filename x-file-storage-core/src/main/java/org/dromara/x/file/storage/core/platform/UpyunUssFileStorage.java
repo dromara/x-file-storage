@@ -243,7 +243,7 @@ public class UpyunUssFileStorage implements FileStorage {
     }
 
     @Override
-    public FileFileInfoList listFiles(ListFilesPretreatment pre) {
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
         RestManager manager = getClient();
         try {
             Map<String, String> params = new HashMap<>();
@@ -261,35 +261,35 @@ public class UpyunUssFileStorage implements FileStorage {
                 result = new JSONObject(response.body().string());
             }
 
-            ArrayList<FileDirInfo> dirList = new ArrayList<>();
-            ArrayList<FileFileInfo> fileList = new ArrayList<>();
+            ArrayList<RemoteDirInfo> dirList = new ArrayList<>();
+            ArrayList<RemoteFileInfo> fileList = new ArrayList<>();
             JSONArray files = result.getJSONArray("files");
             for (int i = 0; i < files.length(); i++) {
                 JSONObject item = files.getJSONObject(0);
                 if ("folder".equals(item.getString("type")) && Long.valueOf(0L).equals(item.getLong("length"))) {
-                    FileDirInfo dir = new FileDirInfo();
+                    RemoteDirInfo dir = new RemoteDirInfo();
                     dir.setPlatform(pre.getPlatform());
                     dir.setBasePath(basePath);
                     dir.setPath(pre.getPath());
                     dir.setName(item.getString("name"));
                     dirList.add(dir);
                 } else {
-                    FileFileInfo fileFileInfo = new FileFileInfo();
-                    fileFileInfo.setPlatform(pre.getPlatform());
-                    fileFileInfo.setBasePath(basePath);
-                    fileFileInfo.setPath(pre.getPath());
-                    fileFileInfo.setFilename(item.getString("name"));
-                    fileFileInfo.setSize(item.getLong("length"));
-                    fileFileInfo.setExt(FileNameUtil.extName(fileFileInfo.getFilename()));
-                    fileFileInfo.setETag(item.getString("etag"));
-                    fileFileInfo.setContentType(item.getString("type"));
-                    fileFileInfo.setLastModified(new Date(item.getLong("last_modified") * 1000));
-                    fileFileInfo.setOriginal(item);
-                    fileList.add(fileFileInfo);
+                    RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
+                    remoteFileInfo.setPlatform(pre.getPlatform());
+                    remoteFileInfo.setBasePath(basePath);
+                    remoteFileInfo.setPath(pre.getPath());
+                    remoteFileInfo.setFilename(item.getString("name"));
+                    remoteFileInfo.setSize(item.getLong("length"));
+                    remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
+                    remoteFileInfo.setETag(item.getString("etag"));
+                    remoteFileInfo.setContentType(item.getString("type"));
+                    remoteFileInfo.setLastModified(new Date(item.getLong("last_modified") * 1000));
+                    remoteFileInfo.setOriginal(item);
+                    fileList.add(remoteFileInfo);
                 }
             }
             String iter = result.getString("iter");
-            FileFileInfoList list = new FileFileInfoList();
+            ListFilesResult list = new ListFilesResult();
             list.setDirList(dirList);
             list.setFileList(fileList);
             list.setPlatform(pre.getPlatform());

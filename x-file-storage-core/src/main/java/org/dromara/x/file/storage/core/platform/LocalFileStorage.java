@@ -3,6 +3,7 @@ package org.dromara.x.file.storage.core.platform;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.io.StreamProgress;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import java.io.BufferedOutputStream;
@@ -10,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -25,6 +27,7 @@ import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
@@ -267,6 +270,60 @@ public class LocalFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listParts(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll().setSupportMaxFiles(Integer.MAX_VALUE);
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        try {
+            String path = getAbsolutePath(basePath + pre.getPath());
+            List<File> fileList = Arrays.stream(FileUtil.isDirectory(path) ? FileUtil.ls(path) : new File[0])
+                    .filter(f -> f.isFile() || f.isDirectory())
+                    .collect(Collectors.toList());
+            ListFilesMatchResult<File> matchResult = listFilesMatch(fileList, File::getName, pre, false);
+            ListFilesResult list = new ListFilesResult();
+            list.setDirList(matchResult.getList().stream()
+                    .filter(File::isDirectory)
+                    .map(p -> {
+                        RemoteDirInfo dir = new RemoteDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(p.getName());
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+            list.setFileList(matchResult.getList().stream()
+                    .filter(File::isFile)
+                    .map(p -> {
+                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
+                        remoteFileInfo.setPlatform(pre.getPlatform());
+                        remoteFileInfo.setBasePath(basePath);
+                        remoteFileInfo.setPath(pre.getPath());
+                        remoteFileInfo.setFilename(p.getName());
+                        remoteFileInfo.setSize(p.length());
+                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
+                        remoteFileInfo.setLastModified(new Date(p.lastModified()));
+                        remoteFileInfo.setOriginal(p);
+                        return remoteFileInfo;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(pre.getMaxFiles());
+            list.setIsTruncated(matchResult.getIsTruncated());
+            list.setMarker(pre.getMarker());
+            list.setNextMarker(matchResult.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
         }
     }
 

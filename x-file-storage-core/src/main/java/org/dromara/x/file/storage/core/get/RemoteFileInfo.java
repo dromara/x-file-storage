@@ -7,12 +7,12 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 /**
- * 文件信息
+ * 远程文件信息
  */
 @Data
 @NoArgsConstructor
 @Accessors(chain = true)
-public class FileFileInfo {
+public class RemoteFileInfo {
     /**
      * 存储平台
      */

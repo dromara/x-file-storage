@@ -329,7 +329,7 @@ public class AzureBlobStorageFileStorage implements FileStorage {
     }
 
     @Override
-    public FileFileInfoList listFiles(ListFilesPretreatment pre) {
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
         BlobContainerClient client = getBlobClient();
         try {
 
@@ -340,10 +340,10 @@ public class AzureBlobStorageFileStorage implements FileStorage {
 
             ListBlobsHierarchySegmentResponse result = listFiles(client, pre.getMarker(), "/", options, null);
 
-            FileFileInfoList list = new FileFileInfoList();
+            ListFilesResult list = new ListFilesResult();
             list.setDirList(result.getSegment().getBlobPrefixes().stream()
                     .map(p -> {
-                        FileDirInfo dir = new FileDirInfo();
+                        RemoteDirInfo dir = new RemoteDirInfo();
                         dir.setPlatform(pre.getPlatform());
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
@@ -353,23 +353,24 @@ public class AzureBlobStorageFileStorage implements FileStorage {
                     .collect(Collectors.toList()));
             list.setFileList(result.getSegment().getBlobItems().stream()
                     .map(p -> {
-                        FileFileInfo fileFileInfo = new FileFileInfo();
-                        fileFileInfo.setPlatform(pre.getPlatform());
-                        fileFileInfo.setBasePath(basePath);
-                        fileFileInfo.setPath(pre.getPath());
-                        fileFileInfo.setFilename(
+                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
+                        remoteFileInfo.setPlatform(pre.getPlatform());
+                        remoteFileInfo.setBasePath(basePath);
+                        remoteFileInfo.setPath(pre.getPath());
+                        remoteFileInfo.setFilename(
                                 FileNameUtil.getName(p.getName().getContent()));
                         BlobItemPropertiesInternal properties = p.getProperties();
-                        fileFileInfo.setSize(properties.getContentLength());
-                        fileFileInfo.setExt(FileNameUtil.extName(fileFileInfo.getFilename()));
-                        fileFileInfo.setContentDisposition(properties.getContentDisposition());
-                        fileFileInfo.setETag(properties.getETag());
-                        fileFileInfo.setContentType(properties.getContentType());
-                        fileFileInfo.setContentMd5(Base64.encode(properties.getContentMd5()));
-                        fileFileInfo.setLastModified(DateUtil.date(properties.getLastModified()));
-                        if (p.getMetadata() != null) fileFileInfo.setUserMetadata(new LinkedHashMap<>(p.getMetadata()));
-                        fileFileInfo.setOriginal(p);
-                        return fileFileInfo;
+                        remoteFileInfo.setSize(properties.getContentLength());
+                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
+                        remoteFileInfo.setContentDisposition(properties.getContentDisposition());
+                        remoteFileInfo.setETag(properties.getETag());
+                        remoteFileInfo.setContentType(properties.getContentType());
+                        remoteFileInfo.setContentMd5(Base64.encode(properties.getContentMd5()));
+                        remoteFileInfo.setLastModified(DateUtil.date(properties.getLastModified()));
+                        if (p.getMetadata() != null)
+                            remoteFileInfo.setUserMetadata(new LinkedHashMap<>(p.getMetadata()));
+                        remoteFileInfo.setOriginal(p);
+                        return remoteFileInfo;
                     })
                     .collect(Collectors.toList()));
             list.setPlatform(pre.getPlatform());

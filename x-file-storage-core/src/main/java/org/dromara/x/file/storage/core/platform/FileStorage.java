@@ -1,14 +1,22 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import java.io.InputStream;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
-import org.dromara.x.file.storage.core.get.FileFileInfoList;
 import org.dromara.x.file.storage.core.get.ListFilesPretreatment;
+import org.dromara.x.file.storage.core.get.ListFilesResult;
 import org.dromara.x.file.storage.core.get.ListFilesSupportInfo;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.upload.*;
@@ -78,9 +86,40 @@ public interface FileStorage extends AutoCloseable {
     }
 
     /**
+     * 列举文件-匹配文件
+     */
+    default <T> ListFilesMatchResult<T> listFilesMatch(
+            List<T> list, Function<T, String> nameGetter, ListFilesPretreatment pre, boolean sort) {
+        // 匹配文件名前缀
+        if (CollUtil.isNotEmpty(list) && StrUtil.isNotEmpty(pre.getFilenamePrefix())) {
+            list = list.stream()
+                    .filter(p -> nameGetter.apply(p).startsWith(pre.getFilenamePrefix()))
+                    .collect(Collectors.toList());
+        }
+        // 排序
+        if (CollUtil.isNotEmpty(list) && sort) {
+            list = list.stream().sorted(Comparator.comparing(nameGetter)).collect(Collectors.toList());
+        }
+        // 分页-确定开始位置
+        if (CollUtil.isNotEmpty(list) && StrUtil.isNotEmpty(pre.getMarker())) {
+            int index = CollUtil.indexOf(list, p -> nameGetter.apply(p).equals(pre.getMarker()));
+            if (index >= 0) list = list.subList(index + 1, list.size());
+        }
+        // 分页-确定结束位置
+        boolean isTruncated = false;
+        String nextMarker = null;
+        if (CollUtil.isNotEmpty(list) && pre.getMaxFiles() != null && list.size() > pre.getMaxFiles()) {
+            list = list.subList(0, pre.getMaxFiles());
+            isTruncated = true;
+            nextMarker = nameGetter.apply(list.get(list.size() - 1));
+        }
+        return new ListFilesMatchResult<>(list, isTruncated, nextMarker);
+    }
+
+    /**
      * 列举文件
      */
-    default FileFileInfoList listFiles(ListFilesPretreatment pre) {
+    default ListFilesResult listFiles(ListFilesPretreatment pre) {
         return null;
     }
 
@@ -206,5 +245,26 @@ public interface FileStorage extends AutoCloseable {
         return Tools.getNotNull(fileInfo.getBasePath(), StrUtil.EMPTY)
                 + Tools.getNotNull(fileInfo.getPath(), StrUtil.EMPTY)
                 + Tools.getNotNull(fileInfo.getThFilename(), StrUtil.EMPTY);
+    }
+
+    /**
+     * 列举文件-匹配结果
+     */
+    @Data
+    @Accessors(chain = true)
+    @AllArgsConstructor
+    class ListFilesMatchResult<T> {
+        /**
+         * 列表
+         */
+        private List<T> list;
+        /**
+         * 列表是否被截断，就是当前 uploadId下还有其它分片超出最大分片数量未被列举
+         */
+        private Boolean isTruncated;
+        /**
+         * 下次列举的起始位置
+         */
+        private String nextMarker;
     }
 }
