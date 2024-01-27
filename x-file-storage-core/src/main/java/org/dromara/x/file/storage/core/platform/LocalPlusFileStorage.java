@@ -275,28 +275,28 @@ public class LocalPlusFileStorage implements FileStorage {
             ListFilesResult list = new ListFilesResult();
             list.setDirList(matchResult.getList().stream()
                     .filter(File::isDirectory)
-                    .map(p -> {
+                    .map(item -> {
                         RemoteDirInfo dir = new RemoteDirInfo();
                         dir.setPlatform(pre.getPlatform());
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
-                        dir.setName(p.getName());
+                        dir.setName(item.getName());
                         return dir;
                     })
                     .collect(Collectors.toList()));
             list.setFileList(matchResult.getList().stream()
                     .filter(File::isFile)
-                    .map(p -> {
-                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
-                        remoteFileInfo.setPlatform(pre.getPlatform());
-                        remoteFileInfo.setBasePath(basePath);
-                        remoteFileInfo.setPath(pre.getPath());
-                        remoteFileInfo.setFilename(p.getName());
-                        remoteFileInfo.setSize(p.length());
-                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
-                        remoteFileInfo.setLastModified(new Date(p.lastModified()));
-                        remoteFileInfo.setOriginal(p);
-                        return remoteFileInfo;
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(item.getName());
+                        info.setSize(item.length());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setLastModified(new Date(item.lastModified()));
+                        info.setOriginal(item);
+                        return info;
                     })
                     .collect(Collectors.toList()));
             list.setPlatform(pre.getPlatform());

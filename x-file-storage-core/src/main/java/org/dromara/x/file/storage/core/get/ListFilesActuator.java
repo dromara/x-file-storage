@@ -1,6 +1,7 @@
 package org.dromara.x.file.storage.core.get;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
@@ -43,19 +44,19 @@ public class ListFilesActuator {
                     if (_pre.getMaxFiles() == null || _pre.getMaxFiles() < 1 || _pre.getMaxFiles() > supportMaxFiles) {
                         _pre.setMaxFiles(supportMaxFiles);
                     }
-
+                    ListFilesResult result;
                     // 如果要返回的最大文件数量为 null 或小于等于支持的最大文件数量，则直接调用，否则分多次调用后拼接成一个结果
                     if (supportMaxFiles == null || _pre.getMaxFiles() <= supportMaxFiles) {
-                        return _fileStorage.listFiles(_pre);
+                        result = _fileStorage.listFiles(_pre);
                     } else {
-                        ListFilesResult list = new ListFilesResult();
-                        list.setDirList(new ArrayList<>());
-                        list.setFileList(new ArrayList<>());
-                        list.setPlatform(_pre.getPlatform());
-                        list.setPath(_pre.getPath());
-                        list.setFilenamePrefix(_pre.getFilenamePrefix());
-                        list.setMaxFiles(_pre.getMaxFiles());
-                        list.setMarker(_pre.getMarker());
+                        result = new ListFilesResult();
+                        result.setDirList(new ArrayList<>());
+                        result.setFileList(new ArrayList<>());
+                        result.setPlatform(_pre.getPlatform());
+                        result.setPath(_pre.getPath());
+                        result.setFilenamePrefix(_pre.getFilenamePrefix());
+                        result.setMaxFiles(_pre.getMaxFiles());
+                        result.setMarker(_pre.getMarker());
 
                         Integer residueFileNum = _pre.getMaxFiles();
                         String marker = _pre.getMarker();
@@ -64,19 +65,23 @@ public class ListFilesActuator {
                             tempPre.setMaxFiles(residueFileNum <= supportMaxFiles ? residueFileNum : supportMaxFiles);
                             tempPre.setMarker(marker);
                             ListFilesResult tempList = _fileStorage.listFiles(tempPre);
-                            list.getFileList().addAll(tempList.getFileList());
-                            list.getDirList().addAll(tempList.getDirList());
-                            list.setBasePath(tempList.getBasePath());
+                            result.getFileList().addAll(tempList.getFileList());
+                            result.getDirList().addAll(tempList.getDirList());
+                            result.setBasePath(tempList.getBasePath());
                             residueFileNum = residueFileNum - supportMaxFiles;
                             marker = tempList.getNextMarker();
                             if (residueFileNum <= 0 || !tempList.getIsTruncated()) {
-                                list.setNextMarker(tempList.getNextMarker());
-                                list.setIsTruncated(tempList.getIsTruncated());
+                                result.setNextMarker(tempList.getNextMarker());
+                                result.setIsTruncated(tempList.getIsTruncated());
                                 break;
                             }
                         }
-                        return list;
                     }
+                    for (RemoteFileInfo info : result.getFileList()) {
+                        if (info.getMetadata() == null) info.setMetadata(new HashMap<>());
+                        if (info.getUserMetadata() == null) info.setUserMetadata(new HashMap<>());
+                    }
+                    return result;
                 })
                 .next(pre, fileStorage);
     }

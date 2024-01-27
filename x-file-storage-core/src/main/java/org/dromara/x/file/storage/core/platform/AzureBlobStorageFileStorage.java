@@ -342,35 +342,37 @@ public class AzureBlobStorageFileStorage implements FileStorage {
 
             ListFilesResult list = new ListFilesResult();
             list.setDirList(result.getSegment().getBlobPrefixes().stream()
-                    .map(p -> {
+                    .map(item -> {
                         RemoteDirInfo dir = new RemoteDirInfo();
                         dir.setPlatform(pre.getPlatform());
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
-                        dir.setName(FileNameUtil.getName(p.getName().getContent()));
+                        dir.setName(FileNameUtil.getName(item.getName().getContent()));
                         return dir;
                     })
                     .collect(Collectors.toList()));
             list.setFileList(result.getSegment().getBlobItems().stream()
-                    .map(p -> {
-                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
-                        remoteFileInfo.setPlatform(pre.getPlatform());
-                        remoteFileInfo.setBasePath(basePath);
-                        remoteFileInfo.setPath(pre.getPath());
-                        remoteFileInfo.setFilename(
-                                FileNameUtil.getName(p.getName().getContent()));
-                        BlobItemPropertiesInternal properties = p.getProperties();
-                        remoteFileInfo.setSize(properties.getContentLength());
-                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
-                        remoteFileInfo.setContentDisposition(properties.getContentDisposition());
-                        remoteFileInfo.setETag(properties.getETag());
-                        remoteFileInfo.setContentType(properties.getContentType());
-                        remoteFileInfo.setContentMd5(Base64.encode(properties.getContentMd5()));
-                        remoteFileInfo.setLastModified(DateUtil.date(properties.getLastModified()));
-                        if (p.getMetadata() != null)
-                            remoteFileInfo.setUserMetadata(new LinkedHashMap<>(p.getMetadata()));
-                        remoteFileInfo.setOriginal(p);
-                        return remoteFileInfo;
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(FileNameUtil.getName(item.getName().getContent()));
+                        BlobItemPropertiesInternal properties = item.getProperties();
+                        info.setSize(properties.getContentLength());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setContentDisposition(properties.getContentDisposition());
+                        info.setETag(properties.getETag());
+                        info.setContentType(properties.getContentType());
+                        info.setContentMd5(Base64.encode(properties.getContentMd5()));
+                        info.setLastModified(DateUtil.date(properties.getLastModified()));
+                        try {
+                            info.setMetadata(BeanUtil.beanToMap(properties, false, true));
+                        } catch (Exception ignored) {
+                        }
+                        if (item.getMetadata() != null) info.setUserMetadata(new HashMap<>(item.getMetadata()));
+                        info.setOriginal(item);
+                        return info;
                     })
                     .collect(Collectors.toList()));
             list.setPlatform(pre.getPlatform());
@@ -384,6 +386,43 @@ public class AzureBlobStorageFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        try {
+            BlobClient client = getBlobClient(basePath + pre.getPath() + pre.getFilename());
+            BlobProperties file;
+            try {
+                file = client.getProperties();
+            } catch (Exception e) {
+                return null;
+            }
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(client.getBlobName()));
+            info.setSize(file.getBlobSize());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(file.getETag());
+            info.setContentDisposition(file.getContentDisposition());
+            info.setContentType(file.getContentType());
+            info.setContentMd5(Base64.encode(file.getContentMd5()));
+            info.setLastModified(DateUtil.date(file.getLastModified()));
+            try {
+                info.setMetadata(BeanUtil.beanToMap(
+                        ReflectUtil.getFieldValue(ReflectUtil.getFieldValue(file, "internalProperties"), "headers"),
+                        false,
+                        true));
+            } catch (Exception ignored) {
+            }
+            if (file.getMetadata() != null) info.setUserMetadata(new HashMap<>(file.getMetadata()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
         }
     }
 

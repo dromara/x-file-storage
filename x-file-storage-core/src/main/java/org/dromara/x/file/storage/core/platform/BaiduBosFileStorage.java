@@ -15,6 +15,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -291,29 +292,29 @@ public class BaiduBosFileStorage implements FileStorage {
             ListFilesResult list = new ListFilesResult();
 
             list.setDirList(result.getCommonPrefixes().stream()
-                    .map(p -> {
+                    .map(item -> {
                         RemoteDirInfo dir = new RemoteDirInfo();
                         dir.setPlatform(pre.getPlatform());
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
-                        dir.setName(FileNameUtil.getName(p));
+                        dir.setName(FileNameUtil.getName(item));
                         return dir;
                     })
                     .collect(Collectors.toList()));
 
             list.setFileList(result.getContents().stream()
-                    .map(p -> {
-                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
-                        remoteFileInfo.setPlatform(pre.getPlatform());
-                        remoteFileInfo.setBasePath(basePath);
-                        remoteFileInfo.setPath(pre.getPath());
-                        remoteFileInfo.setFilename(FileNameUtil.getName(p.getKey()));
-                        remoteFileInfo.setSize(p.getSize());
-                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
-                        remoteFileInfo.setETag(p.getETag());
-                        remoteFileInfo.setLastModified(p.getLastModified());
-                        remoteFileInfo.setOriginal(p);
-                        return remoteFileInfo;
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(FileNameUtil.getName(item.getKey()));
+                        info.setSize(item.getSize());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setETag(item.getETag());
+                        info.setLastModified(item.getLastModified());
+                        info.setOriginal(item);
+                        return info;
                     })
                     .collect(Collectors.toList()));
             list.setPlatform(pre.getPlatform());
@@ -327,6 +328,39 @@ public class BaiduBosFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        BosClient client = getClient();
+        try {
+            BosObject file;
+            try {
+                file = client.getObject(bucketName, basePath + pre.getPath() + pre.getFilename());
+            } catch (Exception e) {
+                return null;
+            }
+            ObjectMetadata metadata = file.getObjectMetadata();
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(file.getKey()));
+            info.setSize(metadata.getContentLength());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(metadata.getETag());
+            info.setContentDisposition(metadata.getContentDisposition());
+            info.setContentType(metadata.getContentType());
+            info.setContentMd5(metadata.getContentMd5());
+            info.setLastModified(metadata.getLastModified());
+            info.setMetadata(BeanUtil.beanToMap(metadata, false, true));
+            info.getMetadata().remove("userMetadata");
+            if (metadata.getUserMetadata() != null) info.setUserMetadata(new HashMap<>(metadata.getUserMetadata()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
         }
     }
 

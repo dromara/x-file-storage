@@ -1,5 +1,6 @@
 package org.dromara.x.file.storage.core.get;
 
+import java.util.HashMap;
 import java.util.List;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
@@ -31,7 +32,14 @@ public class GetFileActuator {
      */
     public RemoteFileInfo execute(FileStorage fileStorage, List<FileStorageAspect> aspectList) {
         Check.getFile(pre);
-        return new GetFileAspectChain(aspectList, (_pre, _fileStorage) -> _fileStorage.getFile(_pre))
+        return new GetFileAspectChain(aspectList, (_pre, _fileStorage) -> {
+                    RemoteFileInfo info = _fileStorage.getFile(_pre);
+                    if (info != null) {
+                        if (info.getMetadata() == null) info.setMetadata(new HashMap<>());
+                        if (info.getUserMetadata() == null) info.setUserMetadata(new HashMap<>());
+                    }
+                    return info;
+                })
                 .next(pre, fileStorage);
     }
 }

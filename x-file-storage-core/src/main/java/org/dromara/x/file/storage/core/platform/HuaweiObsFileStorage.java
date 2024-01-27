@@ -15,6 +15,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -283,35 +284,35 @@ public class HuaweiObsFileStorage implements FileStorage {
             ListFilesResult list = new ListFilesResult();
 
             list.setDirList(result.getCommonPrefixes().stream()
-                    .map(p -> {
+                    .map(item -> {
                         RemoteDirInfo dir = new RemoteDirInfo();
                         dir.setPlatform(pre.getPlatform());
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
-                        dir.setName(FileNameUtil.getName(p));
+                        dir.setName(FileNameUtil.getName(item));
                         return dir;
                     })
                     .collect(Collectors.toList()));
 
             list.setFileList(result.getObjects().stream()
-                    .map(p -> {
-                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
-                        remoteFileInfo.setPlatform(pre.getPlatform());
-                        remoteFileInfo.setBasePath(basePath);
-                        remoteFileInfo.setPath(pre.getPath());
-                        remoteFileInfo.setFilename(FileNameUtil.getName(p.getObjectKey()));
-                        ObjectMetadata metadata = p.getMetadata();
-                        remoteFileInfo.setSize(metadata.getContentLength());
-                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
-                        remoteFileInfo.setETag(metadata.getEtag());
-                        remoteFileInfo.setContentDisposition(metadata.getContentDisposition());
-                        remoteFileInfo.setContentType(metadata.getContentType());
-                        remoteFileInfo.setContentMd5(metadata.getContentMd5());
-                        remoteFileInfo.setLastModified(metadata.getLastModified());
-                        remoteFileInfo.setMetadata(BeanUtil.beanToMap(metadata));
-                        remoteFileInfo.setUserMetadata(BeanUtil.beanToMap(metadata.getAllMetadata()));
-                        remoteFileInfo.setOriginal(p);
-                        return remoteFileInfo;
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(FileNameUtil.getName(item.getObjectKey()));
+                        ObjectMetadata metadata = item.getMetadata();
+                        info.setSize(metadata.getContentLength());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setETag(metadata.getEtag());
+                        info.setContentDisposition(metadata.getContentDisposition());
+                        info.setContentType(metadata.getContentType());
+                        info.setContentMd5(metadata.getContentMd5());
+                        info.setLastModified(metadata.getLastModified());
+                        info.setMetadata(BeanUtil.beanToMap(metadata, false, true));
+                        info.setUserMetadata(BeanUtil.beanToMap(metadata.getAllMetadata()));
+                        info.setOriginal(item);
+                        return info;
                     })
                     .collect(Collectors.toList()));
             list.setPlatform(pre.getPlatform());
@@ -325,6 +326,40 @@ public class HuaweiObsFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        ObsClient client = getClient();
+        try {
+            ObsObject file;
+            try {
+                file = client.getObject(bucketName, basePath + pre.getPath() + pre.getFilename());
+            } catch (Exception e) {
+                return null;
+            }
+            ObjectMetadata metadata = file.getMetadata();
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(file.getObjectKey()));
+            info.setSize(metadata.getContentLength());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(metadata.getEtag());
+            info.setContentDisposition(metadata.getContentDisposition());
+            info.setContentType(metadata.getContentType());
+            info.setContentMd5(metadata.getContentMd5());
+            info.setLastModified(metadata.getLastModified());
+            info.setMetadata(BeanUtil.beanToMap(metadata, false, true));
+            info.getMetadata().remove("userMetadata");
+            info.getMetadata().put("eTag", metadata.getEtag());
+            info.setUserMetadata(new HashMap<>(metadata.getAllMetadata()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
         }
     }
 
