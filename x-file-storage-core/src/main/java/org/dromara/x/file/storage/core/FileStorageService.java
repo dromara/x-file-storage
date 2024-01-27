@@ -17,6 +17,7 @@ import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.file.FileWrapperAdapter;
 import org.dromara.x.file.storage.core.file.HttpServletRequestFileWrapper;
 import org.dromara.x.file.storage.core.file.MultipartFormDataReader;
+import org.dromara.x.file.storage.core.get.GetFilePretreatment;
 import org.dromara.x.file.storage.core.get.ListFilesPretreatment;
 import org.dromara.x.file.storage.core.get.ListFilesSupportInfo;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
@@ -474,6 +475,16 @@ public class FileStorageService {
      */
     public ListFilesPretreatment listFiles() {
         ListFilesPretreatment pre = new ListFilesPretreatment();
+        pre.setPlatform(properties.getDefaultPlatform());
+        pre.setFileStorageService(self);
+        return pre;
+    }
+
+    /**
+     * 获取文件
+     */
+    public GetFilePretreatment getFile() {
+        GetFilePretreatment pre = new GetFilePretreatment();
         pre.setPlatform(properties.getDefaultPlatform());
         pre.setFileStorageService(self);
         return pre;

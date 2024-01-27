@@ -15,9 +15,7 @@ import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
-import org.dromara.x.file.storage.core.get.ListFilesPretreatment;
-import org.dromara.x.file.storage.core.get.ListFilesResult;
-import org.dromara.x.file.storage.core.get.ListFilesSupportInfo;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
@@ -120,6 +118,13 @@ public interface FileStorage extends AutoCloseable {
      * 列举文件
      */
     default ListFilesResult listFiles(ListFilesPretreatment pre) {
+        return null;
+    }
+
+    /**
+     * 获取文件
+     */
+    default RemoteFileInfo getFile(GetFilePretreatment pre) {
         return null;
     }
 

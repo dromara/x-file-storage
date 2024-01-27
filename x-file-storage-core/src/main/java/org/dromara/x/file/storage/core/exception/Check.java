@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.get.GetFilePretreatment;
 import org.dromara.x.file.storage.core.get.ListFilesPretreatment;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.upload.InitiateMultipartUploadPretreatment;
@@ -256,5 +257,15 @@ public class Check {
         if (pre.getPlatform() == null) throw new FileStorageRuntimeException("列举文件失败，请传入 platform 参数");
         if (pre.getPath() == null) throw new FileStorageRuntimeException("列举文件失败，请传入 path 参数");
         if (pre.getFilenamePrefix() == null) throw new FileStorageRuntimeException("列举文件失败，请传入 filenamePrefix 参数");
+    }
+
+    /**
+     * 获取文件时，检查文件信息相关参数，如果缺少则抛出异常
+     * @param pre 列举文件预处理器
+     */
+    public static void getFile(GetFilePretreatment pre) {
+        if (pre.getPlatform() == null) throw new FileStorageRuntimeException("获取文件失败，请传入 platform 参数");
+        if (pre.getPath() == null) throw new FileStorageRuntimeException("获取文件失败，请传入 path 参数");
+        if (pre.getFilename() == null) throw new FileStorageRuntimeException("获取文件失败，请传入 filename 参数");
     }
 }
