@@ -1,7 +1,9 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.file.FileNameUtil;
+import cn.hutool.core.map.MapProxy;
 import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.google.common.collect.Multimap;
@@ -13,10 +15,7 @@ import io.minio.messages.ListPartsResult;
 import io.minio.messages.Part;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -36,6 +35,7 @@ import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
 
 /**
@@ -416,29 +416,29 @@ public class MinioFileStorage implements FileStorage {
             ListBucketResultV1 result = listFiles(client, args);
             ListFilesResult list = new ListFilesResult();
             list.setDirList(result.commonPrefixes().stream()
-                    .map(p -> {
+                    .map(item -> {
                         RemoteDirInfo dir = new RemoteDirInfo();
                         dir.setPlatform(pre.getPlatform());
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
-                        dir.setName(FileNameUtil.getName(p.toItem().objectName()));
+                        dir.setName(FileNameUtil.getName(item.toItem().objectName()));
                         return dir;
                     })
                     .collect(Collectors.toList()));
 
             list.setFileList(result.contents().stream()
-                    .map(p -> {
-                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
-                        remoteFileInfo.setPlatform(pre.getPlatform());
-                        remoteFileInfo.setBasePath(basePath);
-                        remoteFileInfo.setPath(pre.getPath());
-                        remoteFileInfo.setFilename(FileNameUtil.getName(p.objectName()));
-                        remoteFileInfo.setSize(p.size());
-                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
-                        remoteFileInfo.setETag(p.etag());
-                        remoteFileInfo.setLastModified(DateUtil.date(p.lastModified()));
-                        remoteFileInfo.setOriginal(p);
-                        return remoteFileInfo;
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(FileNameUtil.getName(item.objectName()));
+                        info.setSize(item.size());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setETag(item.etag());
+                        info.setLastModified(DateUtil.date(item.lastModified()));
+                        info.setOriginal(item);
+                        return info;
                     })
                     .collect(Collectors.toList()));
             list.setPlatform(pre.getPlatform());
@@ -452,6 +452,48 @@ public class MinioFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        MinioClient client = getClient();
+        try {
+            StatObjectResponse file;
+            try {
+                file = client.statObject(StatObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(basePath + pre.getPath() + pre.getFilename())
+                        .build());
+            } catch (Exception e) {
+                return null;
+            }
+
+            KebabCaseInsensitiveMap<String, String> headers =
+                    new KebabCaseInsensitiveMap<>(file.headers().toMultimap().entrySet().stream()
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> CollUtil.get(e.getValue(), 0))));
+            MapProxy headersProxy = MapProxy.create(headers);
+
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(file.object()));
+            info.setSize(file.size());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(file.etag());
+            info.setContentDisposition(headersProxy.getStr(Constant.Metadata.CONTENT_DISPOSITION));
+            info.setContentType(file.contentType());
+            info.setContentMd5(headersProxy.getStr(Constant.Metadata.CONTENT_MD5));
+            info.setLastModified(DateUtil.date(file.lastModified()));
+            info.setMetadata(headers.entrySet().stream()
+                    .filter(e -> !e.getKey().startsWith("x-amz-meta-"))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+            if (file.userMetadata() != null) info.setUserMetadata(new HashMap<>(file.userMetadata()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
         }
     }
 

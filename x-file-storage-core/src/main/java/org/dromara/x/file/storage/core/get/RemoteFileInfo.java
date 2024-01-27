@@ -1,5 +1,6 @@
 package org.dromara.x.file.storage.core.get;
 
+import cn.hutool.core.map.MapProxy;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
 import java.util.Date;
 import java.util.Map;
@@ -7,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.apache.commons.net.ftp.FTPFile;
+import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
 
 /**
@@ -72,6 +74,32 @@ public class RemoteFileInfo {
      * 原始数据
      */
     private Object original;
+
+    /**
+     * 获取短横命名风格且不区分大小写的文件元数据，以下方式都获得的值相同，put进入的值也会被覆盖<br>
+     * get("ContentType")<br>
+     * get("Content_Type")<br>
+     * get("HelloWorld_test")<br>
+     * get("Content-Type")<br>
+     * get("contentType")<br>
+     */
+    public MapProxy getKebabCaseInsensitiveMetadata() {
+        if (metadata == null) return null;
+        return new MapProxy(new KebabCaseInsensitiveMap<>(metadata));
+    }
+
+    /**
+     * 获取短横命名风格的文件用户元数据，以下方式都获得的值相同，put进入的值也会被覆盖<br>
+     * get("ContentType")<br>
+     * get("Content_Type")<br>
+     * get("HelloWorld_test")<br>
+     * get("Content-Type")<br>
+     * get("contentType")<br>
+     */
+    public MapProxy getKebabCaseInsensitiveUserMetadata() {
+        if (userMetadata == null) return null;
+        return new MapProxy(new KebabCaseInsensitiveMap<>(userMetadata));
+    }
 
     /**
      * 获取原始数据并转换为指定类型

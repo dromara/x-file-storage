@@ -2,6 +2,7 @@ package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.lang.Dict;
 import cn.hutool.core.util.StrUtil;
@@ -23,6 +24,7 @@ import org.dromara.x.file.storage.core.FileStorageProperties.QiniuKodoConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
@@ -272,30 +274,40 @@ public class QiniuKodoFileStorage implements FileStorage {
                     "/");
             ListFilesResult list = new ListFilesResult();
             list.setDirList(Arrays.stream(result.commonPrefixes)
-                    .map(p -> {
+                    .map(item -> {
                         RemoteDirInfo dir = new RemoteDirInfo();
                         dir.setPlatform(pre.getPlatform());
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
-                        dir.setName(FileNameUtil.getName(p));
+                        dir.setName(FileNameUtil.getName(item));
                         return dir;
                     })
                     .collect(Collectors.toList()));
             list.setFileList(Arrays.stream(result.items)
-                    .map(p -> {
-                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
-                        remoteFileInfo.setPlatform(pre.getPlatform());
-                        remoteFileInfo.setBasePath(basePath);
-                        remoteFileInfo.setPath(pre.getPath());
-                        remoteFileInfo.setFilename(FileNameUtil.getName(p.key));
-                        remoteFileInfo.setSize(p.fsize);
-                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
-                        remoteFileInfo.setContentType(p.mimeType);
-                        remoteFileInfo.setContentMd5(p.md5);
-                        remoteFileInfo.setLastModified(new Date(p.putTime / 10000));
-                        remoteFileInfo.setUserMetadata(p.meta);
-                        remoteFileInfo.setOriginal(p);
-                        return remoteFileInfo;
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(FileNameUtil.getName(item.key));
+                        info.setSize(item.fsize);
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setContentType(item.mimeType);
+                        info.setContentMd5(item.md5);
+                        info.setLastModified(new Date(item.putTime / 10000));
+                        HashMap<String, Object> metadata = new HashMap<>();
+                        metadata.put(Constant.Metadata.CONTENT_LENGTH, item.fsize);
+                        if (item.mimeType != null) metadata.put(Constant.Metadata.CONTENT_TYPE, item.mimeType);
+                        if (item.md5 != null) metadata.put(Constant.Metadata.CONTENT_MD5, item.md5);
+                        metadata.put(Constant.Metadata.LAST_MODIFIED, info.getLastModified());
+                        if (item.expiration != null)
+                            metadata.put(
+                                    Constant.Metadata.EXPIRES,
+                                    DateUtil.formatHttpDate(new Date(item.expiration * 1000)));
+                        info.setMetadata(metadata);
+                        info.setUserMetadata(item.meta);
+                        info.setOriginal(item);
+                        return info;
                     })
                     .collect(Collectors.toList()));
             list.setPlatform(pre.getPlatform());
@@ -309,6 +321,42 @@ public class QiniuKodoFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        QiniuKodoClient client = getClient();
+        try {
+            com.qiniu.storage.model.FileInfo file;
+            try {
+                file = client.getBucketManager().stat(bucketName, basePath + pre.getPath() + pre.getFilename());
+            } catch (Exception e) {
+                return null;
+            }
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(file.key));
+            info.setSize(file.fsize);
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setContentType(file.mimeType);
+            info.setContentMd5(file.md5);
+            info.setLastModified(new Date(file.putTime / 10000));
+            HashMap<String, Object> metadata = new HashMap<>();
+            metadata.put(Constant.Metadata.CONTENT_LENGTH, file.fsize);
+            if (file.mimeType != null) metadata.put(Constant.Metadata.CONTENT_TYPE, file.mimeType);
+            if (file.md5 != null) metadata.put(Constant.Metadata.CONTENT_MD5, file.md5);
+            metadata.put(Constant.Metadata.LAST_MODIFIED, info.getLastModified());
+            if (file.expiration != null)
+                metadata.put(Constant.Metadata.EXPIRES, DateUtil.formatHttpDate(new Date(file.expiration * 1000)));
+            info.setMetadata(metadata);
+            info.setUserMetadata(file.meta);
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
         }
     }
 

@@ -31,12 +31,7 @@ class FileStorageServiceGetTest {
             return;
         }
 
-        ListFilesResult result = fileStorageService
-                .listFiles()
-                .setPath("test/")
-                .setFilenamePrefix("a.jpg")
-                .setMaxFiles(1)
-                .listFiles();
+        ListFilesResult result = fileStorageService.listFiles().setPath("test/").listFiles();
 
         result.getDirList().forEach(info -> log.info("目录：{}", info));
         log.info("列举目录完成，共 {} 个目录", result.getDirList().size());
@@ -78,22 +73,22 @@ class FileStorageServiceGetTest {
 
         FileInfo fileInfo = upload();
 
-        RemoteFileInfo remoteFileInfo = fileStorageService
+        RemoteFileInfo info = fileStorageService
                 .getFile()
                 .setPath(fileInfo.getPath())
                 .setFilename(fileInfo.getFilename())
                 .getFile();
-        Assert.notNull(remoteFileInfo, "获取文件失败！");
-        log.info("获取文件结果：{}", remoteFileInfo);
+        Assert.notNull(info, "获取文件失败！");
+        log.info("获取文件结果：{}", info);
 
         fileStorageService.delete(fileInfo);
 
-        RemoteFileInfo remoteFileInfo2 = fileStorageService
+        RemoteFileInfo info2 = fileStorageService
                 .getFile()
                 .setPath(fileInfo.getPath())
                 .setFilename(fileInfo.getFilename())
                 .getFile();
-        Assert.isNull(remoteFileInfo2, "获取不存在的文件失败！");
-        log.info("获取不存在的文件结果：{}", remoteFileInfo2);
+        Assert.isNull(info2, "获取不存在的文件失败！");
+        log.info("获取不存在的文件结果：{}", info2);
     }
 }

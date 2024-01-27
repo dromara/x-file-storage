@@ -1,8 +1,11 @@
 package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DatePattern;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.io.file.FileNameUtil;
+import cn.hutool.core.map.MapProxy;
 import cn.hutool.core.util.StrUtil;
 import com.upyun.RestManager;
 import com.upyun.UpException;
@@ -13,6 +16,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,6 +27,7 @@ import org.dromara.x.file.storage.core.FileStorageProperties.UpyunUssConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
@@ -34,6 +39,7 @@ import org.dromara.x.file.storage.core.upload.CompleteMultipartUploadPretreatmen
 import org.dromara.x.file.storage.core.upload.FilePartInfo;
 import org.dromara.x.file.storage.core.upload.InitiateMultipartUploadPretreatment;
 import org.dromara.x.file.storage.core.upload.UploadPartPretreatment;
+import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -274,18 +280,18 @@ public class UpyunUssFileStorage implements FileStorage {
                     dir.setName(item.getString("name"));
                     dirList.add(dir);
                 } else {
-                    RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
-                    remoteFileInfo.setPlatform(pre.getPlatform());
-                    remoteFileInfo.setBasePath(basePath);
-                    remoteFileInfo.setPath(pre.getPath());
-                    remoteFileInfo.setFilename(item.getString("name"));
-                    remoteFileInfo.setSize(item.getLong("length"));
-                    remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
-                    remoteFileInfo.setETag(item.getString("etag"));
-                    remoteFileInfo.setContentType(item.getString("type"));
-                    remoteFileInfo.setLastModified(new Date(item.getLong("last_modified") * 1000));
-                    remoteFileInfo.setOriginal(item);
-                    fileList.add(remoteFileInfo);
+                    RemoteFileInfo info = new RemoteFileInfo();
+                    info.setPlatform(pre.getPlatform());
+                    info.setBasePath(basePath);
+                    info.setPath(pre.getPath());
+                    info.setFilename(item.getString("name"));
+                    info.setSize(item.getLong("length"));
+                    info.setExt(FileNameUtil.extName(info.getFilename()));
+                    info.setETag(item.getString("etag"));
+                    info.setContentType(item.getString("type"));
+                    info.setLastModified(new Date(item.getLong("last_modified") * 1000));
+                    info.setOriginal(item);
+                    fileList.add(info);
                 }
             }
             String iter = result.getString("iter");
@@ -303,6 +309,52 @@ public class UpyunUssFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        RestManager client = getClient();
+        try {
+            Response file;
+            try {
+                file = checkResponse(client.getFileInfo(basePath + pre.getPath() + pre.getFilename()));
+                Long.parseLong(Objects.requireNonNull(file.header(RestManager.PARAMS.X_UPYUN_FILE_SIZE.getValue())));
+            } catch (Exception e) {
+                return null;
+            }
+
+            KebabCaseInsensitiveMap<String, String> headers =
+                    new KebabCaseInsensitiveMap<>(file.headers().toMultimap().entrySet().stream()
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> CollUtil.get(e.getValue(), 0))));
+            MapProxy headersProxy = MapProxy.create(headers);
+
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(pre.getFilename()));
+            info.setSize(headersProxy.getLong(Constant.Metadata.CONTENT_LENGTH));
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(headersProxy.getStr("etag"));
+            info.setContentDisposition(headersProxy.getStr(Constant.Metadata.CONTENT_DISPOSITION));
+            info.setContentType(headersProxy.getStr(Constant.Metadata.CONTENT_TYPE));
+            info.setContentMd5(headersProxy.getStr(Constant.Metadata.CONTENT_MD5));
+            try {
+                info.setLastModified(DateUtil.parse(
+                        headersProxy.getStr(Constant.Metadata.LAST_MODIFIED), DatePattern.HTTP_DATETIME_FORMAT));
+            } catch (Exception ignored) {
+            }
+            info.setMetadata(headers.entrySet().stream()
+                    .filter(e -> !e.getKey().startsWith("x-upyun-meta-"))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+            info.setUserMetadata(headers.entrySet().stream()
+                    .filter(e -> e.getKey().startsWith("x-upyun-meta-"))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
         }
     }
 

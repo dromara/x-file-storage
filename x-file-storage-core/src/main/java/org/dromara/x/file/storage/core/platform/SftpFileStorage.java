@@ -128,36 +128,36 @@ public class SftpFileStorage implements FileStorage {
             List<LsEntry> fileList = Collections.emptyList();
             if (client.isDir(path)) {
                 fileList = client.lsEntries(path).stream()
-                        .filter(f -> f.getAttrs().isDir() || f.getAttrs().isReg())
+                        .filter(item ->
+                                item.getAttrs().isDir() || item.getAttrs().isReg())
                         .collect(Collectors.toList());
             }
             ListFilesMatchResult<LsEntry> matchResult = listFilesMatch(fileList, LsEntry::getFilename, pre, true);
             ListFilesResult list = new ListFilesResult();
             list.setDirList(matchResult.getList().stream()
-                    .filter(f -> f.getAttrs().isDir())
-                    .map(p -> {
+                    .filter(item -> item.getAttrs().isDir())
+                    .map(item -> {
                         RemoteDirInfo dir = new RemoteDirInfo();
                         dir.setPlatform(pre.getPlatform());
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
-                        dir.setName(p.getFilename());
+                        dir.setName(item.getFilename());
                         return dir;
                     })
                     .collect(Collectors.toList()));
             list.setFileList(matchResult.getList().stream()
-                    .filter(f -> f.getAttrs().isReg())
-                    .map(p -> {
-                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
-                        remoteFileInfo.setPlatform(pre.getPlatform());
-                        remoteFileInfo.setBasePath(basePath);
-                        remoteFileInfo.setPath(pre.getPath());
-                        remoteFileInfo.setFilename(p.getFilename());
-                        remoteFileInfo.setSize(p.getAttrs().getSize());
-                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
-                        remoteFileInfo.setLastModified(
-                                DateUtil.date(p.getAttrs().getMTime() * 1000L));
-                        remoteFileInfo.setOriginal(p);
-                        return remoteFileInfo;
+                    .filter(item -> item.getAttrs().isReg())
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(item.getFilename());
+                        info.setSize(item.getAttrs().getSize());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setLastModified(DateUtil.date(item.getAttrs().getMTime() * 1000L));
+                        info.setOriginal(item);
+                        return info;
                     })
                     .collect(Collectors.toList()));
             list.setPlatform(pre.getPlatform());

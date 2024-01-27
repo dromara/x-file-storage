@@ -126,28 +126,28 @@ public class FtpFileStorage implements FileStorage {
             ListFilesResult list = new ListFilesResult();
             list.setDirList(matchResult.getList().stream()
                     .filter(FTPFile::isDirectory)
-                    .map(p -> {
+                    .map(item -> {
                         RemoteDirInfo dir = new RemoteDirInfo();
                         dir.setPlatform(pre.getPlatform());
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
-                        dir.setName(p.getName());
+                        dir.setName(item.getName());
                         return dir;
                     })
                     .collect(Collectors.toList()));
             list.setFileList(matchResult.getList().stream()
                     .filter(FTPFile::isFile)
-                    .map(p -> {
-                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
-                        remoteFileInfo.setPlatform(pre.getPlatform());
-                        remoteFileInfo.setBasePath(basePath);
-                        remoteFileInfo.setPath(pre.getPath());
-                        remoteFileInfo.setFilename(p.getName());
-                        remoteFileInfo.setSize(p.getSize());
-                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
-                        remoteFileInfo.setLastModified(DateUtil.date(p.getTimestamp()));
-                        remoteFileInfo.setOriginal(p);
-                        return remoteFileInfo;
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(item.getName());
+                        info.setSize(item.getSize());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setLastModified(DateUtil.date(item.getTimestamp()));
+                        info.setOriginal(item);
+                        return info;
                     })
                     .collect(Collectors.toList()));
             list.setPlatform(pre.getPlatform());

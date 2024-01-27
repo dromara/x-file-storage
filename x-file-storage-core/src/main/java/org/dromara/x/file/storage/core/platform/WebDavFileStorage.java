@@ -141,30 +141,30 @@ public class WebDavFileStorage implements FileStorage {
             ListFilesResult list = new ListFilesResult();
             list.setDirList(matchResult.getList().stream()
                     .filter(DavResource::isDirectory)
-                    .map(p -> {
+                    .map(item -> {
                         RemoteDirInfo dir = new RemoteDirInfo();
                         dir.setPlatform(pre.getPlatform());
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
-                        dir.setName(p.getName());
+                        dir.setName(item.getName());
                         return dir;
                     })
                     .collect(Collectors.toList()));
             list.setFileList(matchResult.getList().stream()
-                    .filter(p -> !p.isDirectory())
-                    .map(p -> {
-                        RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
-                        remoteFileInfo.setPlatform(pre.getPlatform());
-                        remoteFileInfo.setBasePath(basePath);
-                        remoteFileInfo.setPath(pre.getPath());
-                        remoteFileInfo.setFilename(p.getName());
-                        remoteFileInfo.setSize(p.getContentLength());
-                        remoteFileInfo.setExt(FileNameUtil.extName(remoteFileInfo.getFilename()));
-                        remoteFileInfo.setETag(p.getEtag());
-                        remoteFileInfo.setContentType(p.getContentType());
-                        remoteFileInfo.setLastModified(p.getModified());
-                        remoteFileInfo.setOriginal(p);
-                        return remoteFileInfo;
+                    .filter(item -> !item.isDirectory())
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(item.getName());
+                        info.setSize(item.getContentLength());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setETag(item.getEtag());
+                        info.setContentType(item.getContentType());
+                        info.setLastModified(item.getModified());
+                        info.setOriginal(item);
+                        return info;
                     })
                     .collect(Collectors.toList()));
             list.setPlatform(pre.getPlatform());
@@ -178,6 +178,35 @@ public class WebDavFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        Sardine client = getClient();
+        try {
+            DavResource file;
+            try {
+                String url = getUrl(basePath + pre.getPath() + pre.getFilename());
+                file = client.list(url, 0, false).get(0);
+            } catch (Exception e) {
+                return null;
+            }
+
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(file.getName());
+            info.setSize(file.getContentLength());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(file.getEtag());
+            info.setContentType(file.getContentType());
+            info.setLastModified(file.getModified());
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
         }
     }
 
