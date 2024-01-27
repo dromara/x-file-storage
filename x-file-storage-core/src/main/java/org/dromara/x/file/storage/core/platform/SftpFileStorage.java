@@ -4,6 +4,7 @@ import static com.jcraft.jsch.ChannelSftp.SSH_FX_NO_SUCH_FILE;
 
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.file.FileNameUtil;
+import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.ssh.JschRuntimeException;
 import cn.hutool.extra.ssh.Sftp;
@@ -170,6 +171,57 @@ public class SftpFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listFiles(pre, basePath, e);
+        } finally {
+            returnClient(client);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        Sftp client = getClient();
+        try {
+            String path = getAbsolutePath(basePath + pre.getPath());
+            String filename = pre.getFilename();
+
+            // 这种方式速度慢，列举文件接口返回数据相同
+            //            final LsEntry[] files = {null};
+            //            if (client.isDir(path)) {
+            //                client.getClient().ls(path, entry -> {
+            //                    if (pre.getFilename().equals(entry.getFilename())) {
+            //                        files[0] = entry;
+            //                        return ChannelSftp.LsEntrySelector.BREAK;
+            //                    }
+            //                    return ChannelSftp.LsEntrySelector.CONTINUE;
+            //                });
+            //            }
+            //            LsEntry file = files[0];
+            //            if (file == null) return null;
+
+            // 这种方式速度快，但是 longname 与列举文件方法返回的 longname 不相同，
+            // 可以使用列举文件方法代替：fileStorageService.listFiles().setPath("test/").setFilenamePrefix("a.jpg").setMaxFiles(1).listFiles();
+            SftpATTRS attrs;
+            try {
+                attrs = client.getClient().stat(path + filename);
+            } catch (Exception e) {
+                return null;
+            }
+            LsEntry file = ReflectUtil.newInstanceIfPossible(LsEntry.class);
+            ReflectUtil.setFieldValue(file, "filename", filename);
+            ReflectUtil.setFieldValue(file, "longname", attrs.toString() + " " + filename);
+            ReflectUtil.setFieldValue(file, "attrs", attrs);
+
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(file.getFilename());
+            info.setSize(file.getAttrs().getSize());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setLastModified(DateUtil.date(file.getAttrs().getMTime() * 1000L));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
         } finally {
             returnClient(client);
         }

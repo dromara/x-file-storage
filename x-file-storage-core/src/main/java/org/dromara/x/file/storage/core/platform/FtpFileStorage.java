@@ -167,6 +167,36 @@ public class FtpFileStorage implements FileStorage {
     }
 
     @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        Ftp client = getClient();
+        try {
+            String path = getAbsolutePath(basePath + pre.getPath());
+            FTPFile file;
+            try {
+                client.cd(path);
+                file = client.getClient().listFiles(pre.getFilename())[0];
+            } catch (Exception e) {
+                return null;
+            }
+
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(file.getName());
+            info.setSize(file.getSize());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setLastModified(DateUtil.date(file.getTimestamp()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
+        } finally {
+            returnClient(client);
+        }
+    }
+
+    @Override
     public boolean delete(FileInfo fileInfo) {
         Ftp client = getClient();
         try {
