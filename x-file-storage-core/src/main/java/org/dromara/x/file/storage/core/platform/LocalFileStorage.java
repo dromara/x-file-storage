@@ -328,6 +328,27 @@ public class LocalFileStorage implements FileStorage {
     }
 
     @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        try {
+            File file = new File(getAbsolutePath(basePath + pre.getPath() + pre.getFilename()));
+            if (!file.exists()) return null;
+            if (!file.isFile()) return null;
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(file.getName());
+            info.setSize(file.length());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setLastModified(new Date(file.lastModified()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
+        }
+    }
+
+    @Override
     public boolean delete(FileInfo fileInfo) {
         try {
             if (fileInfo.getThFilename() != null) { // 删除缩略图
