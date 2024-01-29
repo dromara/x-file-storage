@@ -11,10 +11,10 @@ import org.dromara.x.file.storage.core.aspect.*;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
-import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.upload.MultipartUploadSupportInfo;
 import org.springframework.stereotype.Component;
 
 /**

@@ -4,7 +4,7 @@ import java.util.Iterator;
 import lombok.Getter;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.platform.FileStorage;
-import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
+import org.dromara.x.file.storage.core.upload.MultipartUploadSupportInfo;
 
 /**
  * 是否支持手动分片上传的切面调用链

@@ -23,10 +23,10 @@ import org.dromara.x.file.storage.core.get.ListFilesSupportInfo;
 import org.dromara.x.file.storage.core.get.RemoteFileInfo;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
-import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.upload.MultipartUploadSupportInfo;
 import org.dromara.x.file.storage.core.upload.UploadPretreatment;
 import org.dromara.x.file.storage.core.util.Tools;
 

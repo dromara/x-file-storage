@@ -37,10 +37,10 @@ public class GetFilePretreatment {
     private String url = "";
 
     /**
-     * 设置文件存储服务类（如果条件为 true）
+     * 如果条件为 true 则：设置文件存储服务类
      * @param flag 条件
      * @param fileStorageService 文件存储服务类
-     * @return 文件预处理器
+     * @return 获取文件预处理器
      */
     public GetFilePretreatment setFileStorageService(boolean flag, FileStorageService fileStorageService) {
         if (flag) setFileStorageService(fileStorageService);
@@ -51,7 +51,7 @@ public class GetFilePretreatment {
      * 设置存储平台名称（如果条件为 true）
      * @param flag 条件
      * @param platform 存储平台名称
-     * @return 文件预处理器
+     * @return 获取文件预处理器
      */
     public GetFilePretreatment setPlatform(boolean flag, String platform) {
         if (flag) setPlatform(platform);
@@ -62,7 +62,7 @@ public class GetFilePretreatment {
      * 设置路径，需要与上传时传入的路径保持一致（如果条件为 true）
      * @param flag 路径，需要与上传时传入的路径保持一致
      * @param path 文件访问地址
-     * @return 文件预处理器
+     * @return 获取文件预处理器
      */
     public GetFilePretreatment setPath(boolean flag, String path) {
         if (flag) setPath(path);
@@ -73,7 +73,7 @@ public class GetFilePretreatment {
      * 设置文件名（如果条件为 true）
      * @param flag 条件
      * @param filename 文件名
-     * @return 文件预处理器
+     * @return 获取文件预处理器
      */
     public GetFilePretreatment setFilename(boolean flag, String filename) {
         if (flag) setFilename(filename);
@@ -84,7 +84,7 @@ public class GetFilePretreatment {
      * 设置文件访问地址（如果条件为 true）
      * @param flag 条件
      * @param url 文件访问地址
-     * @return 文件预处理器
+     * @return 获取文件预处理器
      */
     public GetFilePretreatment setUrl(boolean flag, String url) {
         if (flag) setUrl(url);

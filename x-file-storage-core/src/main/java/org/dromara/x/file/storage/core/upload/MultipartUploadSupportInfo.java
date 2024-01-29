@@ -1,4 +1,4 @@
-package org.dromara.x.file.storage.core.platform;
+package org.dromara.x.file.storage.core.upload;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

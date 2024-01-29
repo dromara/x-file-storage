@@ -49,6 +49,50 @@ public class UploadPartPretreatment
     private InputStreamPlus inputStreamPlus;
 
     /**
+     * 如果条件为 true 则：设置文件存储服务类
+     * @param flag 条件
+     * @param fileStorageService 文件存储服务类
+     * @return 手动分片上传-上传分片预处理器
+     */
+    public UploadPartPretreatment setFileStorageService(boolean flag, FileStorageService fileStorageService) {
+        if (flag) setFileStorageService(fileStorageService);
+        return this;
+    }
+
+    /**
+     * 如果条件为 true 则：设置文件信息
+     * @param flag 条件
+     * @param fileInfo 文件信息
+     * @return 手动分片上传-上传分片预处理器
+     */
+    public UploadPartPretreatment setFileInfo(boolean flag, FileInfo fileInfo) {
+        if (flag) setFileInfo(fileInfo);
+        return this;
+    }
+
+    /**
+     * 如果条件为 true 则：设置要上传的分片文件包装类
+     * @param flag 条件
+     * @param partFileWrapper 要上传的分片文件包装类
+     * @return 手动分片上传-上传分片预处理器
+     */
+    public UploadPartPretreatment setPartFileWrapper(boolean flag, FileWrapper partFileWrapper) {
+        if (flag) setPartFileWrapper(partFileWrapper);
+        return this;
+    }
+
+    /**
+     * 如果条件为 true 则：设置分片号。每一个上传的分片都有一个分片号，一般情况下取值范围是1~10000
+     * @param flag 条件
+     * @param partNumber 分片号。每一个上传的分片都有一个分片号，一般情况下取值范围是1~10000
+     * @return 手动分片上传-上传分片预处理器
+     */
+    public UploadPartPretreatment setPartNumber(boolean flag, int partNumber) {
+        if (flag) setPartNumber(partNumber);
+        return this;
+    }
+
+    /**
      * 添加一个哈希计算器
      * @param hashCalculator 哈希计算器
      */
