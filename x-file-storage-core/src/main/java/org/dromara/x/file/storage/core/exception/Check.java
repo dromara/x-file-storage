@@ -267,5 +267,6 @@ public class Check {
         if (pre.getPlatform() == null) throw new FileStorageRuntimeException("获取文件失败，请传入 platform 参数");
         if (pre.getPath() == null) throw new FileStorageRuntimeException("获取文件失败，请传入 path 参数");
         if (pre.getFilename() == null) throw new FileStorageRuntimeException("获取文件失败，请传入 filename 参数");
+        // if (pre.getUrl() == null) throw new FileStorageRuntimeException("获取文件失败，请传入 url 参数");
     }
 }

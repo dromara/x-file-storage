@@ -18,12 +18,22 @@ FileInfo fileInfo = fileStorageService.of(file)
         .putThUserMetadata("role","777")
         .thumbnail()
         .upload();
+
+//获取
+RemoteFileInfo info = fileStorageService.getFile(fileInfo);
+Assert.notNull(info, "文件不存在");
+//文件元数据
+MapProxy metadata = info.getKebabCaseInsensitiveMetadata();
+//文件用户元数据
+MapProxy userMetadata = info.getKebabCaseInsensitiveUserMetadata();
 ```
 
 > [!WARNING|label:重要提示：]
 > 每个存储平台支持的 Metadata 有所不同，例如 七牛云 Kodo 和 又拍云 USS 就不支持 `Content-Disposition`，具体支持情况以每个存储平台的官方文档为准
 >
 > 在传入 UserMetadata 时，不用传入前缀，例如 `x-amz-meta-` `x-qn-meta-` `x-upyun-meta-`，SDK会自动处理
+>
+> 每个存储平台获取到的 Metadata 都不相同，有些是字符串类型，有些是其它类型的对象，这部分需要自行做好判断
 
 
 ## 处理异常

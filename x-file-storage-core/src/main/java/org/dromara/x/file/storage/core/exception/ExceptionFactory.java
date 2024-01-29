@@ -25,7 +25,7 @@ public class ExceptionFactory {
     public static final String LIST_PARTS_MESSAGE_FORMAT = "手动文件分片上传-列举已上传的分片失败！platform：{}，fileInfo：{}";
     public static final String LIST_FILES_MESSAGE_FORMAT =
             "列举文件失败！platform：{}，basePath：{}，path：{}，filenamePrefix：{}，maxFiles：{}，marker：{}";
-    public static final String GET_FILE_MESSAGE_FORMAT = "获取文件失败！platform：{}，basePath：{}，path：{}，filename：{}";
+    public static final String GET_FILE_MESSAGE_FORMAT = "获取文件失败！platform：{}，basePath：{}，path：{}，filename：{}，url：{}";
     public static final String UNRECOGNIZED_ACL_MESSAGE_FORMAT = "无法识别此 ACL！platform：{}，ACL：{}";
     public static final String GENERATE_PRESIGNED_URL_MESSAGE_FORMAT = "对文件生成可以签名访问的 URL 失败！platform：{}，fileInfo：{}";
     public static final String GENERATE_TH_PRESIGNED_URL_MESSAGE_FORMAT =
@@ -213,7 +213,13 @@ public class ExceptionFactory {
      */
     public static FileStorageRuntimeException getFile(GetFilePretreatment pre, String basePath, Exception e) {
         return new FileStorageRuntimeException(
-                StrUtil.format(GET_FILE_MESSAGE_FORMAT, pre.getPlatform(), basePath, pre.getPath(), pre.getFilename()),
+                StrUtil.format(
+                        GET_FILE_MESSAGE_FORMAT,
+                        pre.getPlatform(),
+                        basePath,
+                        pre.getPath(),
+                        pre.getFilename(),
+                        pre.getUrl()),
                 e);
     }
 

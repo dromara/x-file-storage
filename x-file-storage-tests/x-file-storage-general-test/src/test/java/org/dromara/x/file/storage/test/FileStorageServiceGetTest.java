@@ -65,18 +65,13 @@ class FileStorageServiceGetTest {
      */
     @Test
     public void getFile() {
-        ListFilesSupportInfo isSupportListFiles = fileStorageService.isSupportListFiles();
-        if (!isSupportListFiles.getIsSupport()) {
-            log.info("暂不支持列举文件");
-            return;
-        }
-
         FileInfo fileInfo = upload();
 
         RemoteFileInfo info = fileStorageService
                 .getFile()
                 .setPath(fileInfo.getPath())
                 .setFilename(fileInfo.getFilename())
+                .setUrl(fileInfo.getUrl())
                 .getFile();
         Assert.notNull(info, "获取文件失败！");
         log.info("获取文件结果：{}", info);
