@@ -3,6 +3,8 @@ package org.dromara.x.file.storage.core.platform;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.text.NamingCase;
 import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
@@ -26,10 +28,13 @@ import org.dromara.x.file.storage.core.FileStorageProperties.GoogleCloudStorageC
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.get.GetFilePretreatment;
+import org.dromara.x.file.storage.core.get.RemoteFileInfo;
 
 /**
  * GoogleCloud Storage 存储
@@ -105,6 +110,53 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.upload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        Storage client = getClient();
+        try {
+            Blob file;
+            try {
+                file = client.get(bucketName, basePath + pre.getPath() + pre.getFilename());
+            } catch (Exception e) {
+                return null;
+            }
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(file.getName()));
+            info.setSize(file.getSize());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(file.getEtag());
+            info.setContentDisposition(file.getContentDisposition());
+            info.setContentType(file.getContentType());
+            info.setContentMd5(file.getMd5());
+            info.setLastModified(DateUtil.date(file.getUpdateTimeOffsetDateTime()));
+            HashMap<String, Object> metadata = new HashMap<>();
+            if (file.getContentType() != null) metadata.put(Constant.Metadata.CONTENT_TYPE, file.getContentType());
+            if (file.getContentEncoding() != null)
+                metadata.put(Constant.Metadata.CONTENT_ENCODING, file.getContentEncoding());
+            if (file.getContentDisposition() != null)
+                metadata.put(Constant.Metadata.CONTENT_DISPOSITION, file.getContentDisposition());
+            if (file.getContentLanguage() != null)
+                metadata.put(Constant.Metadata.CONTENT_LANGUAGE, file.getContentLanguage());
+            if (file.getStorageClass() != null) metadata.put("Storage-Class", file.getStorageClass());
+            if (file.getSize() != null) metadata.put(Constant.Metadata.CONTENT_LENGTH, file.getSize());
+            if (file.getMd5() != null) metadata.put(Constant.Metadata.CONTENT_MD5, file.getMd5());
+            if (file.getEtag() != null) metadata.put("E-Tag", file.getEtag());
+            if (file.getUpdateTimeOffsetDateTime() != null)
+                metadata.put(
+                        Constant.Metadata.LAST_MODIFIED,
+                        DateUtil.formatHttpDate(DateUtil.date(file.getUpdateTimeOffsetDateTime())));
+            info.setMetadata(metadata);
+            if (file.getMetadata() != null) info.setUserMetadata(new HashMap<>(file.getMetadata()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
         }
     }
 

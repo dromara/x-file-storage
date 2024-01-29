@@ -20,6 +20,7 @@ import org.dromara.x.file.storage.core.file.MultipartFormDataReader;
 import org.dromara.x.file.storage.core.get.GetFilePretreatment;
 import org.dromara.x.file.storage.core.get.ListFilesPretreatment;
 import org.dromara.x.file.storage.core.get.ListFilesSupportInfo;
+import org.dromara.x.file.storage.core.get.RemoteFileInfo;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
@@ -484,10 +485,37 @@ public class FileStorageService {
      * 获取文件
      */
     public GetFilePretreatment getFile() {
-        GetFilePretreatment pre = new GetFilePretreatment();
-        pre.setPlatform(properties.getDefaultPlatform());
-        pre.setFileStorageService(self);
-        return pre;
+        return new GetFilePretreatment()
+                .setPlatform(properties.getDefaultPlatform())
+                .setFileStorageService(self);
+    }
+
+    /**
+     * 获取文件
+     * @param fileInfo 文件信息
+     * @return 远程文件信息
+     */
+    public RemoteFileInfo getFile(FileInfo fileInfo) {
+        return getFile()
+                .setPlatform(fileInfo.getPlatform())
+                .setPath(fileInfo.getPath() != null, fileInfo.getPath())
+                .setFilename(fileInfo.getFilename() != null, fileInfo.getFilename())
+                .setUrl(fileInfo.getUrl() != null, fileInfo.getUrl())
+                .getFile();
+    }
+
+    /**
+     * 获取缩略图文件
+     * @param fileInfo 文件信息
+     * @return 远程文件信息
+     */
+    public RemoteFileInfo getThFile(FileInfo fileInfo) {
+        return getFile()
+                .setPlatform(fileInfo.getPlatform())
+                .setPath(fileInfo.getPath() != null, fileInfo.getPath())
+                .setFilename(fileInfo.getThFilename() != null, fileInfo.getThFilename())
+                .setUrl(fileInfo.getThUrl() != null, fileInfo.getThUrl())
+                .getFile();
     }
 
     /**

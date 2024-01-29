@@ -2,16 +2,19 @@ package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.io.file.FileNameUtil;
+import cn.hutool.core.map.MapProxy;
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.StrUtil;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,9 +28,13 @@ import org.dromara.x.file.storage.core.FileStorageProperties.FastDfsConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.get.GetFilePretreatment;
+import org.dromara.x.file.storage.core.get.RemoteFileInfo;
+import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
 
 /**
@@ -177,6 +184,56 @@ public class FastDfsFileStorage implements FileStorage {
                 }
             }
             throw ExceptionFactory.upload(fileInfo, getPlatform(), e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        StorageClient client = getClient();
+        try {
+            String[] arr = getGroupAndFilename(new FileInfo()
+                    .setPath(pre.getPath())
+                    .setFilename(pre.getFilename())
+                    .setUrl(pre.getUrl()));
+            org.csource.fastdfs.FileInfo file;
+            try {
+                file = client.get_file_info(arr[0], arr[1]);
+                if (file == null) return null;
+            } catch (Exception e) {
+                return null;
+            }
+            NameValuePair[] metadata = null;
+            try {
+                metadata = client.get_metadata(arr[0], arr[1]);
+            } catch (Exception ignored) {
+            }
+            if (metadata == null) metadata = new NameValuePair[0];
+
+            KebabCaseInsensitiveMap<String, String> headers = new KebabCaseInsensitiveMap<>(
+                    Arrays.stream(metadata).collect(Collectors.toMap(NameValuePair::getName, NameValuePair::getValue)));
+            MapProxy headersProxy = MapProxy.create(headers);
+
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(config.getBasePath());
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(pre.getFilename()));
+            info.setSize(file.getFileSize());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setContentDisposition(headersProxy.getStr(Constant.Metadata.CONTENT_DISPOSITION));
+            info.setContentType(headersProxy.getStr(Constant.Metadata.CONTENT_TYPE));
+            info.setContentMd5(headersProxy.getStr(Constant.Metadata.CONTENT_MD5));
+            info.setLastModified(file.getCreateTimestamp());
+            info.setMetadata(headers.entrySet().stream()
+                    .filter(e -> !e.getKey().startsWith("x-amz-meta-"))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+            info.setUserMetadata(headers.entrySet().stream()
+                    .filter(e -> e.getKey().startsWith("x-amz-meta-"))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, config.getBasePath(), e);
         }
     }
 
