@@ -5,12 +5,14 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.Map;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.hash.HashInfo;
 
 @Data
 @Accessors(chain = true)
+@NoArgsConstructor
 public class FileInfo implements Serializable {
 
     /**
@@ -167,4 +169,10 @@ public class FileInfo implements Serializable {
     private Date createTime;
 
     private static final long serialVersionUID = 1L;
+
+    public FileInfo(String basePath, String path, String filename) {
+        this.basePath = basePath;
+        this.path = path;
+        this.filename = filename;
+    }
 }

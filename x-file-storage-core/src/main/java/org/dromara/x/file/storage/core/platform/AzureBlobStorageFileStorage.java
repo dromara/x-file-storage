@@ -391,8 +391,9 @@ public class AzureBlobStorageFileStorage implements FileStorage {
 
     @Override
     public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         try {
-            BlobClient client = getBlobClient(basePath + pre.getPath() + pre.getFilename());
+            BlobClient client = getBlobClient(fileKey);
             BlobProperties file;
             try {
                 file = client.getProperties();
@@ -404,6 +405,7 @@ public class AzureBlobStorageFileStorage implements FileStorage {
             info.setBasePath(basePath);
             info.setPath(pre.getPath());
             info.setFilename(FileNameUtil.getName(client.getBlobName()));
+            info.setUrl(domain + fileKey);
             info.setSize(file.getBlobSize());
             info.setExt(FileNameUtil.extName(info.getFilename()));
             info.setETag(file.getETag());

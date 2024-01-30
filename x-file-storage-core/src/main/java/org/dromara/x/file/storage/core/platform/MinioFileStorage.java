@@ -457,13 +457,14 @@ public class MinioFileStorage implements FileStorage {
 
     @Override
     public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         MinioClient client = getClient();
         try {
             StatObjectResponse file;
             try {
                 file = client.statObject(StatObjectArgs.builder()
                         .bucket(bucketName)
-                        .object(basePath + pre.getPath() + pre.getFilename())
+                        .object(fileKey)
                         .build());
             } catch (Exception e) {
                 return null;
@@ -479,6 +480,7 @@ public class MinioFileStorage implements FileStorage {
             info.setBasePath(basePath);
             info.setPath(pre.getPath());
             info.setFilename(FileNameUtil.getName(file.object()));
+            info.setUrl(domain + fileKey);
             info.setSize(file.size());
             info.setExt(FileNameUtil.extName(info.getFilename()));
             info.setETag(file.etag());

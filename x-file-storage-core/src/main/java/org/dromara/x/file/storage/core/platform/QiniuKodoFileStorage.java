@@ -326,11 +326,12 @@ public class QiniuKodoFileStorage implements FileStorage {
 
     @Override
     public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         QiniuKodoClient client = getClient();
         try {
             com.qiniu.storage.model.FileInfo file;
             try {
-                file = client.getBucketManager().stat(bucketName, basePath + pre.getPath() + pre.getFilename());
+                file = client.getBucketManager().stat(bucketName, fileKey);
             } catch (Exception e) {
                 return null;
             }
@@ -339,6 +340,7 @@ public class QiniuKodoFileStorage implements FileStorage {
             info.setBasePath(basePath);
             info.setPath(pre.getPath());
             info.setFilename(FileNameUtil.getName(file.key));
+            info.setUrl(domain + fileKey);
             info.setSize(file.fsize);
             info.setExt(FileNameUtil.extName(info.getFilename()));
             info.setContentType(file.mimeType);

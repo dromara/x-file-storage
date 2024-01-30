@@ -115,11 +115,12 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
 
     @Override
     public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         Storage client = getClient();
         try {
             Blob file;
             try {
-                file = client.get(bucketName, basePath + pre.getPath() + pre.getFilename());
+                file = client.get(bucketName, fileKey);
             } catch (Exception e) {
                 return null;
             }
@@ -128,6 +129,7 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
             info.setBasePath(basePath);
             info.setPath(pre.getPath());
             info.setFilename(FileNameUtil.getName(file.getName()));
+            info.setUrl(domain + fileKey);
             info.setSize(file.getSize());
             info.setExt(FileNameUtil.extName(info.getFilename()));
             info.setETag(file.getEtag());

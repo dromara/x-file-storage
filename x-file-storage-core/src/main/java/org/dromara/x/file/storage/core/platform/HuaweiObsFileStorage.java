@@ -331,11 +331,12 @@ public class HuaweiObsFileStorage implements FileStorage {
 
     @Override
     public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         ObsClient client = getClient();
         try {
             ObsObject file;
             try {
-                file = client.getObject(bucketName, basePath + pre.getPath() + pre.getFilename());
+                file = client.getObject(bucketName, fileKey);
             } catch (Exception e) {
                 return null;
             }
@@ -345,6 +346,7 @@ public class HuaweiObsFileStorage implements FileStorage {
             info.setBasePath(basePath);
             info.setPath(pre.getPath());
             info.setFilename(FileNameUtil.getName(file.getObjectKey()));
+            info.setUrl(domain + fileKey);
             info.setSize(metadata.getContentLength());
             info.setExt(FileNameUtil.extName(info.getFilename()));
             info.setETag(metadata.getEtag());
