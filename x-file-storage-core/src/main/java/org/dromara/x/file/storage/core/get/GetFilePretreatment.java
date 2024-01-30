@@ -60,7 +60,7 @@ public class GetFilePretreatment {
 
     /**
      * 设置路径，需要与上传时传入的路径保持一致（如果条件为 true）
-     * @param flag 路径，需要与上传时传入的路径保持一致
+     * @param flag 条件
      * @param path 文件访问地址
      * @return 获取文件预处理器
      */
