@@ -128,6 +128,28 @@ public class LogFileStorageAspect implements FileStorageAspect {
     }
 
     /**
+     * 是否支持列举文件
+     */
+    @Override
+    public ListFilesSupportInfo isSupportListFiles(IsSupportListFilesAspectChain chain, FileStorage fileStorage) {
+        log.info("是否支持列举文件 before -> {}", fileStorage.getPlatform());
+        ListFilesSupportInfo res = chain.next(fileStorage);
+        log.info("是否支持列举文件 -> {}", res);
+        return res;
+    }
+
+    /**
+     * 列举文件
+     */
+    @Override
+    public ListFilesResult listFiles(ListFilesAspectChain chain, ListFilesPretreatment pre, FileStorage fileStorage) {
+        log.info("列举文件 before -> {}", BeanUtil.beanToMap(pre, "fileStorageService"));
+        ListFilesResult result = chain.next(pre, fileStorage);
+        log.info("列举文件 after -> {}", result);
+        return result;
+    }
+
+    /**
      * 获取文件
      */
     @Override
