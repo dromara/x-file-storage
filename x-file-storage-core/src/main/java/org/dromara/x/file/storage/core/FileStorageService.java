@@ -206,6 +206,13 @@ public class FileStorageService {
     /**
      * 是否支持对文件生成可以签名访问的 URL
      */
+    public boolean isSupportPresignedUrl() {
+        return self.isSupportPresignedUrl(properties.getDefaultPlatform());
+    }
+
+    /**
+     * 是否支持对文件生成可以签名访问的 URL
+     */
     public boolean isSupportPresignedUrl(String platform) {
         FileStorage storage = self.getFileStorageVerify(platform);
         return self.isSupportPresignedUrl(storage);
@@ -250,6 +257,13 @@ public class FileStorageService {
     /**
      * 是否支持对文件的访问控制列表
      */
+    public boolean isSupportAcl() {
+        return self.isSupportAcl(properties.getDefaultPlatform());
+    }
+
+    /**
+     * 是否支持对文件的访问控制列表
+     */
     public boolean isSupportAcl(String platform) {
         FileStorage storage = self.getFileStorageVerify(platform);
         return self.isSupportAcl(storage);
@@ -283,6 +297,13 @@ public class FileStorageService {
         return new SetThFileAclAspectChain(
                         aspectList, (_fileInfo, _acl, _fileStorage) -> _fileStorage.setThFileAcl(_fileInfo, _acl))
                 .next(fileInfo, acl, self.getFileStorageVerify(fileInfo));
+    }
+
+    /**
+     * 是否支持 Metadata
+     */
+    public boolean isSupportMetadata() {
+        return self.isSupportMetadata(properties.getDefaultPlatform());
     }
 
     /**
@@ -598,6 +619,13 @@ public class FileStorageService {
     /**
      * 是否支持同存储平台复制文件
      */
+    public boolean isSupportSameCopy() {
+        return self.isSupportSameCopy(properties.getDefaultPlatform());
+    }
+
+    /**
+     * 是否支持同存储平台复制文件
+     */
     public boolean isSupportSameCopy(String platform) {
         FileStorage storage = self.getFileStorageVerify(platform);
         return self.isSupportSameCopy(storage);
@@ -625,6 +653,13 @@ public class FileStorageService {
      */
     public CopyPretreatment copy(String url) {
         return self.copy(self.getFileInfoByUrl(url));
+    }
+
+    /**
+     * 是否支持同存储平台移动文件
+     */
+    public boolean isSupportSameMove() {
+        return self.isSupportSameMove(properties.getDefaultPlatform());
     }
 
     /**
