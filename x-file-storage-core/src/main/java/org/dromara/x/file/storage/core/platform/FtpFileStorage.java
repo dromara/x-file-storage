@@ -168,6 +168,7 @@ public class FtpFileStorage implements FileStorage {
 
     @Override
     public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         Ftp client = getClient();
         try {
             String path = getAbsolutePath(basePath + pre.getPath());
@@ -184,6 +185,7 @@ public class FtpFileStorage implements FileStorage {
             info.setBasePath(basePath);
             info.setPath(pre.getPath());
             info.setFilename(file.getName());
+            info.setUrl(domain + fileKey);
             info.setSize(file.getSize());
             info.setExt(FileNameUtil.extName(info.getFilename()));
             info.setLastModified(DateUtil.date(file.getTimestamp()));

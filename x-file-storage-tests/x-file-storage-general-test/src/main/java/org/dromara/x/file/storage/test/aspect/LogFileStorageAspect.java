@@ -1,5 +1,6 @@
 package org.dromara.x.file.storage.test.aspect;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.ArrayUtil;
 import java.io.InputStream;
 import java.util.Date;
@@ -9,6 +10,7 @@ import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.aspect.*;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
@@ -123,6 +125,39 @@ public class LogFileStorageAspect implements FileStorageAspect {
         FilePartInfoList list = chain.next(pre, fileStorage);
         log.info("手动分片上传-列举已上传的分片 after -> {}", list);
         return list;
+    }
+
+    /**
+     * 是否支持列举文件
+     */
+    @Override
+    public ListFilesSupportInfo isSupportListFiles(IsSupportListFilesAspectChain chain, FileStorage fileStorage) {
+        log.info("是否支持列举文件 before -> {}", fileStorage.getPlatform());
+        ListFilesSupportInfo res = chain.next(fileStorage);
+        log.info("是否支持列举文件 -> {}", res);
+        return res;
+    }
+
+    /**
+     * 列举文件
+     */
+    @Override
+    public ListFilesResult listFiles(ListFilesAspectChain chain, ListFilesPretreatment pre, FileStorage fileStorage) {
+        log.info("列举文件 before -> {}", BeanUtil.beanToMap(pre, "fileStorageService"));
+        ListFilesResult result = chain.next(pre, fileStorage);
+        log.info("列举文件 after -> {}", result);
+        return result;
+    }
+
+    /**
+     * 获取文件
+     */
+    @Override
+    public RemoteFileInfo getFile(GetFileAspectChain chain, GetFilePretreatment pre, FileStorage fileStorage) {
+        log.info("获取文件 before -> {}", BeanUtil.beanToMap(pre, "fileStorageService"));
+        RemoteFileInfo result = chain.next(pre, fileStorage);
+        log.info("获取文件 after -> {}", result);
+        return result;
     }
 
     /**

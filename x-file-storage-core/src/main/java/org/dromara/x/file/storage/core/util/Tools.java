@@ -1,7 +1,10 @@
 package org.dromara.x.file.storage.core.util;
 
+import cn.hutool.core.util.StrUtil;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Tools {
     /**
@@ -60,5 +63,15 @@ public class Tools {
     public static <T> T getNotNull(T... args) {
         for (T t : args) if (t != null) return t;
         throw new NullPointerException();
+    }
+
+    /**
+     * 将 Map 的 key 和 value 转换成 String 类型
+     */
+    public static <K, V> Map<String, String> toStringMap(Map<? extends K, ? extends V> map) {
+        if (map == null) return null;
+        return map.entrySet().stream()
+                .collect(Collectors.toMap(
+                        e -> StrUtil.toStringOrNull(e.getKey()), e -> StrUtil.toStringOrNull(e.getValue())));
     }
 }

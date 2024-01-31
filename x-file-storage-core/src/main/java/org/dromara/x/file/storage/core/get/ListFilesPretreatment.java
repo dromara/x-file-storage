@@ -66,7 +66,7 @@ public class ListFilesPretreatment {
 
     /**
      * 设置路径，需要与上传时传入的路径保持一致（如果条件为 true）
-     * @param flag 路径，需要与上传时传入的路径保持一致
+     * @param flag 条件
      * @param path 文件访问地址
      * @return 列举文件预处理器
      */
@@ -77,7 +77,7 @@ public class ListFilesPretreatment {
 
     /**
      * 设置文件名前缀（如果条件为 true）
-     * @param flag 路径，需要与上传时传入的路径保持一致
+     * @param flag 条件
      * @param filenamePrefix 文件名前缀
      * @return 列举文件预处理器
      */
@@ -88,7 +88,7 @@ public class ListFilesPretreatment {
 
     /**
      * 设置要列举的最大文件数量，这里默认最大值表示全部文件（如果条件为 true）
-     * @param flag 路径，需要与上传时传入的路径保持一致
+     * @param flag 条件
      * @param maxFiles 要列举的最大文件数量，这里默认最大值表示全部文件
      * @return 列举文件预处理器
      */
@@ -99,7 +99,7 @@ public class ListFilesPretreatment {
 
     /**
      * 设置表示待列举文件的起始位置，从该标识符以后按文件名的字典顺序返回对象列表，默认从头开始（如果条件为 true）
-     * @param flag 路径，需要与上传时传入的路径保持一致
+     * @param flag 条件
      * @param marker 表示待列举文件的起始位置，从该标识符以后按文件名的字典顺序返回对象列表，默认从头开始
      * @return 列举文件预处理器
      */

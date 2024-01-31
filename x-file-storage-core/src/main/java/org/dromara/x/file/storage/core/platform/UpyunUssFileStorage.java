@@ -311,11 +311,12 @@ public class UpyunUssFileStorage implements FileStorage {
 
     @Override
     public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         RestManager client = getClient();
         try {
             Response file;
             try {
-                file = checkResponse(client.getFileInfo(basePath + pre.getPath() + pre.getFilename()));
+                file = checkResponse(client.getFileInfo(fileKey));
                 Long.parseLong(Objects.requireNonNull(file.header(RestManager.PARAMS.X_UPYUN_FILE_SIZE.getValue())));
             } catch (Exception e) {
                 return null;
@@ -331,6 +332,7 @@ public class UpyunUssFileStorage implements FileStorage {
             info.setBasePath(basePath);
             info.setPath(pre.getPath());
             info.setFilename(FileNameUtil.getName(pre.getFilename()));
+            info.setUrl(domain + fileKey);
             info.setSize(headersProxy.getLong(Constant.Metadata.CONTENT_LENGTH));
             info.setExt(FileNameUtil.extName(info.getFilename()));
             info.setETag(headersProxy.getStr("etag"));

@@ -178,6 +178,7 @@ public class SftpFileStorage implements FileStorage {
 
     @Override
     public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         Sftp client = getClient();
         try {
             String path = getAbsolutePath(basePath + pre.getPath());
@@ -215,6 +216,7 @@ public class SftpFileStorage implements FileStorage {
             info.setBasePath(basePath);
             info.setPath(pre.getPath());
             info.setFilename(file.getFilename());
+            info.setUrl(domain + fileKey);
             info.setSize(file.getAttrs().getSize());
             info.setExt(FileNameUtil.extName(info.getFilename()));
             info.setLastModified(DateUtil.date(file.getAttrs().getMTime() * 1000L));

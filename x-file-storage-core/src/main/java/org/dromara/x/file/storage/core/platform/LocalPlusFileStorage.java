@@ -315,8 +315,9 @@ public class LocalPlusFileStorage implements FileStorage {
 
     @Override
     public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         try {
-            File file = new File(getAbsolutePath(basePath + pre.getPath() + pre.getFilename()));
+            File file = new File(getAbsolutePath(fileKey));
             if (!file.exists()) return null;
             if (!file.isFile()) return null;
             RemoteFileInfo info = new RemoteFileInfo();
@@ -324,6 +325,7 @@ public class LocalPlusFileStorage implements FileStorage {
             info.setBasePath(basePath);
             info.setPath(pre.getPath());
             info.setFilename(file.getName());
+            info.setUrl(domain + fileKey);
             info.setSize(file.length());
             info.setExt(FileNameUtil.extName(info.getFilename()));
             info.setLastModified(new Date(file.lastModified()));

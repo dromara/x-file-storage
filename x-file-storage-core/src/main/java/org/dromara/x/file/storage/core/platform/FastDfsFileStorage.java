@@ -15,9 +15,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.csource.common.MyException;
 import org.csource.common.NameValuePair;
@@ -216,8 +215,7 @@ public class FastDfsFileStorage implements FileStorage {
             RemoteFileInfo info = new RemoteFileInfo();
             info.setPlatform(pre.getPlatform());
             info.setBasePath(config.getBasePath());
-            info.setPath(pre.getPath());
-            info.setFilename(FileNameUtil.getName(pre.getFilename()));
+            setGroupAndFilename(info, arr);
             info.setSize(file.getFileSize());
             info.setExt(FileNameUtil.extName(info.getFilename()));
             info.setContentDisposition(headersProxy.getStr(Constant.Metadata.CONTENT_DISPOSITION));
@@ -230,7 +228,7 @@ public class FastDfsFileStorage implements FileStorage {
             info.setUserMetadata(headers.entrySet().stream()
                     .filter(e -> e.getKey().startsWith("x-amz-meta-"))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-            info.setOriginal(file);
+            info.setOriginal(new FastDfsFileInfo(file, metadata));
             return info;
         } catch (Exception e) {
             throw ExceptionFactory.getFile(pre, config.getBasePath(), e);
@@ -416,6 +414,16 @@ public class FastDfsFileStorage implements FileStorage {
     }
 
     /**
+     * 将 FastDFS 返回的 group 和 filename 保存到 RemoteFileInfo 文件信息中
+     */
+    public void setGroupAndFilename(RemoteFileInfo info, String[] arr) {
+        info.setUrl(config.getDomain() + arr[0] + "/" + arr[1]);
+        Path path = Paths.get(arr[0], arr[1]);
+        info.setPath(path.getParent().toString().replace("\\", "/") + "/");
+        info.setFilename(path.getFileName().toString());
+    }
+
+    /**
      * 获取文件对应的 FastDFS 支持的 group 和 filename，失败返回 null
      * @param fileInfo 文件信息
      * @return 0：group，1：filename
@@ -467,5 +475,23 @@ public class FastDfsFileStorage implements FileStorage {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /**
+     * FastDFS 的文件信息
+     */
+    @Data
+    @Accessors(chain = true)
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FastDfsFileInfo {
+        /**
+         * 文件信息
+         */
+        private org.csource.fastdfs.FileInfo fileInfo;
+        /**
+         * 元数据
+         */
+        private NameValuePair[] metadata;
     }
 }

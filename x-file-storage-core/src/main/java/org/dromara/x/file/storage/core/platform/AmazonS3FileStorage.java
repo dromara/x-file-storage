@@ -337,11 +337,12 @@ public class AmazonS3FileStorage implements FileStorage {
 
     @Override
     public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         AmazonS3 client = getClient();
         try {
             S3Object file;
             try {
-                file = client.getObject(bucketName, basePath + pre.getPath() + pre.getFilename());
+                file = client.getObject(bucketName, fileKey);
             } catch (Exception e) {
                 return null;
             }
@@ -351,6 +352,7 @@ public class AmazonS3FileStorage implements FileStorage {
             info.setBasePath(basePath);
             info.setPath(pre.getPath());
             info.setFilename(FileNameUtil.getName(file.getKey()));
+            info.setUrl(domain + fileKey);
             info.setSize(metadata.getContentLength());
             info.setExt(FileNameUtil.extName(info.getFilename()));
             info.setETag(metadata.getETag());

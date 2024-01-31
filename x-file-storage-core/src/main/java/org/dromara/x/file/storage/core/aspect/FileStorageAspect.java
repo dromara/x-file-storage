@@ -93,7 +93,7 @@ public interface FileStorageAspect {
     }
 
     /**
-     * 是否支持手列举文件
+     * 是否支持列举文件
      */
     default ListFilesSupportInfo isSupportListFiles(IsSupportListFilesAspectChain chain, FileStorage fileStorage) {
         return chain.next(fileStorage);

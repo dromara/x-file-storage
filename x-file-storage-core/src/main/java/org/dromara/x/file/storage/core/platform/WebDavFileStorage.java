@@ -183,11 +183,12 @@ public class WebDavFileStorage implements FileStorage {
 
     @Override
     public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         Sardine client = getClient();
         try {
             DavResource file;
             try {
-                String url = getUrl(basePath + pre.getPath() + pre.getFilename());
+                String url = getUrl(fileKey);
                 file = client.list(url, 0, false).get(0);
             } catch (Exception e) {
                 return null;
@@ -198,6 +199,7 @@ public class WebDavFileStorage implements FileStorage {
             info.setBasePath(basePath);
             info.setPath(pre.getPath());
             info.setFilename(file.getName());
+            info.setUrl(domain + fileKey);
             info.setSize(file.getContentLength());
             info.setExt(FileNameUtil.extName(info.getFilename()));
             info.setETag(file.getEtag());

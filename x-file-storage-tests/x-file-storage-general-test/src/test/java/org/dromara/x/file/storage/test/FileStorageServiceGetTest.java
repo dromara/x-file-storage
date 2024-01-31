@@ -76,6 +76,9 @@ class FileStorageServiceGetTest {
         Assert.notNull(info, "获取文件失败！");
         log.info("获取文件结果：{}", info);
 
+        FileInfo fileInfo2 = info.toFileInfo();
+        log.info("文件结果转成 FileInfo：{}", fileInfo2);
+
         fileStorageService.delete(fileInfo);
 
         RemoteFileInfo info2 = fileStorageService
