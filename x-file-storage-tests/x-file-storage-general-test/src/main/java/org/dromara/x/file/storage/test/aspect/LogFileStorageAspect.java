@@ -13,6 +13,8 @@ import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
 import org.dromara.x.file.storage.core.upload.*;
@@ -220,10 +222,10 @@ public class LogFileStorageAspect implements FileStorageAspect {
      * 对文件生成可以签名访问的 URL，无法生成则返回 null
      */
     @Override
-    public String generatePresignedUrlAround(
-            GeneratePresignedUrlAspectChain chain, FileInfo fileInfo, Date expiration, FileStorage fileStorage) {
-        log.info("对文件生成可以签名访问的 URL before -> {}", fileInfo);
-        String res = chain.next(fileInfo, expiration, fileStorage);
+    public GeneratePresignedUrlResult generatePresignedUrlAround(
+            GeneratePresignedUrlAspectChain chain, GeneratePresignedUrlPretreatment pre, FileStorage fileStorage) {
+        log.info("对文件生成可以签名访问的 URL before -> {}", BeanUtil.beanToMap(pre, "fileStorageService"));
+        GeneratePresignedUrlResult res = chain.next(pre, fileStorage);
         log.info("对文件生成可以签名访问的 URL after -> {}", res);
         return res;
     }

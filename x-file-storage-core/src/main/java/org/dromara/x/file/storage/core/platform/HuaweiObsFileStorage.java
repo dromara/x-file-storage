@@ -13,10 +13,7 @@ import com.obs.services.internal.ObsConvertor;
 import com.obs.services.model.*;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -33,7 +30,10 @@ import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.get.*;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.util.Tools;
 
 /**
  * 华为云 OBS 存储
@@ -421,31 +421,29 @@ public class HuaweiObsFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
         try {
-            long expires = (expiration.getTime() - System.currentTimeMillis()) / 1000;
-            TemporarySignatureRequest request = new TemporarySignatureRequest(HttpMethodEnum.GET, expires);
+            HttpMethodEnum method = Tools.getEnum(HttpMethodEnum.class, pre.getMethod());
+            SpecialParamEnum specialParam = Tools.getEnum(SpecialParamEnum.class, pre.getSpecialParam());
+            long expires = (pre.getExpiration().getTime() - System.currentTimeMillis()) / 1000;
+            TemporarySignatureRequest request = new TemporarySignatureRequest(method, expires);
             request.setBucketName(bucketName);
-            request.setObjectKey(getFileKey(fileInfo));
-            return getClient().createTemporarySignature(request).getSignedUrl();
+            request.setObjectKey(getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename())));
+            request.setSpecialParam(specialParam);
+            Map<String, String> headers = new HashMap<>(pre.getHeaders());
+            headers.putAll(pre.getUserMetadata().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().startsWith("x-obs-meta-") ? e.getKey() : "x-obs-meta-" + e.getKey(),
+                            Map.Entry::getValue)));
+            request.setHeaders(headers);
+            request.setQueryParams(new HashMap<>(pre.getQueryParams()));
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            TemporarySignatureResponse response = getClient().createTemporarySignature(request);
+            result.setUrl(response.getSignedUrl());
+            result.setHeaders(response.getActualSignedRequestHeaders());
+            return result;
         } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            String key = getThFileKey(fileInfo);
-            if (key == null) return null;
-            long expires = (expiration.getTime() - System.currentTimeMillis()) / 1000;
-            TemporarySignatureRequest request = new TemporarySignatureRequest(HttpMethodEnum.GET, expires);
-            request.setBucketName(bucketName);
-            request.setObjectKey(key);
-
-            return getClient().createTemporarySignature(request).getSignedUrl();
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
         }
     }
 

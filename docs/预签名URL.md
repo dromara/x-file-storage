@@ -20,3 +20,9 @@ System.out.println("文件授权访问地址：" + presignedUrl);
 String thPresignedUrl = fileStorageService.generateThPresignedUrl(fileInfo,DateUtil.offsetHour(new Date(),1));
 System.out.println("缩略图文件授权访问地址：" + thPresignedUrl);
 ```
+
+华为云，支持所有操作：[文档](https://support.huaweicloud.com/sdk-java-devg-obs/obs_21_0901.html)
+
+阿里云，支持部分操作：[文档](https://help.aliyun.com/zh/oss/developer-reference/authorize-access-1?spm=a2c4g.11186623.0.0.21ec3b2bHHPzJn#section-8ii-3zg-2ib)
+
+Amazon S3 https://docs.aws.amazon.com/zh_cn/AmazonS3/latest/userguide/using-presigned-url.html

@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.StrUtil;
+import com.amazonaws.HttpMethod;
 import com.amazonaws.RequestClientOptions;
 import com.amazonaws.event.ProgressEventType;
 import com.amazonaws.services.s3.AmazonS3;
@@ -11,10 +12,8 @@ import com.amazonaws.services.s3.model.*;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
+import java.net.URL;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -29,6 +28,8 @@ import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.get.*;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
 
@@ -420,6 +421,31 @@ public class AmazonS3FileStorage implements FileStorage {
     @Override
     public boolean isSupportPresignedUrl() {
         return true;
+    }
+
+    @Override
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
+        try {
+            String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucketName, fileKey);
+            request.setExpiration(pre.getExpiration());
+            request.setMethod(Tools.getEnum(HttpMethod.class, pre.getMethod()));
+            Map<String, String> headers = new HashMap<>(pre.getHeaders());
+            headers.putAll(pre.getUserMetadata().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().startsWith("x-amz-meta-") ? e.getKey() : "x-amz-meta-" + e.getKey(),
+                            Map.Entry::getValue)));
+            headers.forEach(request::putCustomRequestHeader);
+            pre.getQueryParams().forEach(request::putCustomQueryParameter);
+            pre.getQueryParams().forEach(request::addRequestParameter);
+            URL url = getClient().generatePresignedUrl(request);
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            result.setUrl(url.toString());
+            result.setHeaders(request.getCustomRequestHeaders());
+            return result;
+        } catch (Exception e) {
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
+        }
     }
 
     @Override
