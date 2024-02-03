@@ -1,5 +1,7 @@
 package org.dromara.x.file.storage.core.util;
 
+import cn.hutool.core.map.CaseInsensitiveMap;
+import cn.hutool.core.util.EnumUtil;
 import cn.hutool.core.util.StrUtil;
 import java.io.IOException;
 import java.io.InputStream;
@@ -73,5 +75,16 @@ public class Tools {
         return map.entrySet().stream()
                 .collect(Collectors.toMap(
                         e -> StrUtil.toStringOrNull(e.getKey()), e -> StrUtil.toStringOrNull(e.getValue())));
+    }
+
+    /**
+     * 获取枚举类型（忽略大小写）
+     */
+    public static <E extends Enum<E>> E getEnum(Class<E> enumClass, Object value) {
+        if (value == null) return null;
+        if (enumClass.isInstance(value)) {
+            return Tools.cast(value);
+        }
+        return new CaseInsensitiveMap<>(EnumUtil.getEnumMap(enumClass)).get(value.toString());
     }
 }

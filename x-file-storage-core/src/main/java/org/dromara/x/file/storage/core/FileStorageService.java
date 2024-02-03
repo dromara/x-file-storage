@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.aspect.*;
+import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
@@ -23,6 +24,8 @@ import org.dromara.x.file.storage.core.get.ListFilesSupportInfo;
 import org.dromara.x.file.storage.core.get.RemoteFileInfo;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
 import org.dromara.x.file.storage.core.upload.*;
@@ -227,17 +230,29 @@ public class FileStorageService {
     }
 
     /**
+     * 生成预签名 URL
+     * @return 生成预签名 URL 预处理器
+     */
+    public GeneratePresignedUrlPretreatment generatePresignedUrl() {
+        return new GeneratePresignedUrlPretreatment()
+                .setFileStorageService(self)
+                .setPlatform(properties.getDefaultPlatform());
+    }
+
+    /**
      * 对文件生成可以签名访问的 URL，无法生成则返回 null
      *
      * @param expiration 到期时间
      */
     public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
         if (fileInfo == null) return null;
-        return new GeneratePresignedUrlAspectChain(
-                        aspectList,
-                        (_fileInfo, _expiration, _fileStorage) ->
-                                _fileStorage.generatePresignedUrl(_fileInfo, _expiration))
-                .next(fileInfo, expiration, self.getFileStorageVerify(fileInfo));
+        GeneratePresignedUrlResult result = generatePresignedUrl()
+                .setExpiration(expiration)
+                .setPath(fileInfo.getPath())
+                .setFilename(fileInfo.getFilename())
+                .setMethod(Constant.GeneratePresignedUrl.Method.GET)
+                .generatePresignedUrl();
+        return result == null ? null : result.getUrl();
     }
 
     /**
@@ -247,11 +262,13 @@ public class FileStorageService {
      */
     public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
         if (fileInfo == null) return null;
-        return new GenerateThPresignedUrlAspectChain(
-                        aspectList,
-                        (_fileInfo, _expiration, _fileStorage) ->
-                                _fileStorage.generateThPresignedUrl(_fileInfo, _expiration))
-                .next(fileInfo, expiration, self.getFileStorageVerify(fileInfo));
+        GeneratePresignedUrlResult result = generatePresignedUrl()
+                .setExpiration(expiration)
+                .setPath(fileInfo.getPath())
+                .setFilename(fileInfo.getThFilename())
+                .setMethod(Constant.GeneratePresignedUrl.Method.GET)
+                .generatePresignedUrl();
+        return result == null ? null : result.getUrl();
     }
 
     /**

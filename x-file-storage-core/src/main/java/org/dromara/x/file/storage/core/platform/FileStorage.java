@@ -17,6 +17,8 @@ import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
 
@@ -133,6 +135,15 @@ public interface FileStorage extends AutoCloseable {
      */
     default boolean isSupportPresignedUrl() {
         return false;
+    }
+
+    /**
+     * 生成预签名 URL
+     *
+     * @param pre 生成预签名 URL 预处理器
+     */
+    default GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
+        return null;
     }
 
     /**
