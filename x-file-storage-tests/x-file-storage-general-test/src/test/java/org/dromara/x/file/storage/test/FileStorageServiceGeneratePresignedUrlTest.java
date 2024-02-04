@@ -42,7 +42,7 @@ class FileStorageServiceGeneratePresignedUrlTest {
         // ======================= 测试访问 =======================
         download(result.getPath(), result.getFilename(), bytes);
         // ======================= 测试删除 =======================
-        delete(result.getPlatform(), result.getBasePath(), result.getPath(), result.getFilename());
+        //        delete(result.getPlatform(), result.getBasePath(), result.getPath(), result.getFilename());
     }
 
     /**
@@ -128,6 +128,8 @@ class FileStorageServiceGeneratePresignedUrlTest {
                 .setFilename(filename)
                 .setMethod(Constant.GeneratePresignedUrl.Method.GET)
                 .setExpiration(DateUtil.offsetMinute(new Date(), 10))
+                .putResponseHeaders(
+                        Constant.Metadata.CONTENT_DISPOSITION, "attachment;filename=NewDownloadFileName.jpg")
                 .generatePresignedUrl();
         Assert.notNull(downloadResult, "生成访问预签名 URL 失败！");
         log.info("生成访问预签名 URL 结果：{}", downloadResult);

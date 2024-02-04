@@ -34,6 +34,8 @@ import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.get.*;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
@@ -505,36 +507,31 @@ public class MinioFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
-        int expiry = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
         try {
+            String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+            Map<String, String> headers = new HashMap<>(pre.getHeaders());
+            headers.putAll(pre.getUserMetadata().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().startsWith("x-amz-meta-") ? e.getKey() : "x-amz-meta-" + e.getKey(),
+                            Map.Entry::getValue)));
+            HashMap<String, String> queryParam = new HashMap<>(pre.getQueryParams());
+            pre.getResponseHeaders().forEach((k, v) -> queryParam.put("response-" + k.toLowerCase(), v));
             GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
                     .bucket(bucketName)
-                    .object(getFileKey(fileInfo))
-                    .method(Method.GET)
-                    .expiry(expiry)
+                    .object(fileKey)
+                    .method(Tools.getEnum(Method.class, pre.getMethod()))
+                    .expiry((int) ((pre.getExpiration().getTime() - System.currentTimeMillis()) / 1000))
+                    .extraHeaders(headers)
+                    .extraQueryParams(queryParam)
                     .build();
-            return getClient().getPresignedObjectUrl(args);
+            String url = getClient().getPresignedObjectUrl(args);
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            result.setUrl(url);
+            result.setHeaders(headers);
+            return result;
         } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        String key = getThFileKey(fileInfo);
-        if (key == null) return null;
-        int expiry = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
-        try {
-            GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
-                    .bucket(bucketName)
-                    .object(key)
-                    .method(Method.GET)
-                    .expiry(expiry)
-                    .build();
-            return getClient().getPresignedObjectUrl(args);
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
         }
     }
 

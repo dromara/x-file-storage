@@ -436,7 +436,9 @@ public class HuaweiObsFileStorage implements FileStorage {
                             e -> e.getKey().startsWith("x-obs-meta-") ? e.getKey() : "x-obs-meta-" + e.getKey(),
                             Map.Entry::getValue)));
             request.setHeaders(headers);
-            request.setQueryParams(new HashMap<>(pre.getQueryParams()));
+            HashMap<String, Object> queryParam = new HashMap<>(pre.getQueryParams());
+            pre.getResponseHeaders().forEach((k, v) -> queryParam.put("response-" + k.toLowerCase(), v));
+            request.setQueryParams(queryParam);
             GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
             TemporarySignatureResponse response = getClient().createTemporarySignature(request);
             result.setUrl(response.getSignedUrl());

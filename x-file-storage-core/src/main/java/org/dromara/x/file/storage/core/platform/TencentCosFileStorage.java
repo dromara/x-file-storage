@@ -6,13 +6,12 @@ import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.StrUtil;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.event.ProgressEventType;
+import com.qcloud.cos.http.HttpMethodName;
 import com.qcloud.cos.model.*;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
+import java.net.URL;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -29,6 +28,8 @@ import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.get.*;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
 
@@ -418,24 +419,27 @@ public class TencentCosFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
         try {
-            return getClient()
-                    .generatePresignedUrl(bucketName, getFileKey(fileInfo), expiration)
-                    .toString();
+            String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucketName, fileKey);
+            request.setExpiration(pre.getExpiration());
+            request.setMethod(Tools.getEnum(HttpMethodName.class, pre.getMethod()));
+            Map<String, String> headers = new HashMap<>(pre.getHeaders());
+            headers.putAll(pre.getUserMetadata().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().startsWith("x-cos-meta-") ? e.getKey() : "x-cos-meta-" + e.getKey(),
+                            Map.Entry::getValue)));
+            headers.forEach(request::putCustomRequestHeader);
+            pre.getQueryParams().forEach(request::addRequestParameter);
+            pre.getResponseHeaders().forEach((k, v) -> request.addRequestParameter("response-" + k.toLowerCase(), v));
+            URL url = getClient().generatePresignedUrl(request);
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            result.setUrl(url.toString());
+            result.setHeaders(request.getCustomRequestHeaders());
+            return result;
         } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            String key = getThFileKey(fileInfo);
-            if (key == null) return null;
-            return getClient().generatePresignedUrl(bucketName, key, expiration).toString();
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
         }
     }
 
