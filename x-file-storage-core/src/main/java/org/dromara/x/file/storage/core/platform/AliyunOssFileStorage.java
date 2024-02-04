@@ -427,7 +427,9 @@ public class AliyunOssFileStorage implements FileStorage {
             request.setMethod(Tools.getEnum(HttpMethod.class, pre.getMethod()));
             request.setHeaders(new HashMap<>(pre.getHeaders()));
             request.setUserMetadata(new HashMap<>(pre.getUserMetadata()));
-            request.setQueryParameter(pre.getQueryParams());
+            HashMap<String, String> queryParam = new HashMap<>(pre.getQueryParams());
+            pre.getResponseHeaders().forEach((k, v) -> queryParam.put("response-" + k.toLowerCase(), v));
+            request.setQueryParameter(queryParam);
             URL url = getClient().generatePresignedUrl(request);
             GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
             result.setUrl(url.toString());
@@ -435,28 +437,6 @@ public class AliyunOssFileStorage implements FileStorage {
             return result;
         } catch (Exception e) {
             throw ExceptionFactory.generatePresignedUrl(pre, e);
-        }
-    }
-
-    @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            return getClient()
-                    .generatePresignedUrl(bucketName, getFileKey(fileInfo), expiration)
-                    .toString();
-        } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            String key = getThFileKey(fileInfo);
-            if (key == null) return null;
-            return getClient().generatePresignedUrl(bucketName, key, expiration).toString();
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
         }
     }
 

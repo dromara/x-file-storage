@@ -436,8 +436,8 @@ public class AmazonS3FileStorage implements FileStorage {
                             e -> e.getKey().startsWith("x-amz-meta-") ? e.getKey() : "x-amz-meta-" + e.getKey(),
                             Map.Entry::getValue)));
             headers.forEach(request::putCustomRequestHeader);
-            pre.getQueryParams().forEach(request::putCustomQueryParameter);
             pre.getQueryParams().forEach(request::addRequestParameter);
+            pre.getResponseHeaders().forEach((k, v) -> request.addRequestParameter("response-" + k.toLowerCase(), v));
             URL url = getClient().generatePresignedUrl(request);
             GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
             result.setUrl(url.toString());
@@ -445,28 +445,6 @@ public class AmazonS3FileStorage implements FileStorage {
             return result;
         } catch (Exception e) {
             throw ExceptionFactory.generatePresignedUrl(pre, e);
-        }
-    }
-
-    @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            return getClient()
-                    .generatePresignedUrl(bucketName, getFileKey(fileInfo), expiration)
-                    .toString();
-        } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            String key = getThFileKey(fileInfo);
-            if (key == null) return null;
-            return getClient().generatePresignedUrl(bucketName, key, expiration).toString();
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
         }
     }
 

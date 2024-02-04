@@ -8,6 +8,7 @@ import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.get.GetFilePretreatment;
 import org.dromara.x.file.storage.core.get.ListFilesPretreatment;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
 import org.dromara.x.file.storage.core.upload.InitiateMultipartUploadPretreatment;
 
 /**
@@ -268,5 +269,15 @@ public class Check {
         if (pre.getPath() == null) throw new FileStorageRuntimeException("获取文件失败，请传入 path 参数");
         if (pre.getFilename() == null) throw new FileStorageRuntimeException("获取文件失败，请传入 filename 参数");
         // if (pre.getUrl() == null) throw new FileStorageRuntimeException("获取文件失败，请传入 url 参数");
+    }
+
+    /**
+     * 生成预签名 URL 时，检查文件信息相关参数，如果缺少则抛出异常
+     * @param pre 生成预签名 URL 预处理器
+     */
+    public static void generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
+        if (pre.getPlatform() == null) throw new FileStorageRuntimeException("生成预签名 URL 失败，请传入 platform 参数");
+        if (pre.getExpiration() == null) throw new FileStorageRuntimeException("生成预签名 URL 失败，请传入 expiration 参数");
+        if (pre.getMethod() == null) throw new FileStorageRuntimeException("生成预签名 URL 失败，请传入 method 参数");
     }
 }

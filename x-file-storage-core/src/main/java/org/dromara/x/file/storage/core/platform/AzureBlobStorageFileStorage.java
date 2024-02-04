@@ -6,6 +6,8 @@ import cn.hutool.core.codec.Base64;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.file.FileNameUtil;
+import cn.hutool.core.map.CaseInsensitiveMap;
+import cn.hutool.core.net.url.UrlQuery;
 import cn.hutool.core.text.NamingCase;
 import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.IdUtil;
@@ -27,6 +29,8 @@ import com.azure.storage.blob.options.BlockBlobCommitBlockListOptions;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.blob.specialized.BlockBlobClient;
+import com.azure.storage.common.sas.SasIpRange;
+import com.azure.storage.common.sas.SasProtocol;
 import com.azure.storage.file.datalake.*;
 import com.azure.storage.file.datalake.models.PathAccessControlEntry;
 import com.azure.storage.file.datalake.models.PathPermissions;
@@ -34,6 +38,7 @@ import com.azure.storage.file.datalake.models.RolePermissions;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -58,7 +63,10 @@ import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.platform.AzureBlobStorageFileStorageClientFactory.AzureBlobStorageClient;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
 import reactor.core.publisher.Mono;
 
@@ -117,6 +125,12 @@ public class AzureBlobStorageFileStorage implements FileStorage {
      */
     private Integer maxConcurrency;
 
+    /**
+     * 预签名 URL 时，传入的 HTTP method 与 Azure Blob Storage 中的 SAS 权限映射表
+     * {@link com.azure.storage.blob.sas.BlobSasPermission}
+     */
+    private CaseInsensitiveMap<String, String> methodToPermissionMap;
+
     private FileStorageClientFactory<AzureBlobStorageClient> clientFactory;
 
     public AzureBlobStorageFileStorage(
@@ -129,6 +143,7 @@ public class AzureBlobStorageFileStorage implements FileStorage {
         multipartThreshold = config.getMultipartThreshold();
         multipartPartSize = config.getMultipartPartSize();
         maxConcurrency = config.getMaxConcurrency();
+        methodToPermissionMap = new CaseInsensitiveMap<>(config.getMethodToPermissionMap());
         this.clientFactory = clientFactory;
     }
 
@@ -580,6 +595,79 @@ public class AzureBlobStorageFileStorage implements FileStorage {
     @Override
     public boolean isSupportPresignedUrl() {
         return true;
+    }
+
+    public BlobSasPermission getBlobSasPermission(Object object) {
+        if (object instanceof BlobSasPermission) {
+            return (BlobSasPermission) object;
+        } else if (object instanceof String) {
+            String permission = methodToPermissionMap.get(object);
+            if (permission == null) permission = object.toString();
+            return BlobSasPermission.parse(permission);
+        }
+        throw new IllegalArgumentException("无法识别的权限");
+    }
+
+    @Override
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
+        try {
+            String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+            Map<String, String> headers = new HashMap<>(pre.getHeaders());
+            headers.putAll(pre.getUserMetadata().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().startsWith("x-ms-meta-") ? e.getKey() : "x-ms-meta-" + e.getKey(),
+                            Map.Entry::getValue)));
+
+            BlobClient blobClient = getBlobClient(fileKey);
+            BlobSasPermission permission = getBlobSasPermission(pre.getMethod());
+            OffsetDateTime expiration =
+                    pre.getExpiration().toInstant().atZone(ZoneOffset.UTC).toOffsetDateTime();
+
+            // 生成签名
+            BlobServiceSasSignatureValues values = new BlobServiceSasSignatureValues(expiration, permission);
+            KebabCaseInsensitiveMap<String, String> responseHeaders =
+                    new KebabCaseInsensitiveMap<>(pre.getResponseHeaders());
+            values.setCacheControl(responseHeaders.get(Constant.Metadata.CACHE_CONTROL));
+            values.setContentDisposition(responseHeaders.get(Constant.Metadata.CONTENT_DISPOSITION));
+            values.setContentEncoding(responseHeaders.get(Constant.Metadata.CONTENT_ENCODING));
+            values.setContentLanguage(responseHeaders.get(Constant.Metadata.CONTENT_LANGUAGE));
+            values.setContentType(responseHeaders.get(Constant.Metadata.CONTENT_TYPE));
+            if (pre.getStartTime() != null)
+                values.setStartTime(
+                        pre.getStartTime().toInstant().atZone(ZoneOffset.UTC).toOffsetDateTime());
+
+            Map<String, String> queryParams = pre.getQueryParams();
+            if (CollUtil.isNotEmpty(queryParams)) {
+                if (queryParams.get("protocol") != null)
+                    values.setProtocol(SasProtocol.parse(queryParams.get("protocol")));
+                if (queryParams.get("sasIpRange") != null)
+                    values.setSasIpRange(SasIpRange.parse(queryParams.get("sasIpRange")));
+                try {
+                    values.setSnapshotId(queryParams.get("snapshotId"));
+                } catch (Exception ignored) {
+                }
+                values.setIdentifier(queryParams.get("identifier"));
+                values.setPreauthorizedAgentObjectId(queryParams.get("preauthorizedAgentObjectId"));
+                values.setCorrelationId(queryParams.get("correlationId"));
+            }
+
+            StringBuilder url = new StringBuilder();
+            url.append(blobClient.getBlobUrl()).append("?");
+            if (CollUtil.isNotEmpty(queryParams)) {
+                url.append(UrlQuery.of(queryParams).build(StandardCharsets.UTF_8))
+                        .append("&");
+            }
+            url.append(blobClient.generateSas(values));
+
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            result.setUrl(url.toString());
+            Map<String, String> resHeaders = new HashMap<>(headers);
+            resHeaders.put("x-ms-blob-type", "BlockBlob");
+            result.setHeaders(resHeaders);
+            return result;
+        } catch (Exception e) {
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
+        }
     }
 
     /**

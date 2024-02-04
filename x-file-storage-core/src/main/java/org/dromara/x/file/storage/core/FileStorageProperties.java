@@ -1,5 +1,6 @@
 package org.dromara.x.file.storage.core;
 
+import cn.hutool.core.map.MapBuilder;
 import cn.hutool.core.util.StrUtil;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -997,6 +998,19 @@ public class FileStorageProperties {
          * 默认 8
          */
         private int maxConcurrency = 8;
+
+        /**
+         * 预签名 URL 时，传入的 HTTP method 与 Azure Blob Storage 中的 SAS 权限映射表，
+         * 目前默认支持 GET （获取），PUT（上传），DELETE（删除），
+         * 其它可以自行扩展，例如你想自定义一个 ALL 的 method，赋予所有权限，可以写为 .put("ALL", "racwdxytlmei")
+         * {@link com.azure.storage.blob.sas.BlobSasPermission}
+         */
+        private Map<String, String> methodToPermissionMap = MapBuilder.create(new HashMap<String, String>())
+                .put(Constant.GeneratePresignedUrl.Method.GET, "r") // 获取
+                .put(Constant.GeneratePresignedUrl.Method.PUT, "w") // 上传
+                .put(Constant.GeneratePresignedUrl.Method.DELETE, "d") // 删除
+                // .put("ALL", "racwdxytlmei")    //自定义一个名为 ALL 的 method，赋予所有权限
+                .build();
 
         /**
          * 其它自定义配置

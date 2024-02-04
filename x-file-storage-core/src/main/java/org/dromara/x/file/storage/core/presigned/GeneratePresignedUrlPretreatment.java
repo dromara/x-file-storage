@@ -35,6 +35,10 @@ public class GeneratePresignedUrlPretreatment {
      */
     private String filename = "";
     /**
+     * 生效开始时间，仅 Azure Blob Storage 存储平台支持
+     */
+    private Date startTime;
+    /**
      * 到期时间
      */
     private Date expiration;
@@ -59,6 +63,10 @@ public class GeneratePresignedUrlPretreatment {
      * 查询参数
      */
     private Map<String, String> queryParams;
+    /**
+     * 要在服务响应中重写的标头，实际效果以每个存储平台支持为准
+     */
+    private Map<String, String> responseHeaders;
 
     /**
      * 如果条件为 true 则：设置文件存储服务类
@@ -131,16 +139,16 @@ public class GeneratePresignedUrlPretreatment {
     /**
      * 设置请求头（元数据）
      */
-    public GeneratePresignedUrlPretreatment putHeadersAll(boolean flag, Map<String, String> metadata) {
-        if (flag) putHeadersAll(metadata);
+    public GeneratePresignedUrlPretreatment putHeadersAll(boolean flag, Map<String, String> headers) {
+        if (flag) putHeadersAll(headers);
         return this;
     }
 
     /**
      * 设置请求头（元数据）
      */
-    public GeneratePresignedUrlPretreatment putHeadersAll(Map<String, String> metadata) {
-        getHeaders().putAll(metadata);
+    public GeneratePresignedUrlPretreatment putHeadersAll(Map<String, String> headers) {
+        getHeaders().putAll(headers);
         return this;
     }
 
@@ -171,16 +179,16 @@ public class GeneratePresignedUrlPretreatment {
     /**
      * 设置文件用户元数据
      */
-    public GeneratePresignedUrlPretreatment putUserMetadataAll(boolean flag, Map<String, String> metadata) {
-        if (flag) putUserMetadataAll(metadata);
+    public GeneratePresignedUrlPretreatment putUserMetadataAll(boolean flag, Map<String, String> userMetadata) {
+        if (flag) putUserMetadataAll(userMetadata);
         return this;
     }
 
     /**
      * 设置文件用户元数据
      */
-    public GeneratePresignedUrlPretreatment putUserMetadataAll(Map<String, String> metadata) {
-        getUserMetadata().putAll(metadata);
+    public GeneratePresignedUrlPretreatment putUserMetadataAll(Map<String, String> userMetadata) {
+        getUserMetadata().putAll(userMetadata);
         return this;
     }
 
@@ -211,16 +219,71 @@ public class GeneratePresignedUrlPretreatment {
     /**
      * 设置查询参数
      */
-    public GeneratePresignedUrlPretreatment putQueryParamsAll(boolean flag, Map<String, String> metadata) {
-        if (flag) putQueryParamsAll(metadata);
+    public GeneratePresignedUrlPretreatment putQueryParamsAll(boolean flag, Map<String, String> queryParams) {
+        if (flag) putQueryParamsAll(queryParams);
         return this;
     }
 
     /**
      * 设置查询参数
      */
-    public GeneratePresignedUrlPretreatment putQueryParamsAll(Map<String, String> metadata) {
-        getQueryParams().putAll(metadata);
+    public GeneratePresignedUrlPretreatment putQueryParamsAll(Map<String, String> queryParams) {
+        getQueryParams().putAll(queryParams);
+        return this;
+    }
+
+    /**
+     * 设置要在服务响应中重写的标头，实际效果以每个存储平台支持为准
+     */
+    public Map<String, String> getResponseHeaders() {
+        if (responseHeaders == null) responseHeaders = new LinkedHashMap<>();
+        return responseHeaders;
+    }
+
+    /**
+     * 设置要在服务响应中重写的标头，实际效果以每个存储平台支持为准
+     */
+    public GeneratePresignedUrlPretreatment putResponseHeaders(boolean flag, String key, String value) {
+        if (flag) putResponseHeaders(key, value);
+        return this;
+    }
+
+    /**
+     * 设置要在服务响应中重写的标头，实际效果以每个存储平台支持为准
+     */
+    public GeneratePresignedUrlPretreatment putResponseHeaders(String key, String value) {
+        getResponseHeaders().put(key, value);
+        return this;
+    }
+
+    /**
+     * 设置要在服务响应中重写的标头，实际效果以每个存储平台支持为准
+     */
+    public GeneratePresignedUrlPretreatment putResponseHeadersAll(boolean flag, Map<String, String> responseHeader) {
+        if (flag) putResponseHeadersAll(responseHeader);
+        return this;
+    }
+
+    /**
+     * 设置要在服务响应中重写的标头，实际效果以每个存储平台支持为准
+     */
+    public GeneratePresignedUrlPretreatment putResponseHeadersAll(Map<String, String> responseHeader) {
+        getResponseHeaders().putAll(responseHeader);
+        return this;
+    }
+
+    /**
+     * 设置文件版本 ID
+     */
+    public GeneratePresignedUrlPretreatment setVersionId(String versionId) {
+        return putQueryParams("versionId", versionId);
+    }
+
+    /**
+     * 设置文件版本 ID
+     */
+    public GeneratePresignedUrlPretreatment setVersionId(boolean flag, String versionId) {
+        if (flag) putQueryParams("versionId", versionId);
         return this;
     }
 

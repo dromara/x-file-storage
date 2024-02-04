@@ -9,14 +9,13 @@ import cn.hutool.core.text.NamingCase;
 import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baidubce.BceServiceException;
+import com.baidubce.http.HttpMethodName;
 import com.baidubce.services.bos.BosClient;
 import com.baidubce.services.bos.model.*;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
+import java.net.URL;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -33,6 +32,8 @@ import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.get.*;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
 
@@ -427,26 +428,29 @@ public class BaiduBosFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
         try {
-            int expires = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
-            return getClient()
-                    .generatePresignedUrl(bucketName, getFileKey(fileInfo), expires)
-                    .toString();
+            String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucketName, fileKey);
+            request.setExpiration((int) ((pre.getExpiration().getTime() - System.currentTimeMillis()) / 1000));
+            request.setMethod(Tools.getEnum(HttpMethodName.class, pre.getMethod()));
+            Map<String, String> headers = new HashMap<>(pre.getHeaders());
+            headers.putAll(pre.getUserMetadata().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().startsWith("x-bce-meta-") ? e.getKey() : "x-bce-meta-" + e.getKey(),
+                            Map.Entry::getValue)));
+            headers.forEach(request::addRequestHeaders);
+            pre.getQueryParams().forEach(request::addRequestParameter);
+            pre.getResponseHeaders()
+                    .forEach((k, v) ->
+                            request.addRequestParameter(NamingCase.toCamelCase("response-" + k.toLowerCase(), '-'), v));
+            URL url = getClient().generatePresignedUrl(request);
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            result.setUrl(url.toString());
+            result.setHeaders(headers);
+            return result;
         } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            String key = getThFileKey(fileInfo);
-            if (key == null) return null;
-            int expires = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
-            return getClient().generatePresignedUrl(bucketName, key, expires).toString();
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
         }
     }
 

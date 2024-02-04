@@ -23,6 +23,14 @@ System.out.println("缩略图文件授权访问地址：" + thPresignedUrl);
 
 华为云，支持所有操作：[文档](https://support.huaweicloud.com/sdk-java-devg-obs/obs_21_0901.html)
 
-阿里云，支持部分操作：[文档](https://help.aliyun.com/zh/oss/developer-reference/authorize-access-1?spm=a2c4g.11186623.0.0.21ec3b2bHHPzJn#section-8ii-3zg-2ib)
+阿里云，支持 GET POST 操作：[文档](https://help.aliyun.com/zh/oss/developer-reference/authorize-access-1?spm=a2c4g.11186623.0.0.21ec3b2bHHPzJn#section-8ii-3zg-2ib)
 
 Amazon S3 https://docs.aws.amazon.com/zh_cn/AmazonS3/latest/userguide/using-presigned-url.html
+
+腾讯云 https://cloud.tencent.com/document/product/436/35217
+
+MinIO https://min.io/docs/minio/linux/developers/java/API.html#getPresignedObjectUrl
+
+百度云 https://cloud.baidu.com/doc/BOS/s/Wl60p2b61
+
+Azure Blob Storage  https://learn.microsoft.com/zh-cn/azure/storage/blobs/sas-service-create-java
