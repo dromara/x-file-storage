@@ -22,6 +22,9 @@ public class DromaraXFileStoragePluginImpl implements Plugin {
   @Override
   public void start(final AppContext context) {
 
+    // 配置包扫描, 扫描当前插件包下的所有类
+    context.beanScan(FileStorageAutoConfiguration.class);
+
     // 通过插件 配置本地存储的访问地址
     context.getBeanAsync(SolonFileStorageProperties.class, cfg -> {
 
