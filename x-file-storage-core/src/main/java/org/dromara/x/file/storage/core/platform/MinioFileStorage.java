@@ -191,8 +191,12 @@ public class MinioFileStorage implements FileStorage {
                 asyncClient, newPartReaderMethod, args.stream(), args.objectSize(), args.partSize(), 1);
         Object partSource = ReflectUtil.invoke(partReader, "getPart");
 
-        java.lang.reflect.Method uploadPartsMethod =
-                ReflectUtil.getMethodByName(asyncClient.getClass(), "uploadPartAsync");
+        java.lang.reflect.Method uploadPartsMethod = Tools.getMethod(asyncClient.getClass(),
+                method ->
+                        StrUtil.equalsIgnoreCase(method.getName(), "uploadPartAsync") // 方法名称是 uploadPartAsync
+                                && method.getParameterTypes().length == 8 // 参数个数是8个
+                                && StrUtil.equals(method.getParameterTypes()[3].getSimpleName(), "PartSource") // 且第4个参数的类名称是 PartSource
+        );
         CompletableFuture<UploadPartResponse> result = ReflectUtil.invoke(
                 asyncClient,
                 uploadPartsMethod,
