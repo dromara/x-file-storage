@@ -2,13 +2,6 @@ package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
-import java.io.InputStream;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -21,6 +14,14 @@ import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatmen
 import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
+
+import java.io.InputStream;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 文件存储接口，对应各个平台
@@ -52,7 +53,8 @@ public interface FileStorage extends AutoCloseable {
     /**
      * 手动分片上传-初始化
      */
-    default void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {}
+    default void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
+    }
 
     /**
      * 手动分片上传-上传分片
@@ -64,12 +66,14 @@ public interface FileStorage extends AutoCloseable {
     /**
      * 手动分片上传-完成
      */
-    default void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {}
+    default void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {
+    }
 
     /**
      * 手动分片上传-取消
      */
-    default void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {}
+    default void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {
+    }
 
     /**
      * 手动分片上传-列举已上传的分片
@@ -222,7 +226,8 @@ public interface FileStorage extends AutoCloseable {
     /**
      * 同存储平台复制文件
      */
-    default void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {}
+    default void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
+    }
 
     /**
      * 是否支持同存储平台移动文件
@@ -234,12 +239,14 @@ public interface FileStorage extends AutoCloseable {
     /**
      * 同存储平台移动文件
      */
-    default void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {}
+    default void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {
+    }
 
     /**
      * 释放相关资源
      */
-    default void close() {}
+    default void close() {
+    }
 
     /**
      * 获取文件全路径（相对存储平台的存储路径）
@@ -247,10 +254,9 @@ public interface FileStorage extends AutoCloseable {
      * @param fileInfo 文件信息
      */
     default String getFileKey(FileInfo fileInfo) {
-        return Tools.getNotNull(fileInfo.getBasePath(), StrUtil.EMPTY)
-                + Tools.getNotNull(fileInfo.getPath(), StrUtil.EMPTY)
-                + Tools.getNotNull(fileInfo.getFilename(), StrUtil.EMPTY);
+        return Tools.getFullPath(fileInfo);
     }
+
     /**
      * 获取缩略图全路径（相对存储平台的存储路径）
      *
@@ -258,9 +264,7 @@ public interface FileStorage extends AutoCloseable {
      */
     default String getThFileKey(FileInfo fileInfo) {
         if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
-        return Tools.getNotNull(fileInfo.getBasePath(), StrUtil.EMPTY)
-                + Tools.getNotNull(fileInfo.getPath(), StrUtil.EMPTY)
-                + Tools.getNotNull(fileInfo.getThFilename(), StrUtil.EMPTY);
+        return Tools.getFullPath(fileInfo);
     }
 
     /**
