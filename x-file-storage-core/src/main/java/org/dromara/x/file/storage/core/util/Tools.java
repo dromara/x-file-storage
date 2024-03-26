@@ -3,12 +3,26 @@ package org.dromara.x.file.storage.core.util;
 import cn.hutool.core.map.CaseInsensitiveMap;
 import cn.hutool.core.util.EnumUtil;
 import cn.hutool.core.util.StrUtil;
+import org.dromara.x.file.storage.core.FileInfo;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Tools {
+
+    /**
+     * 获取完整路径
+     */
+    public static String getFullPath(FileInfo fileInfo) {
+        return Paths.get(fileInfo.getBasePath() == null ? "" : fileInfo.getBasePath(),
+                        fileInfo.getPath() == null ? "" : fileInfo.getPath(),
+                        fileInfo.getFilename() == null ? "" : fileInfo.getFilename())
+                .toString();
+    }
+
     /**
      * 获取父路径
      */
@@ -32,9 +46,11 @@ public class Tools {
 
             if (leftHas && rightHas) {
                 sb.append(path.substring(1));
-            } else if (!left.isEmpty() && !leftHas && !rightHas) {
+            }
+            else if (!left.isEmpty() && !leftHas && !rightHas) {
                 sb.append("/").append(path);
-            } else {
+            }
+            else {
                 sb.append(path);
             }
         }
