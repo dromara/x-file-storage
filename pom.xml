@@ -52,6 +52,14 @@
                 <role>Contrib</role>
             </roles>
         </developer>
+        <developer>
+            <id>yang37</id>
+            <name>yang37</name>
+            <email>yang37z@qq.com</email>
+            <roles>
+                <role>Contrib</role>
+            </roles>
+        </developer>
     </developers>
 
     <modules>
