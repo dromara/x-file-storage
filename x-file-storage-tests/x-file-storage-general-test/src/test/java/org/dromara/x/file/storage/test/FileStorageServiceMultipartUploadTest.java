@@ -3,6 +3,7 @@ package org.dromara.x.file.storage.test;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.lang.Assert;
+import cn.hutool.crypto.SecureUtil;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -12,6 +13,7 @@ import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.constant.Constant;
+import org.dromara.x.file.storage.core.hash.HashInfo;
 import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.platform.UpyunUssFileStorage;
 import org.dromara.x.file.storage.core.upload.FilePartInfo;
@@ -110,6 +112,12 @@ class FileStorageServiceMultipartUploadTest {
                         .setHashCalculatorSha256()
                         .upload();
                 log.info("手动分片上传-分片上传成功：{}", filePartInfo);
+
+                HashInfo hashInfo = filePartInfo.getHashInfo();
+                Assert.isTrue(SecureUtil.md5().digestHex(bytes).equals(hashInfo.getMd5()), "分片 MD5 对比不一致！");
+                log.info("分片 MD5 对比通过");
+                Assert.isTrue(SecureUtil.sha256().digestHex(bytes).equals(hashInfo.getSha256()), "分片 SHA256 对比不一致！");
+                log.info("分片 SHA256 对比通过");
             }
         }
 

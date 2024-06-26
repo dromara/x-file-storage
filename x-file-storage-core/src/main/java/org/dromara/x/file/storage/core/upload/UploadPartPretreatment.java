@@ -1,6 +1,6 @@
 package org.dromara.x.file.storage.core.upload;
 
-import cn.hutool.core.util.ObjectUtil;
+import java.io.IOException;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -9,8 +9,6 @@ import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.hash.HashCalculator;
 import org.dromara.x.file.storage.core.hash.HashCalculatorManager;
 import org.dromara.x.file.storage.core.hash.HashCalculatorSetter;
-
-import java.io.IOException;
 
 /**
  * 手动分片上传-上传分片预处理器
@@ -118,15 +116,7 @@ public class UploadPartPretreatment
      * 获取增强版本的 InputStream ，可以带进度监听、计算哈希等功能
      */
     public InputStreamPlus getInputStreamPlus() throws IOException {
-        // [update] 20240514: InputStreamPlus检查hashCalculatorManager
-        final boolean hasListenerFlag = true;
-        InputStreamPlus inputStreamPlus = getInputStreamPlus(hasListenerFlag);
-
-        if (ObjectUtil.isEmpty(inputStreamPlus.getHashCalculatorManager())) {
-            inputStreamPlus = getInputStreamPlus(hasListenerFlag, this.getHashCalculatorManager());
-        }
-
-        return inputStreamPlus;
+        return getInputStreamPlus(true);
     }
 
     /**
@@ -135,18 +125,10 @@ public class UploadPartPretreatment
     public InputStreamPlus getInputStreamPlus(boolean hasListener) throws IOException {
         if (inputStreamPlus == null) {
             inputStreamPlus = new InputStreamPlus(
-                    partFileWrapper.getInputStream(), hasListener ? progressListener : null, partFileWrapper.getSize());
-        }
-        return inputStreamPlus;
-    }
-
-    /**
-     * [add] 20240514: 获取增强版本的 InputStream,支持填充hashCalculatorManager
-     */
-    private InputStreamPlus getInputStreamPlus(boolean hasListener, HashCalculatorManager hashCalculatorManager) throws IOException {
-        if (inputStreamPlus == null || inputStreamPlus.getHashCalculatorManager() == null) {
-            inputStreamPlus = new InputStreamPlus(
-                    partFileWrapper.getInputStream(), hasListener ? progressListener : null, partFileWrapper.getSize(), hashCalculatorManager);
+                    partFileWrapper.getInputStream(),
+                    hasListener ? progressListener : null,
+                    partFileWrapper.getSize(),
+                    hashCalculatorManager);
         }
         return inputStreamPlus;
     }
