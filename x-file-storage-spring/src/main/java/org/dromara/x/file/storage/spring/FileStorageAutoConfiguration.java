@@ -44,31 +44,6 @@ public class FileStorageAutoConfiguration {
     private ApplicationContext applicationContext;
 
     /**
-     * 配置本地存储的访问地址
-     */
-    @Bean
-    @ConditionalOnClass(name = "org.springframework.web.servlet.config.annotation.WebMvcConfigurer")
-    public Object fileStorageWebMvcConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
-                for (SpringLocalConfig local : properties.getLocal()) {
-                    if (local.getEnableStorage() && local.getEnableAccess()) {
-                        registry.addResourceHandler(local.getPathPatterns())
-                                .addResourceLocations("file:" + local.getBasePath());
-                    }
-                }
-                for (SpringLocalPlusConfig local : properties.getLocalPlus()) {
-                    if (local.getEnableStorage() && local.getEnableAccess()) {
-                        registry.addResourceHandler(local.getPathPatterns())
-                                .addResourceLocations("file:" + local.getStoragePath());
-                    }
-                }
-            }
-        };
-    }
-
-    /**
      * 当没有找到 FileRecorder 时使用默认的 FileRecorder
      */
     @Bean
@@ -177,5 +152,39 @@ public class FileStorageAutoConfiguration {
     public void onContextRefreshedEvent() {
         FileStorageService service = applicationContext.getBean(FileStorageService.class);
         service.setSelf(service);
+    }
+
+    /**
+     * 本地存储文件访问自动配置类
+     */
+    @Configuration
+    @ConditionalOnClass(name = "org.springframework.web.servlet.config.annotation.WebMvcConfigurer")
+    public static class FileStorageLocalFileAccessAutoConfiguration {
+        @Autowired
+        private SpringFileStorageProperties properties;
+
+        /**
+         * 配置本地存储的访问地址
+         */
+        @Bean
+        public WebMvcConfigurer fileStorageWebMvcConfigurer() {
+            return new WebMvcConfigurer() {
+                @Override
+                public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
+                    for (SpringLocalConfig local : properties.getLocal()) {
+                        if (local.getEnableStorage() && local.getEnableAccess()) {
+                            registry.addResourceHandler(local.getPathPatterns())
+                                    .addResourceLocations("file:" + local.getBasePath());
+                        }
+                    }
+                    for (SpringLocalPlusConfig local : properties.getLocalPlus()) {
+                        if (local.getEnableStorage() && local.getEnableAccess()) {
+                            registry.addResourceHandler(local.getPathPatterns())
+                                    .addResourceLocations("file:" + local.getStoragePath());
+                        }
+                    }
+                }
+            };
+        }
     }
 }
