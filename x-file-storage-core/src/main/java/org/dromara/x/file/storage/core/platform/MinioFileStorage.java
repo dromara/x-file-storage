@@ -13,13 +13,6 @@ import io.minio.http.Method;
 import io.minio.messages.ListBucketResultV1;
 import io.minio.messages.ListPartsResult;
 import io.minio.messages.Part;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -39,6 +32,17 @@ import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * MinIO 存储
@@ -181,7 +185,7 @@ public class MinioFileStorage implements FileStorage {
      * 通过反射调用内部的上传分片方法
      */
     public UploadPartResponse uploadPart(MinioClient client, String uploadId, int partNumber, PutObjectArgs args)
-            throws ExecutionException, InterruptedException {
+            throws ExecutionException, InterruptedException, NoSuchMethodException {
         MinioAsyncClient asyncClient = getMinioAsyncClient(client);
 
         java.lang.reflect.Method newPartReaderMethod =
@@ -191,15 +195,19 @@ public class MinioFileStorage implements FileStorage {
                 asyncClient, newPartReaderMethod, args.stream(), args.objectSize(), args.partSize(), 1);
         Object partSource = ReflectUtil.invoke(partReader, "getPart");
 
-        java.lang.reflect.Method uploadPartsMethod = Tools.getMethod(asyncClient.getClass(),
-                method ->
-                        StrUtil.equalsIgnoreCase(method.getName(), "uploadPartAsync") // 方法名称是 uploadPartAsync
-                                && method.getParameterTypes().length == 8 // 参数个数是8个
-                                && StrUtil.equals(method.getParameterTypes()[3].getSimpleName(), "PartSource") // 且第4个参数的类名称是 PartSource
-        );
+        java.lang.reflect.Method[] uploadPartsMethods = ReflectUtil.getMethods(
+                asyncClient.getClass(),
+                method -> StrUtil.equalsIgnoreCase(method.getName(), "uploadPartAsync") // 方法名称是 uploadPartAsync
+                        && method.getParameterTypes().length == 8 // 参数个数是8个
+                        && StrUtil.equals(
+                                method.getParameterTypes()[3].getSimpleName(), "PartSource") // 且第4个参数的类名称是 PartSource
+                );
+        if (uploadPartsMethods == null || uploadPartsMethods.length != 1) {
+            throw new NoSuchMethodException("MinioAsyncClient uploadPartAsync method not find");
+        }
         CompletableFuture<UploadPartResponse> result = ReflectUtil.invoke(
                 asyncClient,
-                uploadPartsMethod,
+                uploadPartsMethods[0],
                 args.bucket(),
                 args.region(),
                 args.object(),
