@@ -1,10 +1,14 @@
 package org.dromara.x.file.storage.core.util;
 
+import cn.hutool.core.lang.Filter;
 import cn.hutool.core.map.CaseInsensitiveMap;
 import cn.hutool.core.util.EnumUtil;
+import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -86,5 +90,29 @@ public class Tools {
             return Tools.cast(value);
         }
         return new CaseInsensitiveMap<>(EnumUtil.getEnumMap(enumClass)).get(value.toString());
+    }
+
+    /**
+     * 获得指定类过滤后的方法<br>
+     * 返回满足条件的第一个, 如果没有符合条件的, 则返回 null
+     *
+     * @param clazz  查找方法的类
+     * @param filter 过滤器
+     * @return 过滤后的方法
+     */
+    public static Method getMethod(Class<?> clazz, Filter<Method> filter) {
+        if (null == clazz) {
+            return null;
+        }
+
+        final Method[] methods = ReflectUtil.getMethods(clazz);
+        if (null != filter) {
+            for (Method method : methods) {
+                if (filter.accept(method)) {
+                    return method;
+                }
+            }
+        }
+        return null;
     }
 }
