@@ -13,6 +13,16 @@ import io.minio.http.Method;
 import io.minio.messages.ListBucketResultV1;
 import io.minio.messages.ListPartsResult;
 import io.minio.messages.Part;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -32,17 +42,6 @@ import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * MinIO 存储

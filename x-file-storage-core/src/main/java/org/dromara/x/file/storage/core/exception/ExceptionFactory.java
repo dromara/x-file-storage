@@ -74,7 +74,7 @@ public class ExceptionFactory {
      */
     public static FileStorageRuntimeException upload(FileInfo fileInfo, String platform, Exception e) {
         return new FileStorageRuntimeException(
-                StrUtil.format(UPLOAD_MESSAGE_FORMAT,  platform, fileInfo.getOriginalFilename()), e);
+                StrUtil.format(UPLOAD_MESSAGE_FORMAT, platform, fileInfo.getOriginalFilename()), e);
     }
 
     /**

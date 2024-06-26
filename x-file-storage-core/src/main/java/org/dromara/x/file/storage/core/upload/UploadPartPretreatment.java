@@ -125,7 +125,10 @@ public class UploadPartPretreatment
     public InputStreamPlus getInputStreamPlus(boolean hasListener) throws IOException {
         if (inputStreamPlus == null) {
             inputStreamPlus = new InputStreamPlus(
-                    partFileWrapper.getInputStream(), hasListener ? progressListener : null, partFileWrapper.getSize());
+                    partFileWrapper.getInputStream(),
+                    hasListener ? progressListener : null,
+                    partFileWrapper.getSize(),
+                    hashCalculatorManager);
         }
         return inputStreamPlus;
     }
