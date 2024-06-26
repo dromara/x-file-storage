@@ -2,12 +2,15 @@
 
 > Solon 官网 https://solon.noear.org/
 
-先引入本项目, 注意这里是 `x-file-storage-solon` , 而不是 `x-file-storage-core`. 
+从 `2.2.0` 版本开始原生支持在 `Solon` 中使用，之前的版本可以参考 [脱离 SpringBoot 单独使用](脱离SpringBoot单独使用)
+
+先引入本项目, 注意这里是 `x-file-storage-solon`，而不是 `x-file-storage-core`，之后再参考 [快速入门](快速入门) 引入对应平台的依赖
+
 ```xml
 <dependency>
     <groupId>org.dromara.x-file-storage</groupId>
     <artifactId>x-file-storage-solon</artifactId>
-    <version>最新版本</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 
@@ -46,7 +49,6 @@ dromara:
         bucket-name: user
         #        domain: ?? # 访问域名，注意“/”结尾，例如：http://minio.abc.com/abc/
         base-path: user/ # 基础路径
-
       - platform: minio-dept # 存储平台标识
         enable-storage: true  # 启用存储
         access-key: j9rMyECcmNH0lNBqPfOo
@@ -55,7 +57,6 @@ dromara:
         bucket-name: dept
         #        domain: ?? # 访问域名，注意“/”结尾，例如：http://minio.abc.com/abc/
         base-path: dept/ # 基础路径
-
 ```
 
 同时, 由于 Solon 和 Spring 环境不一致, 部分功能使用会有差异, 详情参见 [Solon 与 Spring Boot 的区别](https://solon.noear.org/article/compare-springboot)
