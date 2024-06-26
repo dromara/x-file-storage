@@ -5,7 +5,6 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.lang.Dict;
-import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.qiniu.common.QiniuException;
 import com.qiniu.storage.*;
@@ -227,14 +226,19 @@ public class QiniuKodoFileStorage implements FileStorage {
         QiniuKodoClient client = getClient();
         try {
             String token = client.getAuth().uploadToken(bucketName);
-            ApiUploadV2ListParts api = new ApiUploadV2ListParts(client.getClient());
-            Object configHelper = ReflectUtil.getFieldValue(client.getBucketManager(), "configHelper");
-            String host = ReflectUtil.invoke(configHelper, "upHost", token);
-            ApiUploadV2ListParts.Request request = new ApiUploadV2ListParts.Request(host, token, fileInfo.getUploadId())
-                    .setKey(newFileKey)
-                    .setMaxParts(pre.getMaxParts())
-                    .setPartNumberMarker(pre.getPartNumberMarker());
-            ApiUploadV2ListParts.Response response = api.request(request);
+            QiniuKodoClient.UploadActionResult<ApiUploadV2ListParts.Response> result = client.retryUploadAction(
+                    host -> {
+                        ApiUploadV2ListParts api = new ApiUploadV2ListParts(client.getClient());
+                        ApiUploadV2ListParts.Request request = new ApiUploadV2ListParts.Request(
+                                        host, token, fileInfo.getUploadId())
+                                .setKey(newFileKey)
+                                .setMaxParts(pre.getMaxParts())
+                                .setPartNumberMarker(pre.getPartNumberMarker());
+                        ApiUploadV2ListParts.Response response = api.request(request);
+                        return new QiniuKodoClient.UploadActionResult<>(response.getResponse(), response);
+                    },
+                    token);
+            ApiUploadV2ListParts.Response response = result.getData();
             List<?> parts = response.getParts();
             FilePartInfoList list = new FilePartInfoList();
             list.setFileInfo(fileInfo);
