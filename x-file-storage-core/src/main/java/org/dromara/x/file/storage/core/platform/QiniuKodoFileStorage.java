@@ -180,7 +180,7 @@ public class QiniuKodoFileStorage implements FileStorage {
                     host -> {
                         ApiUploadV2CompleteUpload api = new ApiUploadV2CompleteUpload(client.getClient());
                         ApiUploadV2CompleteUpload.Request request = new ApiUploadV2CompleteUpload.Request(
-                                        "https://upload-z2.qiniup.com", token, fileInfo.getUploadId(), partsInfo)
+                                        host, token, fileInfo.getUploadId(), partsInfo)
                                 .setKey(newFileKey)
                                 .setFileMimeType(fileInfo.getContentType())
                                 .setFileName(null)
@@ -208,7 +208,7 @@ public class QiniuKodoFileStorage implements FileStorage {
                     host -> {
                         ApiUploadV2AbortUpload api = new ApiUploadV2AbortUpload(client.getClient());
                         ApiUploadV2AbortUpload.Request request = new ApiUploadV2AbortUpload.Request(
-                                        "https://upload-z2.qiniup.com", token, fileInfo.getUploadId())
+                                        host, token, fileInfo.getUploadId())
                                 .setKey(newFileKey);
                         ApiUploadV2AbortUpload.Response response = api.request(request);
                         return new QiniuKodoClient.UploadActionResult<>(response.getResponse(), response);
@@ -226,13 +226,19 @@ public class QiniuKodoFileStorage implements FileStorage {
         QiniuKodoClient client = getClient();
         try {
             String token = client.getAuth().uploadToken(bucketName);
-            ApiUploadV2ListParts api = new ApiUploadV2ListParts(client.getClient());
-            ApiUploadV2ListParts.Request request = new ApiUploadV2ListParts.Request(
-                            "https://upload-z2.qiniup.com", token, fileInfo.getUploadId())
-                    .setKey(newFileKey)
-                    .setMaxParts(pre.getMaxParts())
-                    .setPartNumberMarker(pre.getPartNumberMarker());
-            ApiUploadV2ListParts.Response response = api.request(request);
+            QiniuKodoClient.UploadActionResult<ApiUploadV2ListParts.Response> result = client.retryUploadAction(
+                    host -> {
+                        ApiUploadV2ListParts api = new ApiUploadV2ListParts(client.getClient());
+                        ApiUploadV2ListParts.Request request = new ApiUploadV2ListParts.Request(
+                                        host, token, fileInfo.getUploadId())
+                                .setKey(newFileKey)
+                                .setMaxParts(pre.getMaxParts())
+                                .setPartNumberMarker(pre.getPartNumberMarker());
+                        ApiUploadV2ListParts.Response response = api.request(request);
+                        return new QiniuKodoClient.UploadActionResult<>(response.getResponse(), response);
+                    },
+                    token);
+            ApiUploadV2ListParts.Response response = result.getData();
             List<?> parts = response.getParts();
             FilePartInfoList list = new FilePartInfoList();
             list.setFileInfo(fileInfo);
