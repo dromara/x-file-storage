@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.lang.Dict;
+import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.qiniu.common.QiniuException;
 import com.qiniu.storage.*;
@@ -180,7 +181,7 @@ public class QiniuKodoFileStorage implements FileStorage {
                     host -> {
                         ApiUploadV2CompleteUpload api = new ApiUploadV2CompleteUpload(client.getClient());
                         ApiUploadV2CompleteUpload.Request request = new ApiUploadV2CompleteUpload.Request(
-                                        "https://upload-z2.qiniup.com", token, fileInfo.getUploadId(), partsInfo)
+                                        host, token, fileInfo.getUploadId(), partsInfo)
                                 .setKey(newFileKey)
                                 .setFileMimeType(fileInfo.getContentType())
                                 .setFileName(null)
@@ -208,7 +209,7 @@ public class QiniuKodoFileStorage implements FileStorage {
                     host -> {
                         ApiUploadV2AbortUpload api = new ApiUploadV2AbortUpload(client.getClient());
                         ApiUploadV2AbortUpload.Request request = new ApiUploadV2AbortUpload.Request(
-                                        "https://upload-z2.qiniup.com", token, fileInfo.getUploadId())
+                                        host, token, fileInfo.getUploadId())
                                 .setKey(newFileKey);
                         ApiUploadV2AbortUpload.Response response = api.request(request);
                         return new QiniuKodoClient.UploadActionResult<>(response.getResponse(), response);
@@ -227,8 +228,9 @@ public class QiniuKodoFileStorage implements FileStorage {
         try {
             String token = client.getAuth().uploadToken(bucketName);
             ApiUploadV2ListParts api = new ApiUploadV2ListParts(client.getClient());
-            ApiUploadV2ListParts.Request request = new ApiUploadV2ListParts.Request(
-                            "https://upload-z2.qiniup.com", token, fileInfo.getUploadId())
+            Object configHelper = ReflectUtil.getFieldValue(client.getBucketManager(), "configHelper");
+            String host = ReflectUtil.invoke(configHelper, "upHost", token);
+            ApiUploadV2ListParts.Request request = new ApiUploadV2ListParts.Request(host, token, fileInfo.getUploadId())
                     .setKey(newFileKey)
                     .setMaxParts(pre.getMaxParts())
                     .setPartNumberMarker(pre.getPartNumberMarker());
