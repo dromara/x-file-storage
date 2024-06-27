@@ -28,9 +28,12 @@ import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.QiniuKodoFileStorageClientFactory.QiniuKodoClient;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
 
 /**
@@ -406,23 +409,20 @@ public class QiniuKodoFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
         try {
-            int deadline = (int) (expiration.getTime() / 1000);
-            return getClient().getAuth().privateDownloadUrlWithDeadline(fileInfo.getUrl(), deadline);
+            if (Constant.GeneratePresignedUrl.Method.GET.equalsIgnoreCase(String.valueOf(pre.getMethod()))) {
+                throw new FileStorageRuntimeException("七牛云 Kode 仅支持 GET ，如需支持更多功能，可以通过 AWS S3 的 SDK 来使用");
+            }
+            String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+            int deadline = (int) (pre.getExpiration().getTime() / 1000);
+            String url = getClient().getAuth().privateDownloadUrlWithDeadline(domain + fileKey, deadline);
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            result.setUrl(url);
+            result.setHeaders(new HashMap<>());
+            return result;
         } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            if (StrUtil.isBlank(fileInfo.getThUrl())) return null;
-            int deadline = (int) (expiration.getTime() / 1000);
-            return getClient().getAuth().privateDownloadUrlWithDeadline(fileInfo.getThUrl(), deadline);
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
         }
     }
 
