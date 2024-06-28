@@ -670,35 +670,6 @@ public class AzureBlobStorageFileStorage implements FileStorage {
         }
     }
 
-    /**
-     * 对文件生成可以签名访问的 URL，无法生成则返回 null
-     * 如果存在跨域问题，需要去控制台 （资源共享(CORS)界面）授权允许的跨域规则
-     * 生成url的每个参数的含义{@link com.azure.storage.blob.implementation.util.BlobSasImplUtil#encode(UserDelegationKey, String)}
-     * @param expiration 到期时间
-     */
-    @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            BlobClient blobClient = getBlobClient(getFileKey(fileInfo));
-            return blobClient.getBlobUrl() + "?" + blobClient.generateSas(getBlobServiceSasSignatureValues(expiration));
-        } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            String key = getThFileKey(fileInfo);
-            if (key == null) return null;
-            BlobClient thBlobClient = getBlobClient(getThFileKey(fileInfo));
-            return thBlobClient.getBlobUrl() + "?"
-                    + thBlobClient.generateSas(getBlobServiceSasSignatureValues(expiration));
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
-        }
-    }
-
     @Override
     public boolean isSupportSameCopy() {
         return true;
