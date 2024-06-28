@@ -87,6 +87,8 @@
 
         <!-- Spring 组件 -->
         <spring-boot.version>2.7.2</spring-boot.version>
+        <!-- Solon 组件 -->
+        <solon.version>2.8.4</solon.version>
 
         <!--region 3rd SDK-->
         <aliyun-sdk-oss.version>3.16.1</aliyun-sdk-oss.version>
