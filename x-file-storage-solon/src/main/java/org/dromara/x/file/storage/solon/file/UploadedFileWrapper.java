@@ -2,6 +2,9 @@ package org.dromara.x.file.storage.solon.file;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.InputStream;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -9,11 +12,11 @@ import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.noear.solon.core.handle.UploadedFile;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.InputStream;
-
-/** Solon UploadedFile 文件包装类 */
+/**
+ * Solon UploadedFile 文件包装类
+ *
+ * @author link2fun
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -39,7 +42,6 @@ public class UploadedFileWrapper implements FileWrapper {
         }
         return inputStream;
     }
-
 
     @Override
     public void transferTo(final File dest) {
