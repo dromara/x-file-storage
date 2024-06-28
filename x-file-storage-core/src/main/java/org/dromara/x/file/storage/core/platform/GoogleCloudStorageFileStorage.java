@@ -12,8 +12,10 @@ import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.*;
 import com.google.cloud.storage.Storage.CopyRequest;
 import com.google.cloud.storage.Storage.PredefinedAcl;
+import com.google.cloud.storage.Storage.SignUrlOption;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.channels.Channels;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +37,8 @@ import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.get.GetFilePretreatment;
 import org.dromara.x.file.storage.core.get.RemoteFileInfo;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 
 /**
  * GoogleCloud Storage 存储
@@ -47,9 +51,7 @@ import org.dromara.x.file.storage.core.get.RemoteFileInfo;
 @Setter
 @NoArgsConstructor
 public class GoogleCloudStorageFileStorage implements FileStorage {
-    private String projectId;
     private String bucketName;
-    private String credentialsPath;
     private String basePath;
     private String platform;
     private String domain;
@@ -293,30 +295,39 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
         try {
-            BlobInfo blobInfo =
-                    BlobInfo.newBuilder(bucketName, getFileKey(fileInfo)).build();
-            long duration = expiration.getTime() - System.currentTimeMillis();
-            return getClient()
-                    .signUrl(blobInfo, duration, TimeUnit.MILLISECONDS)
-                    .toString();
+            BlobInfo blobInfo = BlobInfo.newBuilder(
+                            bucketName, getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename())))
+                    .setMetadata(pre.getUserMetadata())
+                    .build();
+            long duration = pre.getExpiration().getTime() - System.currentTimeMillis();
+            ArrayList<SignUrlOption> signUrlOptionList = new ArrayList<>();
+            signUrlOptionList.add(SignUrlOption.withV4Signature());
+            if (pre.getMethod() instanceof HttpMethod) {
+                signUrlOptionList.add(SignUrlOption.httpMethod((HttpMethod) pre.getMethod()));
+            } else {
+                signUrlOptionList.add(SignUrlOption.httpMethod(
+                        HttpMethod.valueOf(String.valueOf(pre.getMethod()).toUpperCase())));
+            }
+            HashMap<String, String> queryParams = new HashMap<>(pre.getQueryParams());
+            pre.getResponseHeaders().forEach((k, v) -> queryParams.put("response-" + k.toLowerCase(), v));
+            signUrlOptionList.add(SignUrlOption.withQueryParams(queryParams));
+            Map<String, String> headers = new HashMap<>(pre.getHeaders());
+            headers.putAll(pre.getUserMetadata().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().startsWith("x-goog-meta-") ? e.getKey() : "x-goog-meta-" + e.getKey(),
+                            Map.Entry::getValue)));
+            signUrlOptionList.add(SignUrlOption.withExtHeaders(headers));
+            URL url = getClient()
+                    .signUrl(
+                            blobInfo, duration, TimeUnit.MILLISECONDS, signUrlOptionList.toArray(new SignUrlOption[0]));
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            result.setUrl(url.toString());
+            result.setHeaders(headers);
+            return result;
         } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            BlobInfo blobInfo =
-                    BlobInfo.newBuilder(bucketName, getThFileKey(fileInfo)).build();
-            long duration = expiration.getTime() - System.currentTimeMillis();
-            return getClient()
-                    .signUrl(blobInfo, duration, TimeUnit.MILLISECONDS)
-                    .toString();
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
         }
     }
 

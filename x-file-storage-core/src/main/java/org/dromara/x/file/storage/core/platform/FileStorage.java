@@ -4,7 +4,6 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import java.io.InputStream;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -143,24 +142,6 @@ public interface FileStorage extends AutoCloseable {
      * @param pre 生成预签名 URL 预处理器
      */
     default GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
-        return null;
-    }
-
-    /**
-     * 对文件生成可以签名访问的 URL，无法生成则返回 null
-     *
-     * @param expiration 到期时间
-     */
-    default String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
-        return null;
-    }
-
-    /**
-     * 对缩略图文件生成可以签名访问的 URL，无法生成则返回 null
-     *
-     * @param expiration 到期时间
-     */
-    default String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
         return null;
     }
 
