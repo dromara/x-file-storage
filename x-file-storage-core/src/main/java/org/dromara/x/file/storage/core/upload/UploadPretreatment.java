@@ -39,6 +39,7 @@ public class UploadPretreatment extends org.dromara.x.file.storage.core.UploadPr
         setFileWrapper(pre.getFileWrapper());
         setThumbnailBytes(pre.getThumbnailBytes());
         setThumbnailSuffix(pre.getThumbnailSuffix());
+        setIgnoreThumbnailException(pre.isIgnoreThumbnailException());
         setObjectId(pre.getObjectId());
         setObjectType(pre.getObjectType());
         setPath(pre.getPath());
@@ -204,6 +205,13 @@ public class UploadPretreatment extends org.dromara.x.file.storage.core.UploadPr
     @Override
     public UploadPretreatment setThumbnailSuffix(String thumbnailSuffix) {
         return (UploadPretreatment) super.setThumbnailSuffix(thumbnailSuffix);
+    }
+
+    /**
+     * 忽略生成缩略图时的错误，需要在生成缩略图之前设置
+     */
+    public UploadPretreatment setIgnoreThumbnailException(boolean flag, boolean ignoreThumbnailException) {
+        return (UploadPretreatment) super.setIgnoreThumbnailException(flag, ignoreThumbnailException);
     }
 
     /**
