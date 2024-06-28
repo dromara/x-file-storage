@@ -75,6 +75,10 @@ public class SolonFileStorageProperties {
    */
   private Boolean enableMultipartFileWrapper = true;
   /**
+   * 启用 Solon UploadedFile 文件包装适配器
+   */
+  private Boolean enableUploadedFileWrapper = true;
+  /**
    * 本地存储
    */
   @Deprecated

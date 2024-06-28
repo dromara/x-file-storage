@@ -15,6 +15,7 @@ import org.dromara.x.file.storage.core.tika.TikaContentTypeDetect;
 import org.dromara.x.file.storage.core.tika.TikaFactory;
 import org.dromara.x.file.storage.solon.SolonFileStorageProperties.SpringLocalConfig;
 import org.dromara.x.file.storage.solon.SolonFileStorageProperties.SpringLocalPlusConfig;
+import org.dromara.x.file.storage.solon.file.UploadedFileWrapperAdapter;
 import org.noear.solon.Solon;
 import org.noear.solon.annotation.*;
 
@@ -127,6 +128,14 @@ public class FileStorageAutoConfiguration {
     }
     if (properties.getEnableMultipartFileWrapper()) {
       log.warn("当前为 Solon 环境，无需加载 MultipartFile 的文件包装适配器, 请将参数【dromara.x-file-storage.enable-multipart-file-wrapper】设置为 【false】来消除此警告");
+    }
+
+    if (properties.getEnableUploadedFileWrapper()) {
+      if (doesNotExistClass("org.noear.solon.core.handle.UploadedFile")){
+        log.warn("当前未检测到 Solon 环境，无法加载 UploadedFile 的文件包装适配器，请将参数【dromara.x-file-storage.enable-uploaded-file-wrapper】设置为 【false】来消除此警告");
+      } else {
+        builder.addFileWrapperAdapter(new UploadedFileWrapperAdapter());
+      }
     }
 
     if (doesNotExistClass("org.noear.solon.web.staticfiles.StaticMappings")) {
