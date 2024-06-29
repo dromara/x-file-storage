@@ -281,6 +281,7 @@ public class LocalPlusFileStorage implements FileStorage {
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
                         dir.setName(item.getName());
+                        dir.setOriginal(item);
                         return dir;
                     })
                     .collect(Collectors.toList()));

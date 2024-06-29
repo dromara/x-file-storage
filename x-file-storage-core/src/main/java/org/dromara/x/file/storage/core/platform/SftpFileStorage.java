@@ -142,6 +142,7 @@ public class SftpFileStorage implements FileStorage {
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
                         dir.setName(item.getFilename());
+                        dir.setOriginal(item);
                         return dir;
                     })
                     .collect(Collectors.toList()));

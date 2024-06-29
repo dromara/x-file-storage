@@ -297,6 +297,7 @@ public class AliyunOssFileStorage implements FileStorage {
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
                         dir.setName(FileNameUtil.getName(item));
+                        dir.setOriginal(item);
                         return dir;
                     })
                     .collect(Collectors.toList()));

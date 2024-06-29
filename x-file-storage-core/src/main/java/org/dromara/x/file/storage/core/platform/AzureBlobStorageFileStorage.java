@@ -363,6 +363,7 @@ public class AzureBlobStorageFileStorage implements FileStorage {
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
                         dir.setName(FileNameUtil.getName(item.getName().getContent()));
+                        dir.setOriginal(item);
                         return dir;
                     })
                     .collect(Collectors.toList()));

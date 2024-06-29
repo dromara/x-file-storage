@@ -3,11 +3,13 @@ package org.dromara.x.file.storage.core.platform;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.text.NamingCase;
 import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
+import com.google.api.gax.paging.Page;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.*;
 import com.google.cloud.storage.Storage.CopyRequest;
@@ -35,8 +37,7 @@ import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
-import org.dromara.x.file.storage.core.get.GetFilePretreatment;
-import org.dromara.x.file.storage.core.get.RemoteFileInfo;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
 import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 
@@ -112,6 +113,94 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.upload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll();
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        Storage client = getClient();
+        try {
+            ArrayList<Storage.BlobListOption> options = new ArrayList<>();
+            options.add(Storage.BlobListOption.pageSize(pre.getMaxFiles()));
+            if (StrUtil.isNotBlank(pre.getMarker())) {
+                options.add(Storage.BlobListOption.pageToken(pre.getMarker()));
+            }
+            options.add(Storage.BlobListOption.delimiter("/"));
+            options.add(Storage.BlobListOption.prefix(basePath + pre.getPath() + pre.getFilenamePrefix()));
+            Page<Blob> result = client.list(bucketName, options.toArray(new Storage.BlobListOption[] {}));
+            ArrayList<Blob> values = ListUtil.toList(result.getValues());
+            ListFilesResult list = new ListFilesResult();
+
+            list.setDirList(values.stream()
+                    .map(item -> {
+                        if (!item.isDirectory()) return null;
+                        RemoteDirInfo dir = new RemoteDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(FileNameUtil.getName(item.getName()));
+                        dir.setOriginal(item);
+                        return dir;
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList()));
+
+            list.setFileList(values.stream()
+                    .map(item -> {
+                        if (item.isDirectory()) return null;
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(FileNameUtil.getName(item.getName()));
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
+                        info.setSize(item.getSize());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setETag(item.getEtag());
+                        info.setContentDisposition(item.getContentDisposition());
+                        info.setContentType(item.getContentType());
+                        info.setContentMd5(item.getMd5());
+                        info.setLastModified(DateUtil.date(item.getUpdateTimeOffsetDateTime()));
+                        HashMap<String, Object> metadata = new HashMap<>();
+                        if (item.getContentType() != null)
+                            metadata.put(Constant.Metadata.CONTENT_TYPE, item.getContentType());
+                        if (item.getContentEncoding() != null)
+                            metadata.put(Constant.Metadata.CONTENT_ENCODING, item.getContentEncoding());
+                        if (item.getContentDisposition() != null)
+                            metadata.put(Constant.Metadata.CONTENT_DISPOSITION, item.getContentDisposition());
+                        if (item.getContentLanguage() != null)
+                            metadata.put(Constant.Metadata.CONTENT_LANGUAGE, item.getContentLanguage());
+                        if (item.getStorageClass() != null) metadata.put("Storage-Class", item.getStorageClass());
+                        if (item.getSize() != null) metadata.put(Constant.Metadata.CONTENT_LENGTH, item.getSize());
+                        if (item.getMd5() != null) metadata.put(Constant.Metadata.CONTENT_MD5, item.getMd5());
+                        if (item.getEtag() != null) metadata.put("E-Tag", item.getEtag());
+                        if (item.getUpdateTimeOffsetDateTime() != null)
+                            metadata.put(
+                                    Constant.Metadata.LAST_MODIFIED,
+                                    DateUtil.formatHttpDate(DateUtil.date(item.getUpdateTimeOffsetDateTime())));
+                        info.setMetadata(metadata);
+                        if (item.getMetadata() != null) info.setUserMetadata(new HashMap<>(item.getMetadata()));
+                        info.setOriginal(item);
+                        return info;
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(pre.getMaxFiles());
+            list.setIsTruncated(result.hasNextPage());
+            list.setMarker(pre.getMarker());
+            list.setNextMarker(result.getNextPageToken());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
         }
     }
 
