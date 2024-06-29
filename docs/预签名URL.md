@@ -130,7 +130,10 @@ input.oninput = async _ => {
     let response = await fetch(uploadResult.url, {
         method: 'PUT',
         headers: uploadResult.headers,
-        body: file
+        body: file,
+        onProgress: (progress) => {
+            console.log(`上传进度: ${Math.round((progress.loaded / progress.total) * 100)}%`);
+        }
     });
 
     //验证是否上传成功
