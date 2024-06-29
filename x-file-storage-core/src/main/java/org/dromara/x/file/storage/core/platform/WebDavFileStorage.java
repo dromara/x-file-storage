@@ -159,6 +159,7 @@ public class WebDavFileStorage implements FileStorage {
                         info.setBasePath(basePath);
                         info.setPath(pre.getPath());
                         info.setFilename(item.getName());
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
                         info.setSize(item.getContentLength());
                         info.setExt(FileNameUtil.extName(info.getFilename()));
                         info.setETag(item.getEtag());

@@ -144,6 +144,7 @@ public class FtpFileStorage implements FileStorage {
                         info.setBasePath(basePath);
                         info.setPath(pre.getPath());
                         info.setFilename(item.getName());
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
                         info.setSize(item.getSize());
                         info.setExt(FileNameUtil.extName(info.getFilename()));
                         info.setLastModified(DateUtil.date(item.getTimestamp()));

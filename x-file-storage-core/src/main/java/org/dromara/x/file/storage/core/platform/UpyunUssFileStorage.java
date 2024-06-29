@@ -283,6 +283,7 @@ public class UpyunUssFileStorage implements FileStorage {
                     info.setBasePath(basePath);
                     info.setPath(pre.getPath());
                     info.setFilename(item.getString("name"));
+                    info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
                     info.setSize(item.getLong("length"));
                     info.setExt(FileNameUtil.extName(info.getFilename()));
                     info.setETag(item.getString("etag"));

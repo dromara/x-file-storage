@@ -302,6 +302,7 @@ public class HuaweiObsFileStorage implements FileStorage {
                         info.setBasePath(basePath);
                         info.setPath(pre.getPath());
                         info.setFilename(FileNameUtil.getName(item.getObjectKey()));
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
                         ObjectMetadata metadata = item.getMetadata();
                         info.setSize(metadata.getContentLength());
                         info.setExt(FileNameUtil.extName(info.getFilename()));
