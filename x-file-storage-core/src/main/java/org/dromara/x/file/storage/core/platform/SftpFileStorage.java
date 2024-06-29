@@ -207,9 +207,10 @@ public class SftpFileStorage implements FileStorage {
             } catch (Exception e) {
                 return null;
             }
+            if (attrs == null) return null;
             LsEntry file = ReflectUtil.newInstanceIfPossible(LsEntry.class);
             ReflectUtil.setFieldValue(file, "filename", filename);
-            ReflectUtil.setFieldValue(file, "longname", attrs.toString() + " " + filename);
+            ReflectUtil.setFieldValue(file, "longname", attrs + " " + filename);
             ReflectUtil.setFieldValue(file, "attrs", attrs);
 
             RemoteFileInfo info = new RemoteFileInfo();

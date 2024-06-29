@@ -345,6 +345,7 @@ public class QiniuKodoFileStorage implements FileStorage {
             } catch (Exception e) {
                 return null;
             }
+            if (file == null) return null;
             RemoteFileInfo info = new RemoteFileInfo();
             info.setPlatform(pre.getPlatform());
             info.setBasePath(basePath);

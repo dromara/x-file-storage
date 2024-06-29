@@ -341,6 +341,7 @@ public class AliyunOssFileStorage implements FileStorage {
             } catch (Exception e) {
                 return null;
             }
+            if (file == null) return null;
             ObjectMetadata metadata = file.getObjectMetadata();
             RemoteFileInfo info = new RemoteFileInfo();
             info.setPlatform(pre.getPlatform());
