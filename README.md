@@ -84,7 +84,7 @@ Gitee：https://gitee.com/dromara/x-file-storage
 
 #### 🔧 配置
 
-这里以阿里云 OSS 为例，`pom.xml` 引入本项目，这里默认是 `SpringBoot` 环境，其它环境参考 [脱离 SpringBoot 单独使用](https://x-file-storage.xuyanwu.cn/#/脱离SpringBoot单独使用)
+这里以阿里云 OSS 为例，`pom.xml` 引入本项目，这里默认是 `SpringBoot` 环境，`Solon` 环境参考 [在 Solon 中使用](https://x-file-storage.xuyanwu.cn/#/在Solon中使用)，其它环境参考 [脱离 SpringBoot 单独使用](https://x-file-storage.xuyanwu.cn/#/脱离SpringBoot单独使用)
 
 ```xml
 <!-- 引入本项目 -->
@@ -137,7 +137,7 @@ public class SpringFileStorageTestApplication {
 ```
  #### ✨开始上传
 
- 支持 File、MultipartFile、byte[]、InputStream、URL、URI、String、HttpServletRequest，大文件会自动分片上传。如果想支持更多方式，请阅读 [文件适配器](https://x-file-storage.xuyanwu.cn/#/文件适配器) 章节
+ 支持 File、MultipartFile、UploadedFile、byte[]、InputStream、URL、URI、String、HttpServletRequest，大文件会自动分片上传。如果想支持更多方式，请阅读 [文件适配器](https://x-file-storage.xuyanwu.cn/#/文件适配器) 章节
 
 ```java
 @RestController
@@ -162,6 +162,7 @@ public class FileDetailController {
     public String upload2(MultipartFile file) {
         FileInfo fileInfo = fileStorageService.of(file)
                 .setPath("upload/") //保存到相对路径下，为了方便管理，不需要可以不写
+                .setSaveFilename("image.jpg") //设置保存的文件名，不需要可以不写，会随机生成
                 .setObjectId("0")   //关联对象id，为了方便管理，不需要可以不写
                 .setObjectType("0") //关联对象类型，为了方便管理，不需要可以不写
                 .putAttr("role","admin") //保存一些属性，可以在切面、保存上传记录、自定义存储平台等地方获取使用，不需要可以不写

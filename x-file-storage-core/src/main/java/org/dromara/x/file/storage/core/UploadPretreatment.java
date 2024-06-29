@@ -55,6 +55,10 @@ public class UploadPretreatment
      */
     private String thumbnailSuffix;
     /**
+     * 忽略生成缩略图时的错误，需要在生成缩略图之前设置
+     */
+    private boolean ignoreThumbnailException = false;
+    /**
      * 文件所属对象id
      */
     private String objectId;
@@ -176,6 +180,14 @@ public class UploadPretreatment
      */
     public UploadPretreatment setThumbnailSuffix(boolean flag, String thumbnailSuffix) {
         if (flag) setThumbnailSuffix(thumbnailSuffix);
+        return this;
+    }
+
+    /**
+     * 忽略生成缩略图时的错误，需要在生成缩略图之前设置
+     */
+    public UploadPretreatment setIgnoreThumbnailException(boolean flag, boolean ignoreThumbnailException) {
+        if (flag) setIgnoreThumbnailException(ignoreThumbnailException);
         return this;
     }
 
@@ -611,10 +623,10 @@ public class UploadPretreatment
     public UploadPretreatment thumbnailOf(Object file) {
         try {
             thumbnailBytes = IoUtil.readBytes(fileStorageService.wrapper(file).getInputStream());
-            return this;
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("生成缩略图失败！", e);
+            if (!ignoreThumbnailException) throw new FileStorageRuntimeException("生成缩略图失败！", e);
         }
+        return this;
     }
 
     /**
@@ -637,8 +649,9 @@ public class UploadPretreatment
         try {
             return thumbnail(consumer, fileStorageService.wrapper(file).getInputStream());
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("生成缩略图失败！", e);
+            if (!ignoreThumbnailException) throw new FileStorageRuntimeException("生成缩略图失败！", e);
         }
+        return this;
     }
 
     /**
@@ -662,8 +675,9 @@ public class UploadPretreatment
                 return thumbnail(consumer, new ByteArrayInputStream(thumbnailBytes));
             }
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("生成缩略图失败！", e);
+            if (!ignoreThumbnailException) throw new FileStorageRuntimeException("生成缩略图失败！", e);
         }
+        return this;
     }
 
     /**
@@ -679,10 +693,10 @@ public class UploadPretreatment
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             builder.toOutputStream(out);
             thumbnailBytes = out.toByteArray();
-            return this;
         } catch (IOException e) {
-            throw new FileStorageRuntimeException("生成缩略图失败！", e);
+            if (!ignoreThumbnailException) throw new FileStorageRuntimeException("生成缩略图失败！", e);
         }
+        return this;
     }
 
     /**
