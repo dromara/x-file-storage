@@ -435,6 +435,7 @@ public class MinioFileStorage implements FileStorage {
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
                         dir.setName(FileNameUtil.getName(item.toItem().objectName()));
+                        dir.setOriginal(item);
                         return dir;
                     })
                     .collect(Collectors.toList()));
@@ -482,6 +483,7 @@ public class MinioFileStorage implements FileStorage {
             } catch (Exception e) {
                 return null;
             }
+            if (file == null) return null;
 
             KebabCaseInsensitiveMap<String, String> headers =
                     new KebabCaseInsensitiveMap<>(file.headers().toMultimap().entrySet().stream()

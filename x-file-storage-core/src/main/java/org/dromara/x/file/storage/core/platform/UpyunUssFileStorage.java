@@ -275,6 +275,7 @@ public class UpyunUssFileStorage implements FileStorage {
                     dir.setBasePath(basePath);
                     dir.setPath(pre.getPath());
                     dir.setName(item.getString("name"));
+                    dir.setOriginal(item);
                     dirList.add(dir);
                 } else {
                     RemoteFileInfo info = new RemoteFileInfo();

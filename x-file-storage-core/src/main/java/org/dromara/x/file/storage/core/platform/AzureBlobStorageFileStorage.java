@@ -363,6 +363,7 @@ public class AzureBlobStorageFileStorage implements FileStorage {
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
                         dir.setName(FileNameUtil.getName(item.getName().getContent()));
+                        dir.setOriginal(item);
                         return dir;
                     })
                     .collect(Collectors.toList()));
@@ -415,6 +416,7 @@ public class AzureBlobStorageFileStorage implements FileStorage {
             } catch (Exception e) {
                 return null;
             }
+            if (file == null) return null;
             RemoteFileInfo info = new RemoteFileInfo();
             info.setPlatform(pre.getPlatform());
             info.setBasePath(basePath);

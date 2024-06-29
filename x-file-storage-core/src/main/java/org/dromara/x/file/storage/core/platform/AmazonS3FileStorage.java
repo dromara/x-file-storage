@@ -303,6 +303,7 @@ public class AmazonS3FileStorage implements FileStorage {
                         dir.setBasePath(basePath);
                         dir.setPath(pre.getPath());
                         dir.setName(FileNameUtil.getName(item));
+                        dir.setOriginal(item);
                         return dir;
                     })
                     .collect(Collectors.toList()));
@@ -347,6 +348,7 @@ public class AmazonS3FileStorage implements FileStorage {
             } catch (Exception e) {
                 return null;
             }
+            if (file == null) return null;
             ObjectMetadata metadata = file.getObjectMetadata();
             RemoteFileInfo info = new RemoteFileInfo();
             info.setPlatform(pre.getPlatform());

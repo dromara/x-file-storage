@@ -41,7 +41,7 @@ public class ListFilesActuator {
                     Integer supportMaxFiles = supportInfo.getSupportMaxFiles();
 
                     // 如果超出范围则直接取最大值
-                    if (_pre.getMaxFiles() == null || _pre.getMaxFiles() < 1 || _pre.getMaxFiles() > supportMaxFiles) {
+                    if (_pre.getMaxFiles() == null || _pre.getMaxFiles() < 1) {
                         _pre.setMaxFiles(supportMaxFiles);
                     }
                     ListFilesResult result;
