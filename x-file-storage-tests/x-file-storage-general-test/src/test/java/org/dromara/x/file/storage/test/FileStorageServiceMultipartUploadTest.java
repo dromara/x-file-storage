@@ -180,6 +180,9 @@ class FileStorageServiceMultipartUploadTest {
                 .setSaveFilename("BadApple.mp4")
                 .init();
 
+        FilePartInfoList partList = fileStorageService.listParts(fileInfo).listParts();
+        Assert.notNull(partList, "手动分片上传文件初始化失败，无法获取分片信息");
+        Assert.isTrue(partList.getList().isEmpty(), "手动分片上传文件初始化失败，分片信息不为空");
         log.info("手动分片上传文件初始化成功：{}", fileInfo);
 
         try (BufferedInputStream in = FileUtil.getInputStream(file)) {
@@ -194,7 +197,7 @@ class FileStorageServiceMultipartUploadTest {
             }
         }
 
-        FilePartInfoList partList = fileStorageService.listParts(fileInfo).listParts();
+        partList = fileStorageService.listParts(fileInfo).listParts();
         for (FilePartInfo info : partList.getList()) {
             log.info("手动分片上传-列举已上传的分片：{}", info);
         }
