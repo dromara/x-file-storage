@@ -300,6 +300,7 @@ public class QiniuKodoFileStorage implements FileStorage {
                         info.setBasePath(basePath);
                         info.setPath(pre.getPath());
                         info.setFilename(FileNameUtil.getName(item.key));
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
                         info.setSize(item.fsize);
                         info.setExt(FileNameUtil.extName(info.getFilename()));
                         info.setContentType(item.mimeType);

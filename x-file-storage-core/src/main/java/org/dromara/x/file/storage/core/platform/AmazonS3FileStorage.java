@@ -315,6 +315,7 @@ public class AmazonS3FileStorage implements FileStorage {
                         info.setBasePath(basePath);
                         info.setPath(pre.getPath());
                         info.setFilename(FileNameUtil.getName(item.getKey()));
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
                         info.setSize(item.getSize());
                         info.setExt(FileNameUtil.extName(info.getFilename()));
                         info.setETag(item.getETag());

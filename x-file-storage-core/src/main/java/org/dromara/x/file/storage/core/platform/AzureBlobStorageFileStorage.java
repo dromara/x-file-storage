@@ -374,6 +374,7 @@ public class AzureBlobStorageFileStorage implements FileStorage {
                         info.setBasePath(basePath);
                         info.setPath(pre.getPath());
                         info.setFilename(FileNameUtil.getName(item.getName().getContent()));
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
                         BlobItemPropertiesInternal properties = item.getProperties();
                         info.setSize(properties.getContentLength());
                         info.setExt(FileNameUtil.extName(info.getFilename()));

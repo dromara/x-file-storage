@@ -447,6 +447,7 @@ public class MinioFileStorage implements FileStorage {
                         info.setBasePath(basePath);
                         info.setPath(pre.getPath());
                         info.setFilename(FileNameUtil.getName(item.objectName()));
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
                         info.setSize(item.size());
                         info.setExt(FileNameUtil.extName(info.getFilename()));
                         info.setETag(item.etag());
