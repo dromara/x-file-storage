@@ -7,8 +7,7 @@ import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.text.NamingCase;
-import cn.hutool.core.util.CharUtil;
-import cn.hutool.core.util.StrUtil;
+import cn.hutool.core.util.*;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.*;
@@ -16,6 +15,7 @@ import com.google.cloud.storage.Storage.CopyRequest;
 import com.google.cloud.storage.Storage.PredefinedAcl;
 import com.google.cloud.storage.Storage.SignUrlOption;
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.channels.Channels;
@@ -40,6 +40,8 @@ import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
 import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
+import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.util.Tools;
 
 /**
  * GoogleCloud Storage 存储
@@ -113,6 +115,188 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.upload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public MultipartUploadSupportInfo isSupportMultipartUpload() {
+        return MultipartUploadSupportInfo.supportAll().setListPartsSupportMaxParts(2);
+    }
+
+    @Override
+    public void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
+        fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
+        fileInfo.setUrl(domain + newFileKey);
+        Storage client = getClient();
+        try {
+            String uploadId = "multi_" + IdUtil.objectId();
+            String path = Tools.getParent(newFileKey) + "/" + uploadId + "/";
+            ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
+            client.createFrom(BlobInfo.newBuilder(bucketName, path + "index").build(), in);
+            fileInfo.setUploadId(uploadId);
+        } catch (Exception e) {
+            throw ExceptionFactory.initiateMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public FilePartInfo uploadPart(UploadPartPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        Storage client = getClient();
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
+            String part = Tools.getParent(newFileKey) + "/" + fileInfo.getUploadId() + "/"
+                    + StrUtil.padPre(String.valueOf(pre.getPartNumber()), 10, "0");
+            Blob blob = client.createFrom(BlobInfo.newBuilder(bucketName, part).build(), in);
+            FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+            filePartInfo.setETag(blob.getEtag());
+            filePartInfo.setPartNumber(pre.getPartNumber());
+            filePartInfo.setPartSize(in.getProgressSize());
+            filePartInfo.setCreateTime(new Date());
+            return filePartInfo;
+        } catch (Exception e) {
+            throw ExceptionFactory.uploadPart(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        Storage client = getClient();
+        try {
+            ProgressListener.quickStart(pre.getProgressListener(), fileInfo.getSize());
+            client.delete(BlobId.of(bucketName, newFileKey));
+            String path = Tools.getParent(newFileKey) + "/" + fileInfo.getUploadId() + "/";
+            LinkedList<String> sources = pre.getPartInfoList().stream()
+                    .map(part -> path + StrUtil.padPre(String.valueOf(part.getPartNumber()), 10, "0"))
+                    .collect(Collectors.toCollection(LinkedList::new));
+            ArrayList<String> subSources = new ArrayList<>();
+            for (int i = 0; i < sources.size(); i++) {
+                subSources.add(sources.get(i));
+                // 每次最多合并 32 个文件，超过部分需要多次合并
+                if (subSources.size() == 32 || i + 1 == sources.size()) {
+                    Storage.ComposeRequest request;
+                    ArrayList<Storage.BlobTargetOption> optionList = null;
+                    // 最后一次合并需要传入全部相关数据
+                    if (i + 1 == sources.size()) {
+                        optionList = new ArrayList<>();
+                        BlobInfo.Builder blobInfoBuilder = BlobInfo.newBuilder(bucketName, newFileKey);
+                        setMetadataOfBlobTargetOption(blobInfoBuilder, fileInfo, optionList);
+                        request = Storage.ComposeRequest.newBuilder()
+                                .setTarget(blobInfoBuilder.build())
+                                .setTargetOptions(optionList)
+                                .addSource(subSources)
+                                .build();
+                    } else {
+                        request = Storage.ComposeRequest.of(bucketName, subSources, newFileKey);
+                    }
+                    Blob blob = client.compose(request);
+                    if (CollUtil.isNotEmpty(optionList)) {
+                        blob.update(optionList.toArray(optionList.toArray(new Storage.BlobTargetOption[0])));
+                    }
+                    ProgressListener.quickProgress(pre.getProgressListener(), blob.getSize(), fileInfo.getSize());
+                    subSources.clear();
+                    subSources.add(newFileKey);
+                }
+            }
+
+            List<BlobId> blobIdList =
+                    ListUtil.toList(client.list(bucketName, Storage.BlobListOption.prefix(path))
+                                    .iterateAll())
+                            .stream()
+                            .map(BlobInfo::getBlobId)
+                            .collect(Collectors.toList());
+            if (!blobIdList.isEmpty()) client.delete(blobIdList);
+            ProgressListener.quickFinish(pre.getProgressListener());
+        } catch (Exception e) {
+            try {
+                client.delete(BlobId.of(bucketName, newFileKey));
+            } catch (Exception ignored) {
+            }
+            throw ExceptionFactory.completeMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        Storage client = getClient();
+        try {
+            String path = Tools.getParent(newFileKey) + "/" + fileInfo.getUploadId() + "/";
+            List<BlobId> blobIdList =
+                    ListUtil.toList(client.list(bucketName, Storage.BlobListOption.prefix(path))
+                                    .iterateAll())
+                            .stream()
+                            .map(BlobInfo::getBlobId)
+                            .collect(Collectors.toList());
+            if (!blobIdList.isEmpty()) client.delete(blobIdList);
+        } catch (Exception e) {
+            throw ExceptionFactory.abortMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public FilePartInfoList listParts(ListPartsPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        Storage client = getClient();
+        try {
+            String path = Tools.getParent(newFileKey) + "/" + fileInfo.getUploadId() + "/";
+            if (client.get(BlobId.of(bucketName, path + "index")) == null) {
+                throw new FileNotFoundException(path + "index");
+            }
+
+            ArrayList<Storage.BlobListOption> options = new ArrayList<>();
+            //            options.add(Storage.BlobListOption.pageSize(pre.getMaxParts()));
+            //            if (pre.getPartNumberMarker() != null && pre.getPartNumberMarker() > 0) {
+            //                options.add(Storage.BlobListOption.pageToken(String.valueOf(pre.getPartNumberMarker())));
+            //            }
+            options.add(Storage.BlobListOption.delimiter("/"));
+            options.add(Storage.BlobListOption.prefix(path));
+            Page<Blob> result = client.list(bucketName, options.toArray(new Storage.BlobListOption[] {}));
+
+            FilePartInfoList list = new FilePartInfoList();
+            list.setFileInfo(fileInfo);
+
+            ArrayList<FilePartInfo> partList = new ArrayList<>();
+            int i = 1;
+            for (Blob p : result.iterateAll()) {
+                String filename = FileNameUtil.getName(p.getName());
+                int partNumber;
+                try {
+                    partNumber = Integer.parseInt(filename);
+                } catch (Exception e) {
+                    continue;
+                }
+                if (pre.getPartNumberMarker() != null && pre.getPartNumberMarker() > 0) {
+                    if (partNumber <= pre.getPartNumberMarker()) continue;
+                }
+                FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+                filePartInfo.setETag(p.getEtag());
+                filePartInfo.setPartNumber(partNumber);
+                filePartInfo.setPartSize(p.getSize());
+                filePartInfo.setLastModified(DateUtil.date(p.getUpdateTimeOffsetDateTime()));
+                partList.add(filePartInfo);
+                // 这里多获取一个，用于判断是否还有更多分片待读取
+                if (i == pre.getMaxParts() + 1) break;
+                i++;
+            }
+
+            list.setList(partList);
+            list.setMaxParts(pre.getMaxParts());
+            list.setIsTruncated(partList.size() > pre.getMaxParts());
+            list.setPartNumberMarker(pre.getPartNumberMarker());
+            if (list.getIsTruncated()) {
+                // 删除最后一个多获取的分片信息
+                partList.remove(partList.size() - 1);
+                list.setNextPartNumberMarker(partList.get(partList.size() - 1).getPartNumber());
+            }
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listParts(fileInfo, platform, e);
         }
     }
 
@@ -330,6 +514,28 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
                 blobInfoBuilder.setAcl(fileAcl.getAclList());
             } else if (fileAcl.getPredefinedAcl() != null) {
                 optionList.add(Storage.BlobWriteOption.predefinedAcl(fileAcl.getPredefinedAcl()));
+            }
+        }
+    }
+
+    /**
+     * 设置对象的元数据
+     */
+    public void setMetadataOfBlobTargetOption(
+            BlobInfo.Builder blobInfoBuilder, FileInfo fileInfo, ArrayList<Storage.BlobTargetOption> optionList) {
+        blobInfoBuilder.setContentType(fileInfo.getContentType()).setMetadata(fileInfo.getUserMetadata());
+        if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
+            CopyOptions copyOptions = CopyOptions.create()
+                    .ignoreCase()
+                    .setFieldNameEditor(name -> NamingCase.toCamelCase(name, CharUtil.DASHED));
+            BeanUtil.copyProperties(fileInfo.getMetadata(), blobInfoBuilder, copyOptions);
+        }
+        AclWrapper fileAcl = getAcl(fileInfo.getFileAcl());
+        if (fileAcl != null) {
+            if (fileAcl.getAclList() != null) {
+                blobInfoBuilder.setAcl(fileAcl.getAclList());
+            } else if (fileAcl.getPredefinedAcl() != null) {
+                optionList.add(Storage.BlobTargetOption.predefinedAcl(fileAcl.getPredefinedAcl()));
             }
         }
     }
