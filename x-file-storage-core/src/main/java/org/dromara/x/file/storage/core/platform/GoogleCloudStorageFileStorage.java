@@ -120,7 +120,7 @@ public class GoogleCloudStorageFileStorage implements FileStorage {
 
     @Override
     public MultipartUploadSupportInfo isSupportMultipartUpload() {
-        return MultipartUploadSupportInfo.supportAll().setListPartsSupportMaxParts(2);
+        return MultipartUploadSupportInfo.supportAll().setListPartsSupportMaxParts(10000);
     }
 
     @Override
