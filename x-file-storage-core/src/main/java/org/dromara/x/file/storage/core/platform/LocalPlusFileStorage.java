@@ -107,7 +107,7 @@ public class LocalPlusFileStorage implements FileStorage {
         try {
             String uploadId = IdUtil.objectId();
             String parent = FileUtil.file(getAbsolutePath(newFileKey)).getParent();
-            FileUtil.mkdir(FileUtil.file(parent, uploadId));
+            FileUtil.touch(parent, uploadId + "/index");
             fileInfo.setUploadId(uploadId);
         } catch (Exception e) {
             throw ExceptionFactory.initiateMultipartUpload(fileInfo, platform, e);

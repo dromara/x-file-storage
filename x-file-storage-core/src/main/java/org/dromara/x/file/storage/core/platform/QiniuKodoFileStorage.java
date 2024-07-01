@@ -243,6 +243,7 @@ public class QiniuKodoFileStorage implements FileStorage {
                     token);
             ApiUploadV2ListParts.Response response = result.getData();
             List<?> parts = response.getParts();
+            if (parts == null) parts = Collections.emptyList();
             FilePartInfoList list = new FilePartInfoList();
             list.setFileInfo(fileInfo);
             list.setList(parts.stream()

@@ -235,9 +235,17 @@ public class AzureBlobStorageFileStorage implements FileStorage {
     public void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
-        fileInfo.setBasePath(basePath);
         fileInfo.setUrl(getUrl(newFileKey));
-        fileInfo.setUploadId(IdUtil.objectId());
+        BlockBlobClient blobClient = getBlobClient(getFileKey(fileInfo)).getBlockBlobClient();
+        try {
+            String uploadId = IdUtil.objectId();
+            fileInfo.setUploadId(uploadId);
+            String blockIdBase64 = Base64.encode(String.format("%06d", 0));
+            byte[] bytes = fileInfo.getUploadId().getBytes(StandardCharsets.UTF_8);
+            blobClient.stageBlock(blockIdBase64, new ByteArrayInputStream(bytes), bytes.length);
+        } catch (Exception e) {
+            throw ExceptionFactory.initiateMultipartUpload(fileInfo, platform, e);
+        }
     }
 
     /**
@@ -309,16 +317,33 @@ public class AzureBlobStorageFileStorage implements FileStorage {
         BlockBlobClient client = getBlobClient(getFileKey(fileInfo)).getBlockBlobClient();
         try {
             BlockList blockList = client.listBlocks(BlockListType.UNCOMMITTED);
-            FilePartInfoList list = new FilePartInfoList();
-            list.setFileInfo(fileInfo);
-            list.setList(blockList.getUncommittedBlocks().stream()
+
+            List<FilePartInfo> partList = blockList.getUncommittedBlocks().stream()
                     .map(p -> {
                         FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
                         filePartInfo.setPartSize(p.getSizeLong());
                         filePartInfo.setPartNumber(Integer.parseInt(Base64.decodeStr(p.getName())));
                         return filePartInfo;
                     })
-                    .collect(Collectors.toList()));
+                    .filter(p -> p.getPartNumber() > pre.getPartNumberMarker())
+                    .filter(v -> v.getPartNumber() > 0)
+                    .sorted(Comparator.comparingInt(FilePartInfo::getPartNumber))
+                    .collect(Collectors.toList());
+
+            FilePartInfoList list = new FilePartInfoList();
+            list.setFileInfo(fileInfo);
+            list.setMaxParts(pre.getMaxParts());
+            list.setPartNumberMarker(pre.getPartNumberMarker());
+
+            if (partList.size() > pre.getMaxParts()) {
+                list.setIsTruncated(true);
+                partList = partList.subList(0, pre.getMaxParts());
+                list.setNextPartNumberMarker(partList.get(partList.size() - 1).getPartNumber());
+            } else {
+                list.setIsTruncated(false);
+            }
+            list.setList(partList);
+
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listParts(fileInfo, platform, e);
