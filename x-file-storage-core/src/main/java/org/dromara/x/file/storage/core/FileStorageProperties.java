@@ -782,7 +782,7 @@ public class FileStorageProperties {
 
     /**
      * FastDFS
-     * 兼容性说明：https://x-file-storage.xuyanwu.cn/2.1.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
+     * 兼容性说明：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
      */
     @Data
     @Accessors(chain = true)
@@ -790,7 +790,7 @@ public class FileStorageProperties {
     public static class FastDfsConfig extends BaseConfig {
         /**
          * 运行模式，由于 FastDFS 比较特殊，不支持自定义文件名及路径，所以使用运行模式来解决这个问题。
-         * 详情请查看：https://x-file-storage.xuyanwu.cn/2.1.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
+         * 详情请查看：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
          */
         private RunMod runMod = RunMod.COVER;
 
@@ -818,8 +818,8 @@ public class FileStorageProperties {
          * 基础路径，强烈建议留空
          * 仅在上传成功时和获取文件时原样传到 FileInfo 及 RemoteFileInfo 中，可以用来保存到数据库中使用，
          * 实际上作用也不大，还会破坏 url 约定（url：实际上就是 domain + basePath + path + filename），
-         * 约定详情见文档 https://x-file-storage.xuyanwu.cn/2.1.0/#/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98?id=%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%8F%8A-fileinfo-%E4%B8%AD%E5%90%84%E7%A7%8D%E8%B7%AF%E5%BE%84%EF%BC%88path%EF%BC%89%E7%9A%84%E5%8C%BA%E5%88%AB%EF%BC%9F
-         * FastDFS 兼容性说明：https://x-file-storage.xuyanwu.cn/2.1.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
+         * 约定详情见文档 https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98?id=%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%8F%8A-fileinfo-%E4%B8%AD%E5%90%84%E7%A7%8D%E8%B7%AF%E5%BE%84%EF%BC%88path%EF%BC%89%E7%9A%84%E5%8C%BA%E5%88%AB%EF%BC%9F
+         * FastDFS 兼容性说明：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
          */
         private String basePath = "";
 
@@ -848,12 +848,12 @@ public class FileStorageProperties {
         public enum RunMod {
             /**
              * 覆盖模式，强制用 FastDFS 返回的路径及文件名覆盖 FileInfo 中的 path 及 filename。
-             * 详情请查看：https://x-file-storage.xuyanwu.cn/2.1.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
+             * 详情请查看：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
              */
             COVER,
             /**
              * URL模式，不覆盖 FileInfo 中的 path 及 filename。通过 url 解析 FastDFS 支持的路径及文件名
-             * 详情请查看：https://x-file-storage.xuyanwu.cn/2.1.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
+             * 详情请查看：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
              */
             URL;
         }
