@@ -1,7 +1,11 @@
 package org.dromara.x.file.storage.core.exception;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import org.dromara.x.file.storage.core.FileInfo;
+import org.dromara.x.file.storage.core.get.GetFilePretreatment;
+import org.dromara.x.file.storage.core.get.ListFilesPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
 
 /**
  * 异常工厂，用于生成各种常用异常，主要用于存储平台的实现类中
@@ -21,8 +25,11 @@ public class ExceptionFactory {
     public static final String COMPLETE_MULTIPART_UPLOAD_MESSAGE_FORMAT = "手动文件分片上传-完成失败！platform：{}，fileInfo：{}";
     public static final String ABORT_MULTIPART_UPLOAD_MESSAGE_FORMAT = "手动文件分片上传-取消失败！platform：{}，fileInfo：{}";
     public static final String LIST_PARTS_MESSAGE_FORMAT = "手动文件分片上传-列举已上传的分片失败！platform：{}，fileInfo：{}";
+    public static final String LIST_FILES_MESSAGE_FORMAT =
+            "列举文件失败！platform：{}，basePath：{}，path：{}，filenamePrefix：{}，maxFiles：{}，marker：{}";
+    public static final String GET_FILE_MESSAGE_FORMAT = "获取文件失败！platform：{}，basePath：{}，path：{}，filename：{}，url：{}";
     public static final String UNRECOGNIZED_ACL_MESSAGE_FORMAT = "无法识别此 ACL！platform：{}，ACL：{}";
-    public static final String GENERATE_PRESIGNED_URL_MESSAGE_FORMAT = "对文件生成可以签名访问的 URL 失败！platform：{}，fileInfo：{}";
+    public static final String GENERATE_PRESIGNED_URL_MESSAGE_FORMAT = "生成预签名 URL 失败！{}";
     public static final String GENERATE_TH_PRESIGNED_URL_MESSAGE_FORMAT =
             "对缩略图文件生成可以签名访问的 URL 失败！platform：{}，fileInfo：{}";
     public static final String SET_FILE_ACL_MESSAGE_FORMAT = "设置文件的 ACL 失败！platform：{}，fileInfo：{}，ACL：{}";
@@ -67,7 +74,7 @@ public class ExceptionFactory {
      */
     public static FileStorageRuntimeException upload(FileInfo fileInfo, String platform, Exception e) {
         return new FileStorageRuntimeException(
-                StrUtil.format(UPLOAD_MESSAGE_FORMAT, fileInfo.getOriginalFilename(), platform), e);
+                StrUtil.format(UPLOAD_MESSAGE_FORMAT, platform, fileInfo.getOriginalFilename()), e);
     }
 
     /**
@@ -180,6 +187,45 @@ public class ExceptionFactory {
     }
 
     /**
+     * 列举文件
+     * @param pre 预处理器
+     * @param basePath 基础路径
+     * @param e 源异常
+     * @return {@link FileStorageRuntimeException}
+     */
+    public static FileStorageRuntimeException listFiles(ListFilesPretreatment pre, String basePath, Exception e) {
+        return new FileStorageRuntimeException(
+                StrUtil.format(
+                        LIST_FILES_MESSAGE_FORMAT,
+                        pre.getPlatform(),
+                        basePath,
+                        pre.getPath(),
+                        pre.getFilenamePrefix(),
+                        pre.getMaxFiles(),
+                        pre.getMarker()),
+                e);
+    }
+
+    /**
+     * 获取文件
+     * @param pre 预处理器
+     * @param basePath 基础路径
+     * @param e 源异常
+     * @return {@link FileStorageRuntimeException}
+     */
+    public static FileStorageRuntimeException getFile(GetFilePretreatment pre, String basePath, Exception e) {
+        return new FileStorageRuntimeException(
+                StrUtil.format(
+                        GET_FILE_MESSAGE_FORMAT,
+                        pre.getPlatform(),
+                        basePath,
+                        pre.getPath(),
+                        pre.getFilename(),
+                        pre.getUrl()),
+                e);
+    }
+
+    /**
      * 无法识别此 ACL 异常
      * @param acl ALC（访问控制列表）
      * @param platform 存储平台名称
@@ -187,6 +233,17 @@ public class ExceptionFactory {
      */
     public static FileStorageRuntimeException unrecognizedAcl(Object acl, String platform) {
         return new FileStorageRuntimeException(StrUtil.format(UNRECOGNIZED_ACL_MESSAGE_FORMAT, platform, acl));
+    }
+
+    /**
+     * 生成预签名 URL 异常
+     * @param pre 生成预签名 URL 预处理器
+     * @return {@link FileStorageRuntimeException}
+     */
+    public static FileStorageRuntimeException generatePresignedUrl(GeneratePresignedUrlPretreatment pre, Exception e) {
+        return new FileStorageRuntimeException(
+                StrUtil.format(GENERATE_PRESIGNED_URL_MESSAGE_FORMAT, BeanUtil.beanToMap(pre, "fileStorageService")),
+                e);
     }
 
     /**

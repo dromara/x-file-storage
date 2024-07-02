@@ -44,6 +44,8 @@ Amazon S3、GoogleCloud Storage、FastDFS、 Azure Blob Storage、Cloudflare R2�
 
 💡 通过 WebDAV 连接到 Alist 后，可以使用百度网盘、天翼云盘、阿里云盘、迅雷网盘等常见存储服务，查看 [Alist 支持的存储平台](https://alist.nn.ci/zh/guide/webdav.html#webdav-%E5%AD%98%E5%82%A8%E6%94%AF%E6%8C%81)
 
+🚚 支持在不同存储平台之间迁移文件，详情查看 [迁移文件](https://x-file-storage.xuyanwu.cn/#/迁移文件)
+
 GitHub：https://github.com/dromara/x-file-storage
 <br />
 Gitee：https://gitee.com/dromara/x-file-storage
@@ -54,6 +56,8 @@ Gitee：https://gitee.com/dromara/x-file-storage
 
 这里是简要的更新记录，查看 [详细的更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录)
 
+`2.2.0` 修复大量问题，新增获取文件、列举文件，重构预签名 URL 支持客户端上传、下载、删除等操作，新增 Solon 插件，优化手动分片上传等功能，详情查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_220)
+<br />
 `2.1.0` 修复大量问题，新增存储平台 FastDFS 和 Azure Blob Storage，新增复制、移动（重命名）文件，手动分片上传（断点续传）和计算哈希等功能，详情查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_210)
 <br />
 `2.0.0` 捐赠至 [dromara](https://dromara.org/zh) 开源社区，更改项目名、包名，优化项目结构、支持 Metadata 元数据等，从旧版升级需要注意，详情查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_200)
@@ -71,11 +75,13 @@ Gitee：https://gitee.com/dromara/x-file-storage
 ### 📅更新计划
 
 - 接入存储平台：HDFS、火山云 TOS、Samba、NFS
-- 用户端直传
 - 追加缩略图
-- 列出文件
 - 文件内容预加载
 - 新增 Access 模块，尝试通过 HTTP、FTP、WebDAV 等协议对外提供接口，方便其它程序使用
+- 追加文件
+- 分片下载
+- 直接输出到 HttpServletResponse 的响应流中
+- 其它更多功能
 
 -------
 
@@ -85,14 +91,14 @@ Gitee：https://gitee.com/dromara/x-file-storage
 
 #### 🔧 配置
 
-这里以阿里云 OSS 为例，`pom.xml` 引入本项目，这里默认是 `SpringBoot` 环境，其它环境参考 [脱离 SpringBoot 单独使用](https://x-file-storage.xuyanwu.cn/#/脱离SpringBoot单独使用)
+这里以阿里云 OSS 为例，`pom.xml` 引入本项目，这里默认是 `SpringBoot` 环境，`Solon` 环境参考 [在 Solon 中使用](https://x-file-storage.xuyanwu.cn/#/在Solon中使用)，其它环境参考 [脱离 SpringBoot 单独使用](https://x-file-storage.xuyanwu.cn/#/脱离SpringBoot单独使用)
 
 ```xml
 <!-- 引入本项目 -->
 <dependency>
     <groupId>org.dromara.x-file-storage</groupId>
     <artifactId>x-file-storage-spring</artifactId>
-    <version>2.1.0</version>
+    <version>2.2.0</version>
 </dependency>
 <!-- 引入 阿里云 OSS SDK，如果使用其它存储平台，就引入对应的 SDK  -->
 <dependency>
@@ -138,7 +144,7 @@ public class SpringFileStorageTestApplication {
 ```
  #### ✨开始上传
 
- 支持 File、MultipartFile、byte[]、InputStream、URL、URI、String、HttpServletRequest，大文件会自动分片上传。如果想支持更多方式，请阅读 [文件适配器](https://x-file-storage.xuyanwu.cn/#/文件适配器) 章节
+ 支持 File、MultipartFile、UploadedFile、byte[]、InputStream、URL、URI、String、HttpServletRequest，大文件会自动分片上传。如果想支持更多方式，请阅读 [文件适配器](https://x-file-storage.xuyanwu.cn/#/文件适配器) 章节
 
 ```java
 @RestController
@@ -163,6 +169,7 @@ public class FileDetailController {
     public String upload2(MultipartFile file) {
         FileInfo fileInfo = fileStorageService.of(file)
                 .setPath("upload/") //保存到相对路径下，为了方便管理，不需要可以不写
+                .setSaveFilename("image.jpg") //设置保存的文件名，不需要可以不写，会随机生成
                 .setObjectId("0")   //关联对象id，为了方便管理，不需要可以不写
                 .setObjectType("0") //关联对象类型，为了方便管理，不需要可以不写
                 .putAttr("role","admin") //保存一些属性，可以在切面、保存上传记录、自定义存储平台等地方获取使用，不需要可以不写

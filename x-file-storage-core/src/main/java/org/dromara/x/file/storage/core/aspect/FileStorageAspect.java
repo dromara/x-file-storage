@@ -6,12 +6,15 @@ import java.util.function.Consumer;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
-import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.upload.MultipartUploadSupportInfo;
 
 /**
  * 文件服务切面接口，用来干预文件上传，删除等
@@ -92,6 +95,27 @@ public interface FileStorageAspect {
     }
 
     /**
+     * 是否支持列举文件
+     */
+    default ListFilesSupportInfo isSupportListFiles(IsSupportListFilesAspectChain chain, FileStorage fileStorage) {
+        return chain.next(fileStorage);
+    }
+
+    /**
+     * 列举文件
+     */
+    default ListFilesResult listFiles(ListFilesAspectChain chain, ListFilesPretreatment pre, FileStorage fileStorage) {
+        return chain.next(pre, fileStorage);
+    }
+
+    /**
+     * 获取文件
+     */
+    default RemoteFileInfo getFile(GetFileAspectChain chain, GetFilePretreatment pre, FileStorage fileStorage) {
+        return chain.next(pre, fileStorage);
+    }
+
+    /**
      * 删除文件，成功返回 true
      */
     default boolean deleteAround(
@@ -132,9 +156,9 @@ public interface FileStorageAspect {
     /**
      * 对文件生成可以签名访问的 URL，无法生成则返回 null
      */
-    default String generatePresignedUrlAround(
-            GeneratePresignedUrlAspectChain chain, FileInfo fileInfo, Date expiration, FileStorage fileStorage) {
-        return chain.next(fileInfo, expiration, fileStorage);
+    default GeneratePresignedUrlResult generatePresignedUrlAround(
+            GeneratePresignedUrlAspectChain chain, GeneratePresignedUrlPretreatment pre, FileStorage fileStorage) {
+        return chain.next(pre, fileStorage);
     }
 
     /**

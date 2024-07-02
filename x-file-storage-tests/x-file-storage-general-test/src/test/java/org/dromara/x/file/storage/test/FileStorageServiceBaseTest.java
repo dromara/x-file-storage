@@ -103,7 +103,7 @@ class FileStorageServiceBaseTest {
         String filename = "image.jpg";
         InputStream in = this.getClass().getClassLoader().getResourceAsStream(filename);
 
-        // 是否支持 ACL
+        // 是否支持 Metadata
         FileStorage storage = fileStorageService.getFileStorage();
         boolean supportMetadata = fileStorageService.isSupportMetadata(storage);
         if (!supportMetadata) {

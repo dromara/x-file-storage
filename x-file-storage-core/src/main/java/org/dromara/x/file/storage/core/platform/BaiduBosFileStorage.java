@@ -4,17 +4,18 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.text.NamingCase;
 import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baidubce.BceServiceException;
+import com.baidubce.http.HttpMethodName;
 import com.baidubce.services.bos.BosClient;
 import com.baidubce.services.bos.model.*;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.net.URL;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -30,6 +31,9 @@ import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.get.*;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
 
@@ -271,6 +275,101 @@ public class BaiduBosFileStorage implements FileStorage {
         }
     }
 
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll();
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        BosClient client = getClient();
+        try {
+            ListObjectsRequest request = new ListObjectsRequest(bucketName);
+            request.setMaxKeys(pre.getMaxFiles());
+            request.setMarker(pre.getMarker());
+            request.setDelimiter("/");
+            request.setPrefix(basePath + pre.getPath() + pre.getFilenamePrefix());
+            ListObjectsResponse result = client.listObjects(request);
+            ListFilesResult list = new ListFilesResult();
+
+            list.setDirList(result.getCommonPrefixes().stream()
+                    .map(item -> {
+                        RemoteDirInfo dir = new RemoteDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(FileNameUtil.getName(item));
+                        dir.setOriginal(item);
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+
+            list.setFileList(result.getContents().stream()
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(FileNameUtil.getName(item.getKey()));
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
+                        info.setSize(item.getSize());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setETag(item.getETag());
+                        info.setLastModified(item.getLastModified());
+                        info.setOriginal(item);
+                        return info;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(result.getMaxKeys());
+            list.setIsTruncated(result.isTruncated());
+            list.setMarker(result.getMarker());
+            list.setNextMarker(result.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+        BosClient client = getClient();
+        try {
+            BosObject file;
+            try {
+                file = client.getObject(bucketName, fileKey);
+            } catch (Exception e) {
+                return null;
+            }
+            if (file == null) return null;
+            ObjectMetadata metadata = file.getObjectMetadata();
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(file.getKey()));
+            info.setUrl(domain + fileKey);
+            info.setSize(metadata.getContentLength());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(metadata.getETag());
+            info.setContentDisposition(metadata.getContentDisposition());
+            info.setContentType(metadata.getContentType());
+            info.setContentMd5(metadata.getContentMd5());
+            info.setLastModified(metadata.getLastModified());
+            info.setMetadata(BeanUtil.beanToMap(metadata, false, true));
+            info.getMetadata().remove("userMetadata");
+            if (metadata.getUserMetadata() != null) info.setUserMetadata(new HashMap<>(metadata.getUserMetadata()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
+        }
+    }
+
     public CannedAccessControlList getAcl(Object acl) {
         if (acl instanceof CannedAccessControlList) {
             return (CannedAccessControlList) acl;
@@ -332,26 +431,29 @@ public class BaiduBosFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
         try {
-            int expires = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
-            return getClient()
-                    .generatePresignedUrl(bucketName, getFileKey(fileInfo), expires)
-                    .toString();
+            String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucketName, fileKey);
+            request.setExpiration((int) ((pre.getExpiration().getTime() - System.currentTimeMillis()) / 1000));
+            request.setMethod(Tools.getEnum(HttpMethodName.class, pre.getMethod()));
+            Map<String, String> headers = new HashMap<>(pre.getHeaders());
+            headers.putAll(pre.getUserMetadata().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().startsWith("x-bce-meta-") ? e.getKey() : "x-bce-meta-" + e.getKey(),
+                            Map.Entry::getValue)));
+            headers.forEach(request::addRequestHeaders);
+            pre.getQueryParams().forEach(request::addRequestParameter);
+            pre.getResponseHeaders()
+                    .forEach((k, v) ->
+                            request.addRequestParameter(NamingCase.toCamelCase("response-" + k.toLowerCase(), '-'), v));
+            URL url = getClient().generatePresignedUrl(request);
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            result.setUrl(url.toString());
+            result.setHeaders(headers);
+            return result;
         } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            String key = getThFileKey(fileInfo);
-            if (key == null) return null;
-            int expires = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
-            return getClient().generatePresignedUrl(bucketName, key, expires).toString();
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
         }
     }
 

@@ -11,18 +11,25 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.aspect.*;
+import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.file.FileWrapperAdapter;
 import org.dromara.x.file.storage.core.file.HttpServletRequestFileWrapper;
 import org.dromara.x.file.storage.core.file.MultipartFormDataReader;
+import org.dromara.x.file.storage.core.get.GetFilePretreatment;
+import org.dromara.x.file.storage.core.get.ListFilesPretreatment;
+import org.dromara.x.file.storage.core.get.ListFilesSupportInfo;
+import org.dromara.x.file.storage.core.get.RemoteFileInfo;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
-import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.upload.MultipartUploadSupportInfo;
 import org.dromara.x.file.storage.core.upload.UploadPretreatment;
 import org.dromara.x.file.storage.core.util.Tools;
 
@@ -202,6 +209,13 @@ public class FileStorageService {
     /**
      * 是否支持对文件生成可以签名访问的 URL
      */
+    public boolean isSupportPresignedUrl() {
+        return self.isSupportPresignedUrl(properties.getDefaultPlatform());
+    }
+
+    /**
+     * 是否支持对文件生成可以签名访问的 URL
+     */
     public boolean isSupportPresignedUrl(String platform) {
         FileStorage storage = self.getFileStorageVerify(platform);
         return self.isSupportPresignedUrl(storage);
@@ -216,17 +230,29 @@ public class FileStorageService {
     }
 
     /**
+     * 生成预签名 URL
+     * @return 生成预签名 URL 预处理器
+     */
+    public GeneratePresignedUrlPretreatment generatePresignedUrl() {
+        return new GeneratePresignedUrlPretreatment()
+                .setFileStorageService(self)
+                .setPlatform(properties.getDefaultPlatform());
+    }
+
+    /**
      * 对文件生成可以签名访问的 URL，无法生成则返回 null
      *
      * @param expiration 到期时间
      */
     public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
         if (fileInfo == null) return null;
-        return new GeneratePresignedUrlAspectChain(
-                        aspectList,
-                        (_fileInfo, _expiration, _fileStorage) ->
-                                _fileStorage.generatePresignedUrl(_fileInfo, _expiration))
-                .next(fileInfo, expiration, self.getFileStorageVerify(fileInfo));
+        GeneratePresignedUrlResult result = generatePresignedUrl()
+                .setExpiration(expiration)
+                .setPath(fileInfo.getPath())
+                .setFilename(fileInfo.getFilename())
+                .setMethod(Constant.GeneratePresignedUrl.Method.GET)
+                .generatePresignedUrl();
+        return result == null ? null : result.getUrl();
     }
 
     /**
@@ -236,11 +262,20 @@ public class FileStorageService {
      */
     public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
         if (fileInfo == null) return null;
-        return new GenerateThPresignedUrlAspectChain(
-                        aspectList,
-                        (_fileInfo, _expiration, _fileStorage) ->
-                                _fileStorage.generateThPresignedUrl(_fileInfo, _expiration))
-                .next(fileInfo, expiration, self.getFileStorageVerify(fileInfo));
+        GeneratePresignedUrlResult result = generatePresignedUrl()
+                .setExpiration(expiration)
+                .setPath(fileInfo.getPath())
+                .setFilename(fileInfo.getThFilename())
+                .setMethod(Constant.GeneratePresignedUrl.Method.GET)
+                .generatePresignedUrl();
+        return result == null ? null : result.getUrl();
+    }
+
+    /**
+     * 是否支持对文件的访问控制列表
+     */
+    public boolean isSupportAcl() {
+        return self.isSupportAcl(properties.getDefaultPlatform());
     }
 
     /**
@@ -279,6 +314,13 @@ public class FileStorageService {
         return new SetThFileAclAspectChain(
                         aspectList, (_fileInfo, _acl, _fileStorage) -> _fileStorage.setThFileAcl(_fileInfo, _acl))
                 .next(fileInfo, acl, self.getFileStorageVerify(fileInfo));
+    }
+
+    /**
+     * 是否支持 Metadata
+     */
+    public boolean isSupportMetadata() {
+        return self.isSupportMetadata(properties.getDefaultPlatform());
     }
 
     /**
@@ -415,7 +457,7 @@ public class FileStorageService {
      *                 一定要保证这里的 fileInfo 也有相同的信息，否则有些存储平台会不生效，
      *                 这是因为每个存储平台的逻辑不一样，有些是初始化时传入的，有些是完成时传入的，
      *                 建议将 FileInfo 保存到数据库中，这样就可以使用 fileStorageService.getFileInfoByUrl("https://abc.def.com/xxx.png")
-     *                 来获取 FileInfo 方便操作，详情请阅读 https://x-file-storage.xuyanwu.cn/2.1.0/#/%E5%9F%BA%E7%A1%80%E5%8A%9F%E8%83%BD?id=%E4%BF%9D%E5%AD%98%E4%B8%8A%E4%BC%A0%E8%AE%B0%E5%BD%95
+     *                 来获取 FileInfo 方便操作，详情请阅读 https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%9F%BA%E7%A1%80%E5%8A%9F%E8%83%BD?id=%E4%BF%9D%E5%AD%98%E4%B8%8A%E4%BC%A0%E8%AE%B0%E5%BD%95
      */
     public CompleteMultipartUploadPretreatment completeMultipartUpload(FileInfo fileInfo) {
         CompleteMultipartUploadPretreatment pre = new CompleteMultipartUploadPretreatment();
@@ -442,6 +484,76 @@ public class FileStorageService {
         pre.setFileStorageService(self);
         pre.setFileInfo(fileInfo);
         return pre;
+    }
+
+    /**
+     * 默认使用的存储平台是否支持列举文件
+     */
+    public ListFilesSupportInfo isSupportListFiles() {
+        return self.isSupportListFiles(properties.getDefaultPlatform());
+    }
+
+    /**
+     * 是否支持列举文件
+     */
+    public ListFilesSupportInfo isSupportListFiles(String platform) {
+        FileStorage storage = self.getFileStorageVerify(platform);
+        return self.isSupportListFiles(storage);
+    }
+
+    /**
+     * 是否支持列举文件
+     */
+    public ListFilesSupportInfo isSupportListFiles(FileStorage fileStorage) {
+        if (fileStorage == null) return ListFilesSupportInfo.notSupport();
+        return new IsSupportListFilesAspectChain(aspectList, FileStorage::isSupportListFiles).next(fileStorage);
+    }
+
+    /**
+     * 列举文件
+     */
+    public ListFilesPretreatment listFiles() {
+        ListFilesPretreatment pre = new ListFilesPretreatment();
+        pre.setPlatform(properties.getDefaultPlatform());
+        pre.setFileStorageService(self);
+        return pre;
+    }
+
+    /**
+     * 获取文件
+     */
+    public GetFilePretreatment getFile() {
+        return new GetFilePretreatment()
+                .setPlatform(properties.getDefaultPlatform())
+                .setFileStorageService(self);
+    }
+
+    /**
+     * 获取文件
+     * @param fileInfo 文件信息
+     * @return 远程文件信息
+     */
+    public RemoteFileInfo getFile(FileInfo fileInfo) {
+        return getFile()
+                .setPlatform(fileInfo.getPlatform())
+                .setPath(fileInfo.getPath() != null, fileInfo.getPath())
+                .setFilename(fileInfo.getFilename() != null, fileInfo.getFilename())
+                .setUrl(fileInfo.getUrl() != null, fileInfo.getUrl())
+                .getFile();
+    }
+
+    /**
+     * 获取缩略图文件
+     * @param fileInfo 文件信息
+     * @return 远程文件信息
+     */
+    public RemoteFileInfo getThFile(FileInfo fileInfo) {
+        return getFile()
+                .setPlatform(fileInfo.getPlatform())
+                .setPath(fileInfo.getPath() != null, fileInfo.getPath())
+                .setFilename(fileInfo.getThFilename() != null, fileInfo.getThFilename())
+                .setUrl(fileInfo.getThUrl() != null, fileInfo.getThUrl())
+                .getFile();
     }
 
     /**
@@ -524,6 +636,13 @@ public class FileStorageService {
     /**
      * 是否支持同存储平台复制文件
      */
+    public boolean isSupportSameCopy() {
+        return self.isSupportSameCopy(properties.getDefaultPlatform());
+    }
+
+    /**
+     * 是否支持同存储平台复制文件
+     */
     public boolean isSupportSameCopy(String platform) {
         FileStorage storage = self.getFileStorageVerify(platform);
         return self.isSupportSameCopy(storage);
@@ -551,6 +670,13 @@ public class FileStorageService {
      */
     public CopyPretreatment copy(String url) {
         return self.copy(self.getFileInfoByUrl(url));
+    }
+
+    /**
+     * 是否支持同存储平台移动文件
+     */
+    public boolean isSupportSameMove() {
+        return self.isSupportSameMove(properties.getDefaultPlatform());
     }
 
     /**

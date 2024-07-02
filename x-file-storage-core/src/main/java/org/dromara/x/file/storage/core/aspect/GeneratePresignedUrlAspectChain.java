@@ -1,11 +1,11 @@
 package org.dromara.x.file.storage.core.aspect;
 
-import java.util.Date;
 import java.util.Iterator;
 import lombok.Getter;
 import lombok.Setter;
-import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.platform.FileStorage;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 
 /**
  * 对文件生成可以签名访问的 URL 的切面调用链
@@ -26,11 +26,11 @@ public class GeneratePresignedUrlAspectChain {
     /**
      * 调用下一个切面
      */
-    public String next(FileInfo fileInfo, Date expiration, FileStorage fileStorage) {
+    public GeneratePresignedUrlResult next(GeneratePresignedUrlPretreatment pre, FileStorage fileStorage) {
         if (aspectIterator.hasNext()) { // 还有下一个
-            return aspectIterator.next().generatePresignedUrlAround(this, fileInfo, expiration, fileStorage);
+            return aspectIterator.next().generatePresignedUrlAround(this, pre, fileStorage);
         } else {
-            return callback.run(fileInfo, expiration, fileStorage);
+            return callback.run(pre, fileStorage);
         }
     }
 }

@@ -185,4 +185,21 @@ public interface Constant {
             String SHA512 = "SHA-512";
         }
     }
+
+    /**
+     * 生成预签名 URL
+     */
+    interface GeneratePresignedUrl {
+        /**
+         * HTTP 请求方法
+         */
+        interface Method {
+            String GET = "GET";
+            String PUT = "PUT";
+            String POST = "POST";
+            String DELETE = "DELETE";
+            String HEAD = "HEAD";
+            String OPTIONS = "OPTIONS";
+        }
+    }
 }

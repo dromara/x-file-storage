@@ -4,30 +4,46 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.codec.Base64;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.file.FileNameUtil;
+import cn.hutool.core.map.CaseInsensitiveMap;
+import cn.hutool.core.net.url.UrlQuery;
 import cn.hutool.core.text.NamingCase;
 import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
+import com.azure.core.http.rest.ResponseBase;
 import com.azure.core.util.Context;
 import com.azure.core.util.polling.PollResponse;
 import com.azure.core.util.polling.SyncPoller;
 import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerAsyncClient;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.implementation.models.BlobItemPropertiesInternal;
+import com.azure.storage.blob.implementation.models.ContainersListBlobHierarchySegmentHeaders;
+import com.azure.storage.blob.implementation.models.ListBlobsHierarchySegmentResponse;
 import com.azure.storage.blob.models.*;
 import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import com.azure.storage.blob.options.BlockBlobCommitBlockListOptions;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.blob.specialized.BlockBlobClient;
+import com.azure.storage.common.sas.SasIpRange;
+import com.azure.storage.common.sas.SasProtocol;
 import com.azure.storage.file.datalake.*;
 import com.azure.storage.file.datalake.models.PathAccessControlEntry;
 import com.azure.storage.file.datalake.models.PathPermissions;
 import com.azure.storage.file.datalake.models.RolePermissions;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import lombok.Data;
@@ -45,9 +61,14 @@ import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.platform.AzureBlobStorageFileStorageClientFactory.AzureBlobStorageClient;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
+import reactor.core.publisher.Mono;
 
 /**
  * Azure Blob Storage
@@ -104,6 +125,12 @@ public class AzureBlobStorageFileStorage implements FileStorage {
      */
     private Integer maxConcurrency;
 
+    /**
+     * 预签名 URL 时，传入的 HTTP method 与 Azure Blob Storage 中的 SAS 权限映射表
+     * {@link com.azure.storage.blob.sas.BlobSasPermission}
+     */
+    private CaseInsensitiveMap<String, String> methodToPermissionMap;
+
     private FileStorageClientFactory<AzureBlobStorageClient> clientFactory;
 
     public AzureBlobStorageFileStorage(
@@ -116,6 +143,7 @@ public class AzureBlobStorageFileStorage implements FileStorage {
         multipartThreshold = config.getMultipartThreshold();
         multipartPartSize = config.getMultipartPartSize();
         maxConcurrency = config.getMaxConcurrency();
+        methodToPermissionMap = new CaseInsensitiveMap<>(config.getMethodToPermissionMap());
         this.clientFactory = clientFactory;
     }
 
@@ -123,12 +151,13 @@ public class AzureBlobStorageFileStorage implements FileStorage {
         return clientFactory.getClient();
     }
 
+    public BlobContainerClient getBlobClient() {
+        return getClient().getBlobServiceClient().getBlobContainerClient(containerName);
+    }
+
     public BlobClient getBlobClient(String fileKey) {
         if (StrUtil.isBlank(fileKey)) return null;
-        return getClient()
-                .getBlobServiceClient()
-                .getBlobContainerClient(containerName)
-                .getBlobClient(fileKey);
+        return getBlobClient().getBlobClient(fileKey);
     }
 
     public DataLakeFileClient getDataLakeFileClient(String fileKey) {
@@ -206,9 +235,17 @@ public class AzureBlobStorageFileStorage implements FileStorage {
     public void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
-        fileInfo.setBasePath(basePath);
         fileInfo.setUrl(getUrl(newFileKey));
-        fileInfo.setUploadId(IdUtil.objectId());
+        BlockBlobClient blobClient = getBlobClient(getFileKey(fileInfo)).getBlockBlobClient();
+        try {
+            String uploadId = IdUtil.objectId();
+            fileInfo.setUploadId(uploadId);
+            String blockIdBase64 = Base64.encode(String.format("%06d", 0));
+            byte[] bytes = fileInfo.getUploadId().getBytes(StandardCharsets.UTF_8);
+            blobClient.stageBlock(blockIdBase64, new ByteArrayInputStream(bytes), bytes.length);
+        } catch (Exception e) {
+            throw ExceptionFactory.initiateMultipartUpload(fileInfo, platform, e);
+        }
     }
 
     /**
@@ -280,19 +317,157 @@ public class AzureBlobStorageFileStorage implements FileStorage {
         BlockBlobClient client = getBlobClient(getFileKey(fileInfo)).getBlockBlobClient();
         try {
             BlockList blockList = client.listBlocks(BlockListType.UNCOMMITTED);
-            FilePartInfoList list = new FilePartInfoList();
-            list.setFileInfo(fileInfo);
-            list.setList(blockList.getUncommittedBlocks().stream()
+
+            List<FilePartInfo> partList = blockList.getUncommittedBlocks().stream()
                     .map(p -> {
                         FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
                         filePartInfo.setPartSize(p.getSizeLong());
                         filePartInfo.setPartNumber(Integer.parseInt(Base64.decodeStr(p.getName())));
                         return filePartInfo;
                     })
-                    .collect(Collectors.toList()));
+                    .filter(p -> p.getPartNumber() > pre.getPartNumberMarker())
+                    .filter(v -> v.getPartNumber() > 0)
+                    .sorted(Comparator.comparingInt(FilePartInfo::getPartNumber))
+                    .collect(Collectors.toList());
+
+            FilePartInfoList list = new FilePartInfoList();
+            list.setFileInfo(fileInfo);
+            list.setMaxParts(pre.getMaxParts());
+            list.setPartNumberMarker(pre.getPartNumberMarker());
+
+            if (partList.size() > pre.getMaxParts()) {
+                list.setIsTruncated(true);
+                partList = partList.subList(0, pre.getMaxParts());
+                list.setNextPartNumberMarker(partList.get(partList.size() - 1).getPartNumber());
+            } else {
+                list.setIsTruncated(false);
+            }
+            list.setList(partList);
+
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listParts(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll().setSupportMaxFiles(5000);
+    }
+
+    /**
+     * 通过反射调用内部的列举文件方法
+     */
+    public ListBlobsHierarchySegmentResponse listFiles(
+            BlobContainerClient client, String marker, String delimiter, ListBlobsOptions options, Duration timeout)
+            throws ExecutionException, InterruptedException {
+        BlobContainerAsyncClient asyncClient = (BlobContainerAsyncClient) ReflectUtil.getFieldValue(client, "client");
+        Method method = ReflectUtil.getMethodByName(asyncClient.getClass(), "listBlobsHierarchySegment");
+        Mono<ResponseBase<ContainersListBlobHierarchySegmentHeaders, ListBlobsHierarchySegmentResponse>> result =
+                ReflectUtil.invoke(asyncClient, method, marker, delimiter, options, timeout);
+        return Objects.requireNonNull(result.block()).getValue();
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        BlobContainerClient client = getBlobClient();
+        try {
+
+            ListBlobsOptions options = new ListBlobsOptions()
+                    .setPrefix(basePath + pre.getPath() + pre.getFilenamePrefix())
+                    .setMaxResultsPerPage(pre.getMaxFiles())
+                    .setDetails(new BlobListDetails().setRetrieveMetadata(true));
+
+            ListBlobsHierarchySegmentResponse result = listFiles(client, pre.getMarker(), "/", options, null);
+
+            ListFilesResult list = new ListFilesResult();
+            list.setDirList(result.getSegment().getBlobPrefixes().stream()
+                    .map(item -> {
+                        RemoteDirInfo dir = new RemoteDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(FileNameUtil.getName(item.getName().getContent()));
+                        dir.setOriginal(item);
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+            list.setFileList(result.getSegment().getBlobItems().stream()
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(FileNameUtil.getName(item.getName().getContent()));
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
+                        BlobItemPropertiesInternal properties = item.getProperties();
+                        info.setSize(properties.getContentLength());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setContentDisposition(properties.getContentDisposition());
+                        info.setETag(properties.getETag());
+                        info.setContentType(properties.getContentType());
+                        info.setContentMd5(Base64.encode(properties.getContentMd5()));
+                        info.setLastModified(DateUtil.date(properties.getLastModified()));
+                        try {
+                            info.setMetadata(BeanUtil.beanToMap(properties, false, true));
+                        } catch (Exception ignored) {
+                        }
+                        if (item.getMetadata() != null) info.setUserMetadata(new HashMap<>(item.getMetadata()));
+                        info.setOriginal(item);
+                        return info;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(result.getMaxResults());
+            list.setIsTruncated(StrUtil.isNotBlank(result.getNextMarker()));
+            list.setMarker(result.getMarker());
+            list.setNextMarker(result.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+        try {
+            BlobClient client = getBlobClient(fileKey);
+            BlobProperties file;
+            try {
+                file = client.getProperties();
+            } catch (Exception e) {
+                return null;
+            }
+            if (file == null) return null;
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(client.getBlobName()));
+            info.setUrl(domain + fileKey);
+            info.setSize(file.getBlobSize());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(file.getETag());
+            info.setContentDisposition(file.getContentDisposition());
+            info.setContentType(file.getContentType());
+            info.setContentMd5(Base64.encode(file.getContentMd5()));
+            info.setLastModified(DateUtil.date(file.getLastModified()));
+            try {
+                info.setMetadata(BeanUtil.beanToMap(
+                        ReflectUtil.getFieldValue(ReflectUtil.getFieldValue(file, "internalProperties"), "headers"),
+                        false,
+                        true));
+            } catch (Exception ignored) {
+            }
+            if (file.getMetadata() != null) info.setUserMetadata(new HashMap<>(file.getMetadata()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
         }
     }
 
@@ -450,32 +625,76 @@ public class AzureBlobStorageFileStorage implements FileStorage {
         return true;
     }
 
-    /**
-     * 对文件生成可以签名访问的 URL，无法生成则返回 null
-     * 如果存在跨域问题，需要去控制台 （资源共享(CORS)界面）授权允许的跨域规则
-     * 生成url的每个参数的含义{@link com.azure.storage.blob.implementation.util.BlobSasImplUtil#encode(UserDelegationKey, String)}
-     * @param expiration 到期时间
-     */
-    @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            BlobClient blobClient = getBlobClient(getFileKey(fileInfo));
-            return blobClient.getBlobUrl() + "?" + blobClient.generateSas(getBlobServiceSasSignatureValues(expiration));
-        } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
+    public BlobSasPermission getBlobSasPermission(Object object) {
+        if (object instanceof BlobSasPermission) {
+            return (BlobSasPermission) object;
+        } else if (object instanceof String) {
+            String permission = methodToPermissionMap.get(object);
+            if (permission == null) permission = object.toString();
+            return BlobSasPermission.parse(permission);
         }
+        throw new IllegalArgumentException("无法识别的权限");
     }
 
     @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
         try {
-            String key = getThFileKey(fileInfo);
-            if (key == null) return null;
-            BlobClient thBlobClient = getBlobClient(getThFileKey(fileInfo));
-            return thBlobClient.getBlobUrl() + "?"
-                    + thBlobClient.generateSas(getBlobServiceSasSignatureValues(expiration));
+            String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+            Map<String, String> headers = new HashMap<>(pre.getHeaders());
+            headers.putAll(pre.getUserMetadata().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().startsWith("x-ms-meta-") ? e.getKey() : "x-ms-meta-" + e.getKey(),
+                            Map.Entry::getValue)));
+
+            BlobClient blobClient = getBlobClient(fileKey);
+            BlobSasPermission permission = getBlobSasPermission(pre.getMethod());
+            OffsetDateTime expiration =
+                    pre.getExpiration().toInstant().atZone(ZoneOffset.UTC).toOffsetDateTime();
+
+            // 生成签名
+            BlobServiceSasSignatureValues values = new BlobServiceSasSignatureValues(expiration, permission);
+            KebabCaseInsensitiveMap<String, String> responseHeaders =
+                    new KebabCaseInsensitiveMap<>(pre.getResponseHeaders());
+            values.setCacheControl(responseHeaders.get(Constant.Metadata.CACHE_CONTROL));
+            values.setContentDisposition(responseHeaders.get(Constant.Metadata.CONTENT_DISPOSITION));
+            values.setContentEncoding(responseHeaders.get(Constant.Metadata.CONTENT_ENCODING));
+            values.setContentLanguage(responseHeaders.get(Constant.Metadata.CONTENT_LANGUAGE));
+            values.setContentType(responseHeaders.get(Constant.Metadata.CONTENT_TYPE));
+            if (pre.getStartTime() != null)
+                values.setStartTime(
+                        pre.getStartTime().toInstant().atZone(ZoneOffset.UTC).toOffsetDateTime());
+
+            Map<String, String> queryParams = pre.getQueryParams();
+            if (CollUtil.isNotEmpty(queryParams)) {
+                if (queryParams.get("protocol") != null)
+                    values.setProtocol(SasProtocol.parse(queryParams.get("protocol")));
+                if (queryParams.get("sasIpRange") != null)
+                    values.setSasIpRange(SasIpRange.parse(queryParams.get("sasIpRange")));
+                try {
+                    values.setSnapshotId(queryParams.get("snapshotId"));
+                } catch (Exception ignored) {
+                }
+                values.setIdentifier(queryParams.get("identifier"));
+                values.setPreauthorizedAgentObjectId(queryParams.get("preauthorizedAgentObjectId"));
+                values.setCorrelationId(queryParams.get("correlationId"));
+            }
+
+            StringBuilder url = new StringBuilder();
+            url.append(blobClient.getBlobUrl()).append("?");
+            if (CollUtil.isNotEmpty(queryParams)) {
+                url.append(UrlQuery.of(queryParams).build(StandardCharsets.UTF_8))
+                        .append("&");
+            }
+            url.append(blobClient.generateSas(values));
+
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            result.setUrl(url.toString());
+            Map<String, String> resHeaders = new HashMap<>(headers);
+            resHeaders.put("x-ms-blob-type", "BlockBlob");
+            result.setHeaders(resHeaders);
+            return result;
         } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
         }
     }
 

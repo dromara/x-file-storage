@@ -1,11 +1,16 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.ftp.Ftp;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,6 +23,7 @@ import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 
 /**
@@ -97,6 +103,99 @@ public class FtpFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.upload(fileInfo, platform, e);
+        } finally {
+            returnClient(client);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll().setSupportMaxFiles(Integer.MAX_VALUE);
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        Ftp client = getClient();
+        try {
+            String path = getAbsolutePath(basePath + pre.getPath());
+            List<FTPFile> fileList = Arrays.stream(client.isDir(path) ? client.lsFiles(path) : new FTPFile[0])
+                    .filter(f -> f.isFile() || f.isDirectory())
+                    .filter(f -> !(".".equals(f.getName()) || "..".equals(f.getName())))
+                    .collect(Collectors.toList());
+            ListFilesMatchResult<FTPFile> matchResult = listFilesMatch(fileList, FTPFile::getName, pre, true);
+            ListFilesResult list = new ListFilesResult();
+            list.setDirList(matchResult.getList().stream()
+                    .filter(FTPFile::isDirectory)
+                    .map(item -> {
+                        RemoteDirInfo dir = new RemoteDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(item.getName());
+                        dir.setOriginal(item);
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+            list.setFileList(matchResult.getList().stream()
+                    .filter(FTPFile::isFile)
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(item.getName());
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
+                        info.setSize(item.getSize());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setLastModified(DateUtil.date(item.getTimestamp()));
+                        info.setOriginal(item);
+                        return info;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(pre.getMaxFiles());
+            list.setIsTruncated(matchResult.getIsTruncated());
+            list.setMarker(pre.getMarker());
+            list.setNextMarker(matchResult.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
+        } finally {
+            returnClient(client);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+        Ftp client = getClient();
+        try {
+            String path = getAbsolutePath(basePath + pre.getPath());
+            FTPFile file;
+            try {
+                client.cd(path);
+                file = client.getClient().listFiles(pre.getFilename())[0];
+            } catch (Exception e) {
+                return null;
+            }
+            if (file == null) return null;
+
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(file.getName());
+            info.setUrl(domain + fileKey);
+            info.setSize(file.getSize());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setLastModified(DateUtil.date(file.getTimestamp()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
         } finally {
             returnClient(client);
         }

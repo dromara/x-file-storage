@@ -1,7 +1,11 @@
 package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DatePattern;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.io.file.FileNameUtil;
+import cn.hutool.core.map.MapProxy;
 import cn.hutool.core.util.StrUtil;
 import com.upyun.RestManager;
 import com.upyun.UpException;
@@ -10,11 +14,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,17 +27,19 @@ import org.dromara.x.file.storage.core.FileStorageProperties.UpyunUssConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
-import org.dromara.x.file.storage.core.upload.CompleteMultipartUploadPretreatment;
-import org.dromara.x.file.storage.core.upload.FilePartInfo;
-import org.dromara.x.file.storage.core.upload.InitiateMultipartUploadPretreatment;
-import org.dromara.x.file.storage.core.upload.UploadPartPretreatment;
+import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * 又拍云 USS 存储
@@ -236,6 +240,125 @@ public class UpyunUssFileStorage implements FileStorage {
         }
     }
 
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll();
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        RestManager manager = getClient();
+        try {
+            Map<String, String> params = new HashMap<>();
+            if (pre.getMarker() != null) params.put("x-list-iter", pre.getMarker());
+            if (pre.getMaxFiles() != null)
+                params.put("x-list-limit", pre.getMaxFiles().toString());
+            params.put("x-list-order", "asc");
+            params.put("Accept", "application/json");
+            JSONObject result;
+            try (Response response = checkResponse(
+                    manager.readDirIter(basePath + pre.getPath() + pre.getFilenamePrefix(), params), false); ) {
+                if (response.body() == null) {
+                    throw new UpException(response.toString());
+                }
+                result = new JSONObject(response.body().string());
+            }
+
+            ArrayList<RemoteDirInfo> dirList = new ArrayList<>();
+            ArrayList<RemoteFileInfo> fileList = new ArrayList<>();
+            JSONArray files = result.getJSONArray("files");
+            for (int i = 0; i < files.length(); i++) {
+                JSONObject item = files.getJSONObject(0);
+                if ("folder".equals(item.getString("type")) && Long.valueOf(0L).equals(item.getLong("length"))) {
+                    RemoteDirInfo dir = new RemoteDirInfo();
+                    dir.setPlatform(pre.getPlatform());
+                    dir.setBasePath(basePath);
+                    dir.setPath(pre.getPath());
+                    dir.setName(item.getString("name"));
+                    dir.setOriginal(item);
+                    dirList.add(dir);
+                } else {
+                    RemoteFileInfo info = new RemoteFileInfo();
+                    info.setPlatform(pre.getPlatform());
+                    info.setBasePath(basePath);
+                    info.setPath(pre.getPath());
+                    info.setFilename(item.getString("name"));
+                    info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
+                    info.setSize(item.getLong("length"));
+                    info.setExt(FileNameUtil.extName(info.getFilename()));
+                    info.setETag(item.getString("etag"));
+                    info.setContentType(item.getString("type"));
+                    info.setLastModified(new Date(item.getLong("last_modified") * 1000));
+                    info.setOriginal(item);
+                    fileList.add(info);
+                }
+            }
+            String iter = result.getString("iter");
+            ListFilesResult list = new ListFilesResult();
+            list.setDirList(dirList);
+            list.setFileList(fileList);
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(pre.getMaxFiles());
+            list.setIsTruncated(!"g2gCZAAEbmV4dGQAA2VvZg".equals(iter));
+            list.setMarker(pre.getMarker());
+            list.setNextMarker(list.getIsTruncated() ? iter : null);
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+        RestManager client = getClient();
+        try {
+            Response file;
+            try {
+                file = checkResponse(client.getFileInfo(fileKey));
+                Long.parseLong(Objects.requireNonNull(file.header(RestManager.PARAMS.X_UPYUN_FILE_SIZE.getValue())));
+            } catch (Exception e) {
+                return null;
+            }
+
+            KebabCaseInsensitiveMap<String, String> headers =
+                    new KebabCaseInsensitiveMap<>(file.headers().toMultimap().entrySet().stream()
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> CollUtil.get(e.getValue(), 0))));
+            MapProxy headersProxy = MapProxy.create(headers);
+
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(pre.getFilename()));
+            info.setUrl(domain + fileKey);
+            info.setSize(headersProxy.getLong(Constant.Metadata.CONTENT_LENGTH));
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(headersProxy.getStr("etag"));
+            info.setContentDisposition(headersProxy.getStr(Constant.Metadata.CONTENT_DISPOSITION));
+            info.setContentType(headersProxy.getStr(Constant.Metadata.CONTENT_TYPE));
+            info.setContentMd5(headersProxy.getStr(Constant.Metadata.CONTENT_MD5));
+            try {
+                info.setLastModified(DateUtil.parse(
+                        headersProxy.getStr(Constant.Metadata.LAST_MODIFIED), DatePattern.HTTP_DATETIME_FORMAT));
+            } catch (Exception ignored) {
+            }
+            info.setMetadata(headers.entrySet().stream()
+                    .filter(e -> !e.getKey().startsWith("x-upyun-meta-"))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+            info.setUserMetadata(headers.entrySet().stream()
+                    .filter(e -> e.getKey().startsWith("x-upyun-meta-"))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
+        }
+    }
+
     /**
      * 获取对象的元数据
      */
@@ -347,6 +470,10 @@ public class UpyunUssFileStorage implements FileStorage {
     }
 
     public Response checkResponse(Response response) throws UpException, IOException {
+        return checkResponse(response, true);
+    }
+
+    public Response checkResponse(Response response, boolean close) throws UpException, IOException {
         if (!response.isSuccessful()) {
             if (response.body() != null) {
                 throw new UpException(response.body().string());
@@ -355,7 +482,7 @@ public class UpyunUssFileStorage implements FileStorage {
                 throw new UpException(response.toString());
             }
         }
-        response.close();
+        if (close) response.close();
         return response;
     }
 
