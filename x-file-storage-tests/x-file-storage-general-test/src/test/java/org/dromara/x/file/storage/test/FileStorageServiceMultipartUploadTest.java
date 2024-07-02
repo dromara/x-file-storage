@@ -3,6 +3,7 @@ package org.dromara.x.file.storage.test;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.lang.Assert;
+import cn.hutool.crypto.SecureUtil;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -12,11 +13,12 @@ import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.constant.Constant;
+import org.dromara.x.file.storage.core.hash.HashInfo;
 import org.dromara.x.file.storage.core.platform.FileStorage;
-import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
 import org.dromara.x.file.storage.core.platform.UpyunUssFileStorage;
 import org.dromara.x.file.storage.core.upload.FilePartInfo;
 import org.dromara.x.file.storage.core.upload.FilePartInfoList;
+import org.dromara.x.file.storage.core.upload.MultipartUploadSupportInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -110,6 +112,12 @@ class FileStorageServiceMultipartUploadTest {
                         .setHashCalculatorSha256()
                         .upload();
                 log.info("手动分片上传-分片上传成功：{}", filePartInfo);
+
+                HashInfo hashInfo = filePartInfo.getHashInfo();
+                Assert.isTrue(SecureUtil.md5().digestHex(bytes).equals(hashInfo.getMd5()), "分片 MD5 对比不一致！");
+                log.info("分片 MD5 对比通过");
+                Assert.isTrue(SecureUtil.sha256().digestHex(bytes).equals(hashInfo.getSha256()), "分片 SHA256 对比不一致！");
+                log.info("分片 SHA256 对比通过");
             }
         }
 
@@ -172,6 +180,9 @@ class FileStorageServiceMultipartUploadTest {
                 .setSaveFilename("BadApple.mp4")
                 .init();
 
+        FilePartInfoList partList = fileStorageService.listParts(fileInfo).listParts();
+        Assert.notNull(partList, "手动分片上传文件初始化失败，无法获取分片信息");
+        Assert.isTrue(partList.getList().isEmpty(), "手动分片上传文件初始化失败，分片信息不为空");
         log.info("手动分片上传文件初始化成功：{}", fileInfo);
 
         try (BufferedInputStream in = FileUtil.getInputStream(file)) {
@@ -186,7 +197,7 @@ class FileStorageServiceMultipartUploadTest {
             }
         }
 
-        FilePartInfoList partList = fileStorageService.listParts(fileInfo).listParts();
+        partList = fileStorageService.listParts(fileInfo).listParts();
         for (FilePartInfo info : partList.getList()) {
             log.info("手动分片上传-列举已上传的分片：{}", info);
         }

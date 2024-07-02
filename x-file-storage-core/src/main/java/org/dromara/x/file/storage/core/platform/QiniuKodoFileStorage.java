@@ -2,10 +2,13 @@ package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.lang.Dict;
 import cn.hutool.core.util.StrUtil;
 import com.qiniu.common.QiniuException;
 import com.qiniu.storage.*;
+import com.qiniu.storage.model.FileListing;
 import com.qiniu.util.StringMap;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -21,11 +24,16 @@ import org.dromara.x.file.storage.core.FileStorageProperties.QiniuKodoConfig;
 import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
+import org.dromara.x.file.storage.core.constant.Constant;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.QiniuKodoFileStorageClientFactory.QiniuKodoClient;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
 
 /**
@@ -175,7 +183,7 @@ public class QiniuKodoFileStorage implements FileStorage {
                     host -> {
                         ApiUploadV2CompleteUpload api = new ApiUploadV2CompleteUpload(client.getClient());
                         ApiUploadV2CompleteUpload.Request request = new ApiUploadV2CompleteUpload.Request(
-                                        "https://upload-z2.qiniup.com", token, fileInfo.getUploadId(), partsInfo)
+                                        host, token, fileInfo.getUploadId(), partsInfo)
                                 .setKey(newFileKey)
                                 .setFileMimeType(fileInfo.getContentType())
                                 .setFileName(null)
@@ -203,7 +211,7 @@ public class QiniuKodoFileStorage implements FileStorage {
                     host -> {
                         ApiUploadV2AbortUpload api = new ApiUploadV2AbortUpload(client.getClient());
                         ApiUploadV2AbortUpload.Request request = new ApiUploadV2AbortUpload.Request(
-                                        "https://upload-z2.qiniup.com", token, fileInfo.getUploadId())
+                                        host, token, fileInfo.getUploadId())
                                 .setKey(newFileKey);
                         ApiUploadV2AbortUpload.Response response = api.request(request);
                         return new QiniuKodoClient.UploadActionResult<>(response.getResponse(), response);
@@ -221,14 +229,21 @@ public class QiniuKodoFileStorage implements FileStorage {
         QiniuKodoClient client = getClient();
         try {
             String token = client.getAuth().uploadToken(bucketName);
-            ApiUploadV2ListParts api = new ApiUploadV2ListParts(client.getClient());
-            ApiUploadV2ListParts.Request request = new ApiUploadV2ListParts.Request(
-                            "https://upload-z2.qiniup.com", token, fileInfo.getUploadId())
-                    .setKey(newFileKey)
-                    .setMaxParts(pre.getMaxParts())
-                    .setPartNumberMarker(pre.getPartNumberMarker());
-            ApiUploadV2ListParts.Response response = api.request(request);
+            QiniuKodoClient.UploadActionResult<ApiUploadV2ListParts.Response> result = client.retryUploadAction(
+                    host -> {
+                        ApiUploadV2ListParts api = new ApiUploadV2ListParts(client.getClient());
+                        ApiUploadV2ListParts.Request request = new ApiUploadV2ListParts.Request(
+                                        host, token, fileInfo.getUploadId())
+                                .setKey(newFileKey)
+                                .setMaxParts(pre.getMaxParts())
+                                .setPartNumberMarker(pre.getPartNumberMarker());
+                        ApiUploadV2ListParts.Response response = api.request(request);
+                        return new QiniuKodoClient.UploadActionResult<>(response.getResponse(), response);
+                    },
+                    token);
+            ApiUploadV2ListParts.Response response = result.getData();
             List<?> parts = response.getParts();
+            if (parts == null) parts = Collections.emptyList();
             FilePartInfoList list = new FilePartInfoList();
             list.setFileInfo(fileInfo);
             list.setList(parts.stream()
@@ -249,6 +264,114 @@ public class QiniuKodoFileStorage implements FileStorage {
             return list;
         } catch (Exception e) {
             throw ExceptionFactory.listParts(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll();
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        BucketManager manager = getClient().getBucketManager();
+        try {
+            FileListing result = manager.listFilesV2(
+                    bucketName,
+                    basePath + pre.getPath() + pre.getFilenamePrefix(),
+                    pre.getMarker(),
+                    pre.getMaxFiles(),
+                    "/");
+            ListFilesResult list = new ListFilesResult();
+            list.setDirList(Arrays.stream(result.commonPrefixes)
+                    .map(item -> {
+                        RemoteDirInfo dir = new RemoteDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(FileNameUtil.getName(item));
+                        dir.setOriginal(item);
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+            list.setFileList(Arrays.stream(result.items)
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(FileNameUtil.getName(item.key));
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
+                        info.setSize(item.fsize);
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setContentType(item.mimeType);
+                        info.setContentMd5(item.md5);
+                        info.setLastModified(new Date(item.putTime / 10000));
+                        HashMap<String, Object> metadata = new HashMap<>();
+                        metadata.put(Constant.Metadata.CONTENT_LENGTH, item.fsize);
+                        if (item.mimeType != null) metadata.put(Constant.Metadata.CONTENT_TYPE, item.mimeType);
+                        if (item.md5 != null) metadata.put(Constant.Metadata.CONTENT_MD5, item.md5);
+                        metadata.put(Constant.Metadata.LAST_MODIFIED, info.getLastModified());
+                        if (item.expiration != null)
+                            metadata.put(
+                                    Constant.Metadata.EXPIRES,
+                                    DateUtil.formatHttpDate(new Date(item.expiration * 1000)));
+                        info.setMetadata(metadata);
+                        info.setUserMetadata(item.meta);
+                        info.setOriginal(item);
+                        return info;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(pre.getMaxFiles());
+            list.setIsTruncated(!result.isEOF());
+            list.setMarker(pre.getMarker());
+            list.setNextMarker(result.marker);
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+        QiniuKodoClient client = getClient();
+        try {
+            com.qiniu.storage.model.FileInfo file;
+            try {
+                file = client.getBucketManager().stat(bucketName, fileKey);
+            } catch (Exception e) {
+                return null;
+            }
+            if (file == null) return null;
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(file.key));
+            info.setUrl(domain + fileKey);
+            info.setSize(file.fsize);
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setContentType(file.mimeType);
+            info.setContentMd5(file.md5);
+            info.setLastModified(new Date(file.putTime / 10000));
+            HashMap<String, Object> metadata = new HashMap<>();
+            metadata.put(Constant.Metadata.CONTENT_LENGTH, file.fsize);
+            if (file.mimeType != null) metadata.put(Constant.Metadata.CONTENT_TYPE, file.mimeType);
+            if (file.md5 != null) metadata.put(Constant.Metadata.CONTENT_MD5, file.md5);
+            metadata.put(Constant.Metadata.LAST_MODIFIED, info.getLastModified());
+            if (file.expiration != null)
+                metadata.put(Constant.Metadata.EXPIRES, DateUtil.formatHttpDate(new Date(file.expiration * 1000)));
+            info.setMetadata(metadata);
+            info.setUserMetadata(file.meta);
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
         }
     }
 
@@ -290,23 +413,20 @@ public class QiniuKodoFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
         try {
-            int deadline = (int) (expiration.getTime() / 1000);
-            return getClient().getAuth().privateDownloadUrlWithDeadline(fileInfo.getUrl(), deadline);
+            if (Constant.GeneratePresignedUrl.Method.GET.equalsIgnoreCase(String.valueOf(pre.getMethod()))) {
+                throw new FileStorageRuntimeException("七牛云 Kode 仅支持 GET ，如需支持更多功能，可以通过 AWS S3 的 SDK 来使用");
+            }
+            String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+            int deadline = (int) (pre.getExpiration().getTime() / 1000);
+            String url = getClient().getAuth().privateDownloadUrlWithDeadline(domain + fileKey, deadline);
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            result.setUrl(url);
+            result.setHeaders(new HashMap<>());
+            return result;
         } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            if (StrUtil.isBlank(fileInfo.getThUrl())) return null;
-            int deadline = (int) (expiration.getTime() / 1000);
-            return getClient().getAuth().privateDownloadUrlWithDeadline(fileInfo.getThUrl(), deadline);
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
         }
     }
 

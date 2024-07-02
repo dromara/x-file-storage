@@ -2,15 +2,16 @@ package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.StrUtil;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.event.ProgressEventType;
+import com.qcloud.cos.http.HttpMethodName;
 import com.qcloud.cos.model.*;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.net.URL;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -26,6 +27,9 @@ import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.get.*;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
 
@@ -269,6 +273,101 @@ public class TencentCosFileStorage implements FileStorage {
         }
     }
 
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll();
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        COSClient client = getClient();
+        try {
+            ListObjectsRequest request = new ListObjectsRequest();
+            request.setBucketName(bucketName);
+            request.setMaxKeys(pre.getMaxFiles());
+            request.setMarker(pre.getMarker());
+            request.setDelimiter("/");
+            request.setPrefix(basePath + pre.getPath() + pre.getFilenamePrefix());
+            ObjectListing result = client.listObjects(request);
+            ListFilesResult list = new ListFilesResult();
+
+            list.setDirList(result.getCommonPrefixes().stream()
+                    .map(item -> {
+                        RemoteDirInfo dir = new RemoteDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(FileNameUtil.getName(item));
+                        dir.setOriginal(item);
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+
+            list.setFileList(result.getObjectSummaries().stream()
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(FileNameUtil.getName(item.getKey()));
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
+                        info.setSize(item.getSize());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setETag(item.getETag());
+                        info.setLastModified(item.getLastModified());
+                        info.setOriginal(item);
+                        return info;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(result.getMaxKeys());
+            list.setIsTruncated(result.isTruncated());
+            list.setMarker(result.getMarker());
+            list.setNextMarker(result.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+        COSClient client = getClient();
+        try {
+            COSObject file;
+            try {
+                file = client.getObject(bucketName, fileKey);
+            } catch (Exception e) {
+                return null;
+            }
+            if (file == null) return null;
+            ObjectMetadata metadata = file.getObjectMetadata();
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(file.getKey()));
+            info.setUrl(domain + fileKey);
+            info.setSize(metadata.getContentLength());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(metadata.getETag());
+            info.setContentDisposition(metadata.getContentDisposition());
+            info.setContentType(metadata.getContentType());
+            info.setContentMd5(metadata.getContentMD5());
+            info.setLastModified(metadata.getLastModified());
+            if (metadata.getRawMetadata() != null) info.setMetadata(new HashMap<>(metadata.getRawMetadata()));
+            if (metadata.getUserMetadata() != null) info.setUserMetadata(new HashMap<>(metadata.getUserMetadata()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
+        }
+    }
+
     /**
      * 获取文件的访问控制列表
      */
@@ -323,24 +422,27 @@ public class TencentCosFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
         try {
-            return getClient()
-                    .generatePresignedUrl(bucketName, getFileKey(fileInfo), expiration)
-                    .toString();
+            String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucketName, fileKey);
+            request.setExpiration(pre.getExpiration());
+            request.setMethod(Tools.getEnum(HttpMethodName.class, pre.getMethod()));
+            Map<String, String> headers = new HashMap<>(pre.getHeaders());
+            headers.putAll(pre.getUserMetadata().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().startsWith("x-cos-meta-") ? e.getKey() : "x-cos-meta-" + e.getKey(),
+                            Map.Entry::getValue)));
+            headers.forEach(request::putCustomRequestHeader);
+            pre.getQueryParams().forEach(request::addRequestParameter);
+            pre.getResponseHeaders().forEach((k, v) -> request.addRequestParameter("response-" + k.toLowerCase(), v));
+            URL url = getClient().generatePresignedUrl(request);
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            result.setUrl(url.toString());
+            result.setHeaders(request.getCustomRequestHeaders());
+            return result;
         } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            String key = getThFileKey(fileInfo);
-            if (key == null) return null;
-            return getClient().generatePresignedUrl(bucketName, key, expiration).toString();
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
         }
     }
 

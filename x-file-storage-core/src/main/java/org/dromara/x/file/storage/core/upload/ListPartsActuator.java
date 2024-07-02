@@ -7,7 +7,6 @@ import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.aspect.ListPartsAspectChain;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.platform.FileStorage;
-import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
 
 /**
  * 手动分片上传-列举已上传的分片执行器

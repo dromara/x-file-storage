@@ -1,12 +1,16 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.file.FileNameUtil;
+import cn.hutool.core.map.MapProxy;
 import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.google.common.collect.Multimap;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
 import io.minio.http.Method;
+import io.minio.messages.ListBucketResultV1;
 import io.minio.messages.ListPartsResult;
 import io.minio.messages.Part;
 import java.io.ByteArrayInputStream;
@@ -32,7 +36,11 @@ import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.get.*;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
 
 /**
@@ -176,7 +184,7 @@ public class MinioFileStorage implements FileStorage {
      * 通过反射调用内部的上传分片方法
      */
     public UploadPartResponse uploadPart(MinioClient client, String uploadId, int partNumber, PutObjectArgs args)
-            throws ExecutionException, InterruptedException {
+            throws ExecutionException, InterruptedException, NoSuchMethodException {
         MinioAsyncClient asyncClient = getMinioAsyncClient(client);
 
         java.lang.reflect.Method newPartReaderMethod =
@@ -186,11 +194,19 @@ public class MinioFileStorage implements FileStorage {
                 asyncClient, newPartReaderMethod, args.stream(), args.objectSize(), args.partSize(), 1);
         Object partSource = ReflectUtil.invoke(partReader, "getPart");
 
-        java.lang.reflect.Method uploadPartsMethod =
-                ReflectUtil.getMethodByName(asyncClient.getClass(), "uploadPartAsync");
+        java.lang.reflect.Method[] uploadPartsMethods = ReflectUtil.getMethods(
+                asyncClient.getClass(),
+                method -> StrUtil.equalsIgnoreCase(method.getName(), "uploadPartAsync") // 方法名称是 uploadPartAsync
+                        && method.getParameterTypes().length == 8 // 参数个数是8个
+                        && StrUtil.equals(
+                                method.getParameterTypes()[3].getSimpleName(), "PartSource") // 且第4个参数的类名称是 PartSource
+                );
+        if (uploadPartsMethods == null || uploadPartsMethods.length != 1) {
+            throw new NoSuchMethodException("MinioAsyncClient uploadPartAsync method not find");
+        }
         CompletableFuture<UploadPartResponse> result = ReflectUtil.invoke(
                 asyncClient,
-                uploadPartsMethod,
+                uploadPartsMethods[0],
                 args.bucket(),
                 args.region(),
                 args.object(),
@@ -362,41 +378,174 @@ public class MinioFileStorage implements FileStorage {
     }
 
     @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll();
+    }
+
+    /**
+     * 通过反射调用内部的列举文件方法
+     */
+    public ListBucketResultV1 listFiles(MinioClient client, ListObjectsArgs args)
+            throws ExecutionException, InterruptedException {
+        MinioAsyncClient asyncClient = getMinioAsyncClient(client);
+        java.lang.reflect.Method method = ReflectUtil.getMethod(
+                asyncClient.getClass(),
+                "listObjectsV1",
+                String.class,
+                String.class,
+                String.class,
+                String.class,
+                String.class,
+                Integer.class,
+                String.class,
+                Multimap.class,
+                Multimap.class);
+        ListObjectsV1Response result = ReflectUtil.invoke(
+                asyncClient,
+                method,
+                args.bucket(),
+                args.region(),
+                args.delimiter(),
+                args.useUrlEncodingType() ? "url" : null,
+                args.marker(),
+                args.maxKeys(),
+                args.prefix(),
+                args.extraHeaders(),
+                args.extraQueryParams());
+        return result.result();
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        MinioClient client = getClient();
+        try {
+            ListObjectsArgs args = ListObjectsArgs.builder()
+                    .bucket(bucketName)
+                    .maxKeys(pre.getMaxFiles())
+                    .marker(pre.getMarker())
+                    .delimiter("/")
+                    .prefix(basePath + pre.getPath() + pre.getFilenamePrefix())
+                    .build();
+            ListBucketResultV1 result = listFiles(client, args);
+            ListFilesResult list = new ListFilesResult();
+            list.setDirList(result.commonPrefixes().stream()
+                    .map(item -> {
+                        RemoteDirInfo dir = new RemoteDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(FileNameUtil.getName(item.toItem().objectName()));
+                        dir.setOriginal(item);
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+
+            list.setFileList(result.contents().stream()
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(FileNameUtil.getName(item.objectName()));
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
+                        info.setSize(item.size());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setETag(item.etag());
+                        info.setLastModified(DateUtil.date(item.lastModified()));
+                        info.setOriginal(item);
+                        return info;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(result.maxKeys());
+            list.setIsTruncated(result.isTruncated());
+            list.setMarker(result.marker());
+            list.setNextMarker(result.nextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+        MinioClient client = getClient();
+        try {
+            StatObjectResponse file;
+            try {
+                file = client.statObject(StatObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(fileKey)
+                        .build());
+            } catch (Exception e) {
+                return null;
+            }
+            if (file == null) return null;
+
+            KebabCaseInsensitiveMap<String, String> headers =
+                    new KebabCaseInsensitiveMap<>(file.headers().toMultimap().entrySet().stream()
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> CollUtil.get(e.getValue(), 0))));
+            MapProxy headersProxy = MapProxy.create(headers);
+
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(file.object()));
+            info.setUrl(domain + fileKey);
+            info.setSize(file.size());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(file.etag());
+            info.setContentDisposition(headersProxy.getStr(Constant.Metadata.CONTENT_DISPOSITION));
+            info.setContentType(file.contentType());
+            info.setContentMd5(headersProxy.getStr(Constant.Metadata.CONTENT_MD5));
+            info.setLastModified(DateUtil.date(file.lastModified()));
+            info.setMetadata(headers.entrySet().stream()
+                    .filter(e -> !e.getKey().startsWith("x-amz-meta-"))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+            if (file.userMetadata() != null) info.setUserMetadata(new HashMap<>(file.userMetadata()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
+        }
+    }
+
+    @Override
     public boolean isSupportPresignedUrl() {
         return true;
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
-        int expiry = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
         try {
+            String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+            Map<String, String> headers = new HashMap<>(pre.getHeaders());
+            headers.putAll(pre.getUserMetadata().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().startsWith("x-amz-meta-") ? e.getKey() : "x-amz-meta-" + e.getKey(),
+                            Map.Entry::getValue)));
+            HashMap<String, String> queryParam = new HashMap<>(pre.getQueryParams());
+            pre.getResponseHeaders().forEach((k, v) -> queryParam.put("response-" + k.toLowerCase(), v));
             GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
                     .bucket(bucketName)
-                    .object(getFileKey(fileInfo))
-                    .method(Method.GET)
-                    .expiry(expiry)
+                    .object(fileKey)
+                    .method(Tools.getEnum(Method.class, pre.getMethod()))
+                    .expiry((int) ((pre.getExpiration().getTime() - System.currentTimeMillis()) / 1000))
+                    .extraHeaders(headers)
+                    .extraQueryParams(queryParam)
                     .build();
-            return getClient().getPresignedObjectUrl(args);
+            String url = getClient().getPresignedObjectUrl(args);
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            result.setUrl(url);
+            result.setHeaders(headers);
+            return result;
         } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        String key = getThFileKey(fileInfo);
-        if (key == null) return null;
-        int expiry = (int) ((expiration.getTime() - System.currentTimeMillis()) / 1000);
-        try {
-            GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
-                    .bucket(bucketName)
-                    .object(key)
-                    .method(Method.GET)
-                    .expiry(expiry)
-                    .build();
-            return getClient().getPresignedObjectUrl(args);
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
         }
     }
 

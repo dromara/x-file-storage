@@ -1,5 +1,6 @@
 package org.dromara.x.file.storage.test.aspect;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.ArrayUtil;
 import java.io.InputStream;
 import java.util.Date;
@@ -9,12 +10,15 @@ import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.aspect.*;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.platform.FileStorage;
-import org.dromara.x.file.storage.core.platform.MultipartUploadSupportInfo;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
 import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.upload.MultipartUploadSupportInfo;
 import org.springframework.stereotype.Component;
 
 /**
@@ -126,6 +130,39 @@ public class LogFileStorageAspect implements FileStorageAspect {
     }
 
     /**
+     * 是否支持列举文件
+     */
+    @Override
+    public ListFilesSupportInfo isSupportListFiles(IsSupportListFilesAspectChain chain, FileStorage fileStorage) {
+        log.info("是否支持列举文件 before -> {}", fileStorage.getPlatform());
+        ListFilesSupportInfo res = chain.next(fileStorage);
+        log.info("是否支持列举文件 -> {}", res);
+        return res;
+    }
+
+    /**
+     * 列举文件
+     */
+    @Override
+    public ListFilesResult listFiles(ListFilesAspectChain chain, ListFilesPretreatment pre, FileStorage fileStorage) {
+        log.info("列举文件 before -> {}", BeanUtil.beanToMap(pre, "fileStorageService"));
+        ListFilesResult result = chain.next(pre, fileStorage);
+        log.info("列举文件 after -> {}", result);
+        return result;
+    }
+
+    /**
+     * 获取文件
+     */
+    @Override
+    public RemoteFileInfo getFile(GetFileAspectChain chain, GetFilePretreatment pre, FileStorage fileStorage) {
+        log.info("获取文件 before -> {}", BeanUtil.beanToMap(pre, "fileStorageService"));
+        RemoteFileInfo result = chain.next(pre, fileStorage);
+        log.info("获取文件 after -> {}", result);
+        return result;
+    }
+
+    /**
      * 删除文件，成功返回 true
      */
     @Override
@@ -185,10 +222,10 @@ public class LogFileStorageAspect implements FileStorageAspect {
      * 对文件生成可以签名访问的 URL，无法生成则返回 null
      */
     @Override
-    public String generatePresignedUrlAround(
-            GeneratePresignedUrlAspectChain chain, FileInfo fileInfo, Date expiration, FileStorage fileStorage) {
-        log.info("对文件生成可以签名访问的 URL before -> {}", fileInfo);
-        String res = chain.next(fileInfo, expiration, fileStorage);
+    public GeneratePresignedUrlResult generatePresignedUrlAround(
+            GeneratePresignedUrlAspectChain chain, GeneratePresignedUrlPretreatment pre, FileStorage fileStorage) {
+        log.info("对文件生成可以签名访问的 URL before -> {}", BeanUtil.beanToMap(pre, "fileStorageService"));
+        GeneratePresignedUrlResult res = chain.next(pre, fileStorage);
         log.info("对文件生成可以签名访问的 URL after -> {}", res);
         return res;
     }

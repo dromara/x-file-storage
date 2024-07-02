@@ -2,16 +2,23 @@ package org.dromara.x.file.storage.core.platform;
 
 import static com.jcraft.jsch.ChannelSftp.SSH_FX_NO_SUCH_FILE;
 
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.file.FileNameUtil;
+import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.ssh.JschRuntimeException;
 import cn.hutool.extra.ssh.Sftp;
 import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.ChannelSftp.LsEntry;
 import com.jcraft.jsch.SftpATTRS;
 import com.jcraft.jsch.SftpException;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,6 +29,7 @@ import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
+import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.move.MovePretreatment;
 
 /**
@@ -102,6 +110,123 @@ public class SftpFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.upload(fileInfo, platform, e);
+        } finally {
+            returnClient(client);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll().setSupportMaxFiles(Integer.MAX_VALUE);
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        Sftp client = getClient();
+        try {
+            String path = getAbsolutePath(basePath + pre.getPath());
+            List<LsEntry> fileList = Collections.emptyList();
+            if (client.isDir(path)) {
+                fileList = client.lsEntries(path).stream()
+                        .filter(item ->
+                                item.getAttrs().isDir() || item.getAttrs().isReg())
+                        .collect(Collectors.toList());
+            }
+            ListFilesMatchResult<LsEntry> matchResult = listFilesMatch(fileList, LsEntry::getFilename, pre, true);
+            ListFilesResult list = new ListFilesResult();
+            list.setDirList(matchResult.getList().stream()
+                    .filter(item -> item.getAttrs().isDir())
+                    .map(item -> {
+                        RemoteDirInfo dir = new RemoteDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(item.getFilename());
+                        dir.setOriginal(item);
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+            list.setFileList(matchResult.getList().stream()
+                    .filter(item -> item.getAttrs().isReg())
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(item.getFilename());
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
+                        info.setSize(item.getAttrs().getSize());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setLastModified(DateUtil.date(item.getAttrs().getMTime() * 1000L));
+                        info.setOriginal(item);
+                        return info;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(pre.getMaxFiles());
+            list.setIsTruncated(matchResult.getIsTruncated());
+            list.setMarker(pre.getMarker());
+            list.setNextMarker(matchResult.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
+        } finally {
+            returnClient(client);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+        Sftp client = getClient();
+        try {
+            String path = getAbsolutePath(basePath + pre.getPath());
+            String filename = pre.getFilename();
+
+            // 这种方式速度慢，列举文件接口返回数据相同
+            //            final LsEntry[] files = {null};
+            //            if (client.isDir(path)) {
+            //                client.getClient().ls(path, entry -> {
+            //                    if (pre.getFilename().equals(entry.getFilename())) {
+            //                        files[0] = entry;
+            //                        return ChannelSftp.LsEntrySelector.BREAK;
+            //                    }
+            //                    return ChannelSftp.LsEntrySelector.CONTINUE;
+            //                });
+            //            }
+            //            LsEntry file = files[0];
+            //            if (file == null) return null;
+
+            // 这种方式速度快，但是 longname 与列举文件方法返回的 longname 不相同，
+            // 可以使用列举文件方法代替：fileStorageService.listFiles().setPath("test/").setFilenamePrefix("a.jpg").setMaxFiles(1).listFiles();
+            SftpATTRS attrs;
+            try {
+                attrs = client.getClient().stat(path + filename);
+            } catch (Exception e) {
+                return null;
+            }
+            if (attrs == null) return null;
+            LsEntry file = ReflectUtil.newInstanceIfPossible(LsEntry.class);
+            ReflectUtil.setFieldValue(file, "filename", filename);
+            ReflectUtil.setFieldValue(file, "longname", attrs + " " + filename);
+            ReflectUtil.setFieldValue(file, "attrs", attrs);
+
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(file.getFilename());
+            info.setUrl(domain + fileKey);
+            info.setSize(file.getAttrs().getSize());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setLastModified(DateUtil.date(file.getAttrs().getMTime() * 1000L));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
         } finally {
             returnClient(client);
         }

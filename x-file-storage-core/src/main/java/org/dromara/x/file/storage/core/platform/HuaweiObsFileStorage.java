@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.text.NamingCase;
 import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
@@ -12,9 +13,7 @@ import com.obs.services.internal.ObsConvertor;
 import com.obs.services.model.*;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -30,7 +29,11 @@ import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
+import org.dromara.x.file.storage.core.get.*;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
+import org.dromara.x.file.storage.core.util.Tools;
 
 /**
  * 华为云 OBS 存储
@@ -263,6 +266,108 @@ public class HuaweiObsFileStorage implements FileStorage {
         }
     }
 
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll();
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        ObsClient client = getClient();
+        try {
+            ListObjectsRequest request = new ListObjectsRequest(bucketName);
+            request.setMaxKeys(pre.getMaxFiles());
+            request.setMarker(pre.getMarker());
+            request.setDelimiter("/");
+            request.setPrefix(basePath + pre.getPath() + pre.getFilenamePrefix());
+            ObjectListing result = client.listObjects(request);
+            ListFilesResult list = new ListFilesResult();
+
+            list.setDirList(result.getCommonPrefixes().stream()
+                    .map(item -> {
+                        RemoteDirInfo dir = new RemoteDirInfo();
+                        dir.setPlatform(pre.getPlatform());
+                        dir.setBasePath(basePath);
+                        dir.setPath(pre.getPath());
+                        dir.setName(FileNameUtil.getName(item));
+                        dir.setOriginal(item);
+                        return dir;
+                    })
+                    .collect(Collectors.toList()));
+
+            list.setFileList(result.getObjects().stream()
+                    .map(item -> {
+                        RemoteFileInfo info = new RemoteFileInfo();
+                        info.setPlatform(pre.getPlatform());
+                        info.setBasePath(basePath);
+                        info.setPath(pre.getPath());
+                        info.setFilename(FileNameUtil.getName(item.getObjectKey()));
+                        info.setUrl(domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
+                        ObjectMetadata metadata = item.getMetadata();
+                        info.setSize(metadata.getContentLength());
+                        info.setExt(FileNameUtil.extName(info.getFilename()));
+                        info.setETag(metadata.getEtag());
+                        info.setContentDisposition(metadata.getContentDisposition());
+                        info.setContentType(metadata.getContentType());
+                        info.setContentMd5(metadata.getContentMd5());
+                        info.setLastModified(metadata.getLastModified());
+                        info.setMetadata(BeanUtil.beanToMap(metadata, false, true));
+                        info.setUserMetadata(BeanUtil.beanToMap(metadata.getAllMetadata()));
+                        info.setOriginal(item);
+                        return info;
+                    })
+                    .collect(Collectors.toList()));
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(result.getMaxKeys());
+            list.setIsTruncated(result.isTruncated());
+            list.setMarker(result.getMarker());
+            list.setNextMarker(result.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+        ObsClient client = getClient();
+        try {
+            ObsObject file;
+            try {
+                file = client.getObject(bucketName, fileKey);
+            } catch (Exception e) {
+                return null;
+            }
+            if (file == null) return null;
+            ObjectMetadata metadata = file.getMetadata();
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(file.getObjectKey()));
+            info.setUrl(domain + fileKey);
+            info.setSize(metadata.getContentLength());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(metadata.getEtag());
+            info.setContentDisposition(metadata.getContentDisposition());
+            info.setContentType(metadata.getContentType());
+            info.setContentMd5(metadata.getContentMd5());
+            info.setLastModified(metadata.getLastModified());
+            info.setMetadata(BeanUtil.beanToMap(metadata, false, true));
+            info.getMetadata().remove("userMetadata");
+            info.getMetadata().put("eTag", metadata.getEtag());
+            info.setUserMetadata(new HashMap<>(metadata.getAllMetadata()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
+        }
+    }
+
     /**
      * 获取文件的访问控制列表
      */
@@ -319,31 +424,31 @@ public class HuaweiObsFileStorage implements FileStorage {
     }
 
     @Override
-    public String generatePresignedUrl(FileInfo fileInfo, Date expiration) {
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
         try {
-            long expires = (expiration.getTime() - System.currentTimeMillis()) / 1000;
-            TemporarySignatureRequest request = new TemporarySignatureRequest(HttpMethodEnum.GET, expires);
+            HttpMethodEnum method = Tools.getEnum(HttpMethodEnum.class, pre.getMethod());
+            SpecialParamEnum specialParam = Tools.getEnum(SpecialParamEnum.class, pre.getSpecialParam());
+            long expires = (pre.getExpiration().getTime() - System.currentTimeMillis()) / 1000;
+            TemporarySignatureRequest request = new TemporarySignatureRequest(method, expires);
             request.setBucketName(bucketName);
-            request.setObjectKey(getFileKey(fileInfo));
-            return getClient().createTemporarySignature(request).getSignedUrl();
+            request.setObjectKey(getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename())));
+            request.setSpecialParam(specialParam);
+            Map<String, String> headers = new HashMap<>(pre.getHeaders());
+            headers.putAll(pre.getUserMetadata().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().startsWith("x-obs-meta-") ? e.getKey() : "x-obs-meta-" + e.getKey(),
+                            Map.Entry::getValue)));
+            request.setHeaders(headers);
+            HashMap<String, Object> queryParam = new HashMap<>(pre.getQueryParams());
+            pre.getResponseHeaders().forEach((k, v) -> queryParam.put("response-" + k.toLowerCase(), v));
+            request.setQueryParams(queryParam);
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            TemporarySignatureResponse response = getClient().createTemporarySignature(request);
+            result.setUrl(response.getSignedUrl());
+            result.setHeaders(response.getActualSignedRequestHeaders());
+            return result;
         } catch (Exception e) {
-            throw ExceptionFactory.generatePresignedUrl(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
-        try {
-            String key = getThFileKey(fileInfo);
-            if (key == null) return null;
-            long expires = (expiration.getTime() - System.currentTimeMillis()) / 1000;
-            TemporarySignatureRequest request = new TemporarySignatureRequest(HttpMethodEnum.GET, expires);
-            request.setBucketName(bucketName);
-            request.setObjectKey(key);
-
-            return getClient().createTemporarySignature(request).getSignedUrl();
-        } catch (Exception e) {
-            throw ExceptionFactory.generateThPresignedUrl(fileInfo, platform, e);
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
         }
     }
 
