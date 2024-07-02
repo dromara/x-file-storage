@@ -81,7 +81,7 @@ class FileStorageServiceTransferTest {
     }
 
     /**
-     * 测试迁移文件
+     * 使用数据库迁移文件
      */
     @Test
     public void transferByPlatform() {
@@ -96,18 +96,18 @@ class FileStorageServiceTransferTest {
     }
 
     /**
-     * 通过枚举文件的方式迁移文件
+     * 使用数据库迁移文件
      */
     public void transfer(String fromPlatform, String toPlatform, String path) {
 
-        // 例举出当前路径下所有文件夹及文件
+        // 例举出当前路径下所有目录及文件
         ListFilesResult result = fileStorageService
                 .listFiles()
                 .setPlatform(fromPlatform)
                 .setPath(path)
                 .listFiles();
 
-        // 递归迁移所有子文件夹
+        // 递归迁移所有子目录
         for (RemoteDirInfo dir : result.getDirList()) {
             transfer(fromPlatform, toPlatform, path + dir.getName() + "/");
         }
@@ -118,7 +118,7 @@ class FileStorageServiceTransferTest {
             // 同时每个存储平台的 ACL 也不一样，也需要自行处理
             FileInfo fileInfo = remoteFileInfo.toFileInfo();
 
-            // 这里仅保留需要的 metadata
+            // 这里仅保留需要的 metadata ，例如：
             Map<String, String> fromMetadata = new KebabCaseInsensitiveMap<>(fileInfo.getMetadata());
             Map<String, String> toMetadata = new HashMap<>();
             if (fromMetadata.containsKey(Constant.Metadata.CONTENT_TYPE)) {
@@ -137,6 +137,8 @@ class FileStorageServiceTransferTest {
             fileStorageService
                     .move(fileInfo)
                     .setPlatform(toPlatform)
+                    .setNotSupportMetadataThrowException(true) // 不支持元数据时抛出异常
+                    .setNotSupportAclThrowException(true) // 不支持 ACL 时抛出异常
                     .setProgressListener((progressSize, allSize) -> log.info(
                             "文件 {}/{} 迁移进度：{} {}%",
                             fileInfo.getPath(), fileInfo.getFilename(), progressSize, progressSize * 100 / allSize))
@@ -145,6 +147,8 @@ class FileStorageServiceTransferTest {
             // fileStorageService
             //        .copy(fileInfo)
             //        .setPlatform(toPlatform)
+            //        .setNotSupportMetadataThrowException(true) // 不支持元数据时抛出异常
+            //        .setNotSupportAclThrowException(true) // 不支持 ACL 时抛出异常
             //        .setProgressListener((progressSize, allSize) -> log.info(
             //                "文件 {}/{} 迁移进度：{} {}%",
             //                fileInfo.getPath(), fileInfo.getFilename(), progressSize, progressSize * 100 / allSize))
