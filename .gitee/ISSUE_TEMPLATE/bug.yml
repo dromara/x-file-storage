@@ -19,7 +19,7 @@ body:
     attributes:
       label: 相关依赖及版本号
       description: 请详细输入用到的相关依赖及版本号
-      placeholder: |
+      value: |
         X File Storage 版本号：
         SpringBoot 版本号：
         Solon 版本号：
@@ -31,9 +31,10 @@ body:
     attributes:
       label: 配置文件
       description: 输入你的配置文件，IP、密钥等使用 xxx 代替
-      placeholder: |
+      value: |
         ```yaml
-        在此输入配置文件
+        # 在此输入配置文件
+        
         ```
     validations:
       required: true
@@ -55,8 +56,8 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: 实际结果
-      description: 请告诉我们实际发生了什么。如果报错，请附上详细的报错信息
+      label: 实际结果或详细的报错信息
+      description: 请告诉我们实际发生了什么。
     validations:
       required: true
   - type: textarea
