@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 官方文档
+    url: https://x-file-storage.xuyanwu.cn/
+    about: 提供使用指南、教程、功能使用、介绍和常见问题解答
+  - name: 常见问题
+    url: https://x-file-storage.xuyanwu.cn/#/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98
+    about: 提供常见问题解答
