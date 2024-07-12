@@ -75,7 +75,7 @@
     </scm>
 
     <properties>
-        <revision>2.2.0</revision>
+        <revision>2.2.1-SNAPSHOT</revision>
         <!--region Maven Base-->
         <maven.version>3.8.1</maven.version>
         <java.version>8</java.version>
