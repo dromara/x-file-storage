@@ -1,5 +1,8 @@
 package org.dromara.x.file.storage.test.controller;
 
+import cn.hutool.core.lang.Assert;
+import cn.hutool.crypto.SecureUtil;
+import java.io.IOException;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -7,6 +10,7 @@ import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.file.HttpServletRequestFileWrapper;
 import org.dromara.x.file.storage.core.file.MultipartFormDataReader;
+import org.dromara.x.file.storage.core.hash.HashInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -67,5 +71,18 @@ public class FileDetailController {
         Map<String, String[]> parameterMap = formData.getParameterMap();
         log.info("parameterMap：{}", parameterMap);
         return fileStorageService.of(wrapper).upload();
+    }
+
+    /**
+     * 上传文件，成功返回文件 url
+     */
+    @PostMapping("/upload-hash")
+    public FileInfo uploadHash(MultipartFile file) throws IOException {
+        FileInfo fileInfo = fileStorageService.of(file).setHashCalculatorMd5().upload(); // 将文件上传到对应地方
+
+        HashInfo hashInfo = fileInfo.getHashInfo();
+        Assert.isTrue(SecureUtil.md5().digestHex(file.getBytes()).equals(hashInfo.getMd5()), "文件 MD5 对比不一致！");
+        log.info("文件 MD5 对比通过");
+        return fileInfo;
     }
 }

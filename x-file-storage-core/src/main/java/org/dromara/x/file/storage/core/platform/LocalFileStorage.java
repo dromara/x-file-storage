@@ -79,7 +79,8 @@ public class LocalFileStorage implements FileStorage {
         try {
             File newFile = FileUtil.touch(getAbsolutePath(newFileKey));
             FileWrapper fileWrapper = pre.getFileWrapper();
-            if (fileWrapper.supportTransfer()) { // 移动文件，速度较快
+            if (fileWrapper.supportTransfer()
+                    && pre.getHashCalculatorManager().getHashCalculatorList().isEmpty()) { // 移动文件，速度较快
                 ProgressListener.quickStart(pre.getProgressListener(), fileWrapper.getSize());
                 fileWrapper.transferTo(newFile);
                 ProgressListener.quickFinish(pre.getProgressListener(), fileWrapper.getSize());
