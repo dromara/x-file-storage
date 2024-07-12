@@ -2,7 +2,9 @@ package org.dromara.x.file.storage.test;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.lang.Assert;
+import cn.hutool.crypto.SecureUtil;
 import java.io.InputStream;
 import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,7 @@ class FileStorageServiceBaseTest {
 
         String filename = "image.jpg";
         InputStream in = this.getClass().getClassLoader().getResourceAsStream(filename);
+        byte[] bytes = IoUtil.readBytes(in);
 
         // 是否支持 ACL
         FileStorage storage = fileStorageService.getFileStorage();
@@ -39,7 +42,7 @@ class FileStorageServiceBaseTest {
         boolean supportPresignedUrl = fileStorageService.isSupportPresignedUrl(storage);
 
         FileInfo fileInfo = fileStorageService
-                .of(in)
+                .of(bytes)
                 .setName("file")
                 .setOriginalFilename(filename)
                 .setPath("test/")
@@ -74,6 +77,12 @@ class FileStorageServiceBaseTest {
                 .upload();
         Assert.notNull(fileInfo, "文件上传失败！");
         log.info("文件上传成功：{}", fileInfo.toString());
+
+        HashInfo hashInfo = fileInfo.getHashInfo();
+        Assert.isTrue(SecureUtil.md5().digestHex(bytes).equals(hashInfo.getMd5()), "文件 MD5 对比不一致！");
+        log.info("文件 MD5 对比通过");
+        Assert.isTrue(SecureUtil.sha256().digestHex(bytes).equals(hashInfo.getSha256()), "文件 SHA256 对比不一致！");
+        log.info("文件 SHA256 对比通过");
 
         if (supportPresignedUrl) {
             String presignedUrl = fileStorageService.generatePresignedUrl(fileInfo, DateUtil.offsetHour(new Date(), 1));
