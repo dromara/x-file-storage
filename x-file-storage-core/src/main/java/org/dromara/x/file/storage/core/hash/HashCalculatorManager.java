@@ -12,6 +12,7 @@ import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 public class HashCalculatorManager implements HashCalculatorSetter<HashCalculatorManager> {
     @Getter
     private final List<HashCalculator> hashCalculatorList = new CopyOnWriteArrayList<>();
+
     private volatile HashInfo hashInfo;
 
     /**
