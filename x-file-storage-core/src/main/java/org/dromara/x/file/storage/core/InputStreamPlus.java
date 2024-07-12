@@ -62,7 +62,7 @@ public class InputStreamPlus extends FilterInputStream {
     public int read() throws IOException {
         int b = super.read();
         onProgress(b == -1 ? -1 : 1);
-        if (hashCalculatorManager != null && b > -1) {
+        if (this.markFlag == 0 && hashCalculatorManager != null && b > -1) {
             hashCalculatorManager.update(new byte[] {(byte) b});
         }
         return b;
@@ -72,7 +72,7 @@ public class InputStreamPlus extends FilterInputStream {
     public int read(byte[] b, int off, int len) throws IOException {
         onStart();
         int bytes = super.read(b, off, len);
-        if (hashCalculatorManager != null && bytes > 0) {
+        if (this.markFlag == 0 && hashCalculatorManager != null && bytes > 0) {
             hashCalculatorManager.update(Arrays.copyOfRange(b, off, off + bytes));
         }
         onProgress(bytes);

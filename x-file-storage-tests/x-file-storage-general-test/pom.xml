@@ -32,7 +32,6 @@
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-crypto</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
