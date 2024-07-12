@@ -415,7 +415,7 @@ public class QiniuKodoFileStorage implements FileStorage {
     @Override
     public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
         try {
-            if (Constant.GeneratePresignedUrl.Method.GET.equalsIgnoreCase(String.valueOf(pre.getMethod()))) {
+            if (!Constant.GeneratePresignedUrl.Method.GET.equalsIgnoreCase(String.valueOf(pre.getMethod()))) {
                 throw new FileStorageRuntimeException("七牛云 Kode 仅支持 GET ，如需支持更多功能，可以通过 AWS S3 的 SDK 来使用");
             }
             String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
