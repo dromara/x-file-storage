@@ -103,7 +103,6 @@ public class RemoteFileInfo {
      * 获取短横命名风格且不区分大小写的文件元数据，以下方式都获得的值相同，put进入的值也会被覆盖<br>
      * get("ContentType")<br>
      * get("Content_Type")<br>
-     * get("HelloWorld_test")<br>
      * get("Content-Type")<br>
      * get("contentType")<br>
      */
@@ -116,7 +115,6 @@ public class RemoteFileInfo {
      * 获取短横命名风格的文件用户元数据，以下方式都获得的值相同，put进入的值也会被覆盖<br>
      * get("ContentType")<br>
      * get("Content_Type")<br>
-     * get("HelloWorld_test")<br>
      * get("Content-Type")<br>
      * get("contentType")<br>
      */

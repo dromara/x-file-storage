@@ -3,13 +3,16 @@ package org.dromara.x.file.storage.core.hash;
 import cn.hutool.core.util.StrUtil;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import lombok.Getter;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 
 /**
  * 哈希计算器管理器
  */
 public class HashCalculatorManager implements HashCalculatorSetter<HashCalculatorManager> {
+    @Getter
     private final List<HashCalculator> hashCalculatorList = new CopyOnWriteArrayList<>();
+
     private volatile HashInfo hashInfo;
 
     /**
