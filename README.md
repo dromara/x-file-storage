@@ -56,19 +56,13 @@ Gitee：https://gitee.com/dromara/x-file-storage
 
 这里是简要的更新记录，查看 [详细的更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录)
 
+`2.2.1` 修复某些情况下哈希计算错误的问题、七牛云 Kodo 预签名 URL 无法使用的问题 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_221)
+<br />
 `2.2.0` 修复大量问题，新增获取文件、列举文件，重构预签名 URL 支持客户端上传、下载、删除等操作，新增 Solon 插件，优化手动分片上传等功能，详情查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_220)
 <br />
 `2.1.0` 修复大量问题，新增存储平台 FastDFS 和 Azure Blob Storage，新增复制、移动（重命名）文件，手动分片上传（断点续传）和计算哈希等功能，详情查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_210)
 <br />
 `2.0.0` 捐赠至 [dromara](https://dromara.org/zh) 开源社区，更改项目名、包名，优化项目结构、支持 Metadata 元数据等，从旧版升级需要注意，详情查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_200)
-<br />
-`1.0.3` 修复了 FileStorageClientFactory 未自动加载等问题，查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_103)
-<br />
-`1.0.2` 修复了华为云 OBS 未加载的问题，查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_102)
-<br />
-`1.0.1` 修复了 MultipartFile 无法正确获取文件名等问题，查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_101)
-<br />
-`1.0.0` 包含了大量功能更新与问题修复，例如解决了内存占用过大问题，支持大文件上传、  [脱离 SpringBoot 单独使用](https://x-file-storage.xuyanwu.cn/#/脱离SpringBoot单独使用) 等，AmazonS3 和 GoogleCloudStorage 存储平台配置名称与之前版本不兼容，查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_100)
 
 -------
 
