@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 官方文档
+    url: https://x-file-storage.xuyanwu.cn/
+    about: 提供使用指南、教程、功能使用、介绍和常见问题解答
+  - name: 常见问题
+    url: https%3A%2F%2Fx-file-storage.xuyanwu.cn%2F%23%2F%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98
+    about: 提供常见问题解答
+  - name: 加入QQ群 515706495
+    url: "https%3A%2F%2Fjq.qq.com%2F%3F_wv%3D1027%26k%3DeGfeNqka"
+    about: 一起交流
