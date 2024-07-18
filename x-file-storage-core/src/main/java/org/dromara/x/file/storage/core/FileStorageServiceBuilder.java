@@ -612,7 +612,7 @@ public class FileStorageServiceBuilder {
             if (doesNotExistClass(className)) {
                 throw new FileStorageRuntimeException(
                         "检测到【" + platformName + "】配置，但是没有找到对应的依赖类：【" + className
-                                + "】，所以无法加载此存储平台！配置参考地址：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8");
+                                + "】，所以无法加载此存储平台！配置参考地址：https://x-file-storage.xuyanwu.cn/2.2.1/#/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8");
             }
         }
     }
