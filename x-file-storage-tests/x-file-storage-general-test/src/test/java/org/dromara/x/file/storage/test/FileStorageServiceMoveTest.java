@@ -102,7 +102,7 @@ class FileStorageServiceMoveTest {
     }
 
     /**
-     * 测试移动到同路径下同文件名
+     * 测试移动到同路径下不同文件名
      */
     @Test
     public void filename() {
