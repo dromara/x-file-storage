@@ -27,6 +27,7 @@ import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.*;
 import org.dromara.x.file.storage.core.platform.*;
 import org.dromara.x.file.storage.core.platform.AzureBlobStorageFileStorageClientFactory.AzureBlobStorageClient;
+import org.dromara.x.file.storage.core.platform.MongoGridFsFileStorageClientFactory.MongoGridFsClient;
 import org.dromara.x.file.storage.core.platform.QiniuKodoFileStorageClientFactory.QiniuKodoClient;
 import org.dromara.x.file.storage.core.recorder.DefaultFileRecorder;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
@@ -247,6 +248,7 @@ public class FileStorageServiceBuilder {
                 buildGoogleCloudStorageFileStorage(properties.getGoogleCloudStorage(), clientFactoryList));
         fileStorageList.addAll(buildFastDfsFileStorage(properties.getFastdfs(), clientFactoryList));
         fileStorageList.addAll(buildAzureBlobFileStorage(properties.getAzureBlob(), clientFactoryList));
+        fileStorageList.addAll(buildMongoGridFsStorage(properties.getMongoGridFs(), clientFactoryList));
 
         // 本体
         FileStorageService service = new FileStorageService();
@@ -563,6 +565,25 @@ public class FileStorageServiceBuilder {
                             clientFactoryList,
                             () -> new AzureBlobStorageFileStorageClientFactory(config));
                     return new AzureBlobStorageFileStorage(config, clientFactory);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 根据配置文件创建 Mongo GridFS 存储平台
+     */
+    public static List<MongoGridFsFileStorage> buildMongoGridFsStorage(
+            List<? extends MongoGridFsConfig> list, List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        if (CollUtil.isEmpty(list)) return Collections.emptyList();
+        buildFileStorageDetect(list, "Mongo GridFS", "com.mongodb.client.MongoClient");
+        return list.stream()
+                .map(config -> {
+                    log.info("加载 Mongo GridFS 存储平台：{}", config.getPlatform());
+                    FileStorageClientFactory<MongoGridFsClient> clientFactory = getFactory(
+                            config.getPlatform(),
+                            clientFactoryList,
+                            () -> new MongoGridFsFileStorageClientFactory(config));
+                    return new MongoGridFsFileStorage(config, clientFactory);
                 })
                 .collect(Collectors.toList());
     }
