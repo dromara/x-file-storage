@@ -150,6 +150,11 @@ public class SolonFileStorageProperties {
     private List<? extends SpringAzureBlobStorageConfig> azureBlob = new ArrayList<>();
 
     /**
+     * Mongo GridFS
+     */
+    private List<? extends SpringMongoGridFsConfig> mongoGridFs = new ArrayList<>();
+
+    /**
      * 转换成 FileStorageProperties ，并过滤掉没有启用的存储平台
      */
     public FileStorageProperties toFileStorageProperties() {
@@ -199,6 +204,9 @@ public class SolonFileStorageProperties {
                 fastdfs.stream().filter(SpringFastDfsConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setAzureBlob(azureBlob.stream()
                 .filter(SpringAzureBlobStorageConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setMongoGridFs(mongoGridFs.stream()
+                .filter(SpringMongoGridFsConfig::getEnableStorage)
                 .collect(Collectors.toList()));
 
         return properties;
@@ -426,6 +434,19 @@ public class SolonFileStorageProperties {
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringAzureBlobStorageConfig extends AzureBlobStorageConfig {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+
+    /**
+     * Mongo GridFS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class SpringMongoGridFsConfig extends MongoGridFsConfig {
         /**
          * 启用存储
          */

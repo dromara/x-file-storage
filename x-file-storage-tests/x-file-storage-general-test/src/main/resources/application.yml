@@ -15,6 +15,10 @@ spring:
     multipart:
       resolve-lazily: true # multipart 懒加载
 
+#  data:
+#    mongodb:
+#      uri: mongodb://admin:123456@192.168.1.111:27017
+
 dromara:
   x-file-storage: #文件存储配置，不使用的情况下可以不写
     default-platform: local-plus-1 #默认使用的存储平台
@@ -162,4 +166,12 @@ dromara:
         end-point: ?? # 终结点 AzureBlob控制台-设置-终结点-主终结点-Blob服务
         container-name: ?? # 容器名称，类似于 s3 的 bucketName，AzureBlob控制台-数据存储-容器
         domain: ?? # 访问域名，注意“/”结尾，与 end-point 保持一致
+        base-path: hy/ # 基础路径
+    mongo-grid-fs:
+      - platform: mongo-grid-fs-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        connection-string: mongodb://admin:123456@192.168.1.111:27017
+        database: abc # 数据库名称
+        bucket-name: ccd # GridFS 存储通名称
+        domain: https://abc.com/ # 访问域名，注意“/”结尾，主要用于配合你自己写的访问接口进行访问
         base-path: hy/ # 基础路径

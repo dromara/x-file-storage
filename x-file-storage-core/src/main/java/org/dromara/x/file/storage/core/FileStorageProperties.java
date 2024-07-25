@@ -136,6 +136,11 @@ public class FileStorageProperties {
     private List<? extends AzureBlobStorageConfig> azureBlob = new ArrayList<>();
 
     /**
+     * Mongo GridFS
+     */
+    private List<? extends MongoGridFsConfig> mongoGridFs = new ArrayList<>();
+
+    /**
      * 基本的存储平台配置
      */
     @Data
@@ -1012,6 +1017,39 @@ public class FileStorageProperties {
                 // .put("ALL", "racwdxytlmei")    //自定义一个名为 ALL 的 method，赋予所有权限
                 .build();
 
+        /**
+         * 其它自定义配置
+         */
+        private Map<String, Object> attr = new LinkedHashMap<>();
+    }
+
+    /**
+     * Mongo GridFS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class MongoGridFsConfig extends BaseConfig {
+        /**
+         * 链接字符串
+         */
+        private String connectionString;
+        /**
+         * 数据库名称
+         */
+        private String database;
+        /**
+         * 存储桶名称
+         */
+        private String bucketName;
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
         /**
          * 其它自定义配置
          */
