@@ -29,9 +29,9 @@ public class DromaraXFileStoragePluginImpl implements Plugin {
 
             // local 配置
             //noinspection deprecation
-            final List<? extends SolonFileStorageProperties.SpringLocalConfig> localList = cfg.getLocal();
+            final List<? extends SolonFileStorageProperties.SolonLocalConfig> localList = cfg.getLocal();
             //noinspection deprecation
-            for (final SolonFileStorageProperties.SpringLocalConfig localConfig : localList) {
+            for (final SolonFileStorageProperties.SolonLocalConfig localConfig : localList) {
 
                 if (!localConfig.getEnableStorage() || !localConfig.getEnableAccess()) {
                     // 没有启用存储或 不允许访问, 则不配置映射
@@ -47,8 +47,8 @@ public class DromaraXFileStoragePluginImpl implements Plugin {
             }
 
             // localPlus 配置
-            final List<? extends SolonFileStorageProperties.SpringLocalPlusConfig> localPlusList = cfg.getLocalPlus();
-            for (final SolonFileStorageProperties.SpringLocalPlusConfig localPlusConfig : localPlusList) {
+            final List<? extends SolonFileStorageProperties.SolonLocalPlusConfig> localPlusList = cfg.getLocalPlus();
+            for (final SolonFileStorageProperties.SolonLocalPlusConfig localPlusConfig : localPlusList) {
 
                 if (!localPlusConfig.getEnableStorage() || !localPlusConfig.getEnableAccess()) {
                     // 没有启用存储或 不允许访问, 则不配置映射
