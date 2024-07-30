@@ -50,6 +50,8 @@ Amazon S3、GoogleCloud Storage、FastDFS、 Azure Blob Storage、Cloudflare R2�
 GitHub：https://github.com/dromara/x-file-storage
 <br />
 Gitee：https://gitee.com/dromara/x-file-storage
+<br />
+GitCode：https://gitcode.com/dromara/x-file-storage
 
 -------
 
@@ -128,7 +130,8 @@ X File Storage 的源码分为两个分支，功能如下：
 提交问题反馈请说明正在 X File Storage 版本、相关依赖库版本、配置参数及问题代码
 
 [Gitee issue](https://gitee.com/dromara/x-file-storage/issues)<br/>
-[GitHub issue](https://github.com/dromara/x-file-storage/issues)
+[GitHub issue](https://github.com/dromara/x-file-storage/issues)<br/>
+[GitCode issue](https://gitcode.com/dromara/x-file-storage/issues)
 
 ## 🧬贡献代码的步骤
 
@@ -158,7 +161,8 @@ X File Storage 感谢各位小伙伴的信任与支持，如果您已经在项�
 <a target="_blank" href="https://spring-file-storage.xuyanwu.cn">spring-file-storage.xuyanwu.cn</a>
 
 [在 Gitee 上登记](https://gitee.com/dromara/x-file-storage/issues/I83Q6R)<br/>
-[在 GitHub 上登记](https://github.com/dromara/x-file-storage/issues/114)
+[在 GitHub 上登记](https://github.com/dromara/x-file-storage/issues/114)<br/>
+[在 GitCode 上登记](https://gitcode.com/dromara/x-file-storage/issues/1)
 
 -------
 
