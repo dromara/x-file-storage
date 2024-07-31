@@ -249,6 +249,8 @@ public class FileStorageServiceBuilder {
         fileStorageList.addAll(buildFastDfsFileStorage(properties.getFastdfs(), clientFactoryList));
         fileStorageList.addAll(buildAzureBlobFileStorage(properties.getAzureBlob(), clientFactoryList));
         fileStorageList.addAll(buildMongoGridFsStorage(properties.getMongoGridFs(), clientFactoryList));
+        fileStorageList.addAll(buildGoFastDfsStorage(properties.getGoFastdfs()));
+
 
         // 本体
         FileStorageService service = new FileStorageService();
@@ -587,6 +589,20 @@ public class FileStorageServiceBuilder {
                 })
                 .collect(Collectors.toList());
     }
+
+    /**
+     * 根据配置文件创建goFastDfs存储平台
+     */
+    public static List<GoFastDfsFileStorage> buildGoFastDfsStorage(List<? extends GoFastDfsConfig> list) {
+        if (CollUtil.isEmpty(list)) return Collections.emptyList();
+        return list.stream()
+                .map(config -> {
+                    log.info("加载GoFastDfs存储平台：{}", config.getPlatform());
+                    return new GoFastDfsFileStorage(config);
+                })
+                .collect(Collectors.toList());
+    }
+
 
     /**
      * 获取或创建指定存储平台的 Client 工厂对象

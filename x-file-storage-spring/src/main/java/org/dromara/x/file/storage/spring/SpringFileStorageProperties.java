@@ -154,6 +154,11 @@ public class SpringFileStorageProperties {
     private List<? extends SpringMongoGridFsConfig> mongoGridFs = new ArrayList<>();
 
     /**
+     * GoFastDFS
+     */
+    private List<? extends SpringGoFastDfsConfig> goFastdfs = new ArrayList<>();
+
+    /**
      * 转换成 FileStorageProperties ，并过滤掉没有启用的存储平台
      */
     public FileStorageProperties toFileStorageProperties() {
@@ -206,6 +211,9 @@ public class SpringFileStorageProperties {
                 .collect(Collectors.toList()));
         properties.setMongoGridFs(mongoGridFs.stream()
                 .filter(SpringMongoGridFsConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setGoFastdfs(goFastdfs.stream()
+                .filter(SpringGoFastDfsConfig::getEnableStorage)
                 .collect(Collectors.toList()));
 
         return properties;
@@ -445,6 +453,16 @@ public class SpringFileStorageProperties {
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringMongoGridFsConfig extends MongoGridFsConfig {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class SpringGoFastDfsConfig extends GoFastDfsConfig {
         /**
          * 启用存储
          */

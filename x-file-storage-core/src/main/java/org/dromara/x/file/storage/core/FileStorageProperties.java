@@ -141,6 +141,11 @@ public class FileStorageProperties {
     private List<? extends MongoGridFsConfig> mongoGridFs = new ArrayList<>();
 
     /**
+     * GoFastDFS
+     */
+    private List<? extends GoFastDfsConfig> goFastdfs = new ArrayList<>();
+
+    /**
      * 基本的存储平台配置
      */
     @Data
@@ -1050,6 +1055,46 @@ public class FileStorageProperties {
          * 基础路径
          */
         private String basePath = "";
+        /**
+         * 其它自定义配置
+         */
+        private Map<String, Object> attr = new LinkedHashMap<>();
+    }
+
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class GoFastDfsConfig extends BaseConfig {
+
+        /**
+         * http://172.24.5.163:8080
+         */
+        private String server;
+
+        /**
+         * 服务器组名
+         */
+        private String group;
+
+        /**
+         * 服务器场景
+         */
+        private String scene;
+
+        /**
+         * 超时时间
+         */
+        private Integer timeOut;
+
+        /**
+         * domain
+         */
+        private String domain;
+
+        /**
+         * 上传时候base路径
+         */
+        private String basePath;
         /**
          * 其它自定义配置
          */
