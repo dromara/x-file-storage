@@ -60,6 +60,14 @@
                 <role>Contrib</role>
             </roles>
         </developer>
+        <developer>
+            <id>fenghlkevin</id>
+            <name>fenghlkevin</name>
+            <email>fenghlkevin@gmail.com</email>
+            <roles>
+                <role>Contrib</role>
+            </roles>
+        </developer>
     </developers>
 
     <modules>
