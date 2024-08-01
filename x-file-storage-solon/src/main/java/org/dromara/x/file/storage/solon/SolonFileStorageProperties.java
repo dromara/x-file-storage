@@ -155,6 +155,11 @@ public class SolonFileStorageProperties {
     private List<? extends SolonMongoGridFsConfig> mongoGridFs = new ArrayList<>();
 
     /**
+     * GoFastDFS
+     */
+    private List<? extends SolonGoFastDfsConfig> goFastdfs = new ArrayList<>();
+
+    /**
      * 转换成 FileStorageProperties ，并过滤掉没有启用的存储平台
      */
     public FileStorageProperties toFileStorageProperties() {
@@ -207,6 +212,9 @@ public class SolonFileStorageProperties {
                 .collect(Collectors.toList()));
         properties.setMongoGridFs(mongoGridFs.stream()
                 .filter(SolonMongoGridFsConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setGoFastdfs(goFastdfs.stream()
+                .filter(SolonGoFastDfsConfig::getEnableStorage)
                 .collect(Collectors.toList()));
 
         return properties;
@@ -447,6 +455,19 @@ public class SolonFileStorageProperties {
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SolonMongoGridFsConfig extends MongoGridFsConfig {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+
+    /**
+     * GoFastDFS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class SolonGoFastDfsConfig extends GoFastDfsConfig {
         /**
          * 启用存储
          */
