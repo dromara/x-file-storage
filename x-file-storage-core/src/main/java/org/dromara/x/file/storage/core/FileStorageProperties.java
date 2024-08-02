@@ -1061,6 +1061,9 @@ public class FileStorageProperties {
         private Map<String, Object> attr = new LinkedHashMap<>();
     }
 
+    /**
+     * GoFastDFS
+     */
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
