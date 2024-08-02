@@ -459,6 +459,9 @@ public class SpringFileStorageProperties {
         private Boolean enableStorage = false;
     }
 
+    /**
+     * GoFastDFS
+     */
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)

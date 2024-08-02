@@ -251,7 +251,6 @@ public class FileStorageServiceBuilder {
         fileStorageList.addAll(buildMongoGridFsStorage(properties.getMongoGridFs(), clientFactoryList));
         fileStorageList.addAll(buildGoFastDfsStorage(properties.getGoFastdfs()));
 
-
         // 本体
         FileStorageService service = new FileStorageService();
         service.setSelf(service);
@@ -602,7 +601,6 @@ public class FileStorageServiceBuilder {
                 })
                 .collect(Collectors.toList());
     }
-
 
     /**
      * 获取或创建指定存储平台的 Client 工厂对象
