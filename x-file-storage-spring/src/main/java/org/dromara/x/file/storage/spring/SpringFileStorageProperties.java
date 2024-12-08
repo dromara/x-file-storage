@@ -9,6 +9,7 @@ import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.FileStorageProperties;
 import org.dromara.x.file.storage.core.FileStorageProperties.AliyunOssConfig;
 import org.dromara.x.file.storage.core.FileStorageProperties.AmazonS3Config;
+import org.dromara.x.file.storage.core.FileStorageProperties.AmazonS3V2Config;
 import org.dromara.x.file.storage.core.FileStorageProperties.AzureBlobStorageConfig;
 import org.dromara.x.file.storage.core.FileStorageProperties.BaiduBosConfig;
 import org.dromara.x.file.storage.core.FileStorageProperties.FastDfsConfig;
@@ -132,6 +133,11 @@ public class SpringFileStorageProperties {
      * Amazon S3
      */
     private List<? extends SpringAmazonS3Config> amazonS3 = new ArrayList<>();
+
+    /**
+     * Amazon S3
+     */
+    private List<? extends SpringAmazonS3V2Config> amazonS3V2 = new ArrayList<>();
 
     /**
      * FTP
@@ -359,6 +365,19 @@ public class SpringFileStorageProperties {
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringAmazonS3Config extends AmazonS3Config {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+
+    /**
+     * Amazon S3
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class SpringAmazonS3V2Config extends AmazonS3V2Config {
         /**
          * 启用存储
          */
