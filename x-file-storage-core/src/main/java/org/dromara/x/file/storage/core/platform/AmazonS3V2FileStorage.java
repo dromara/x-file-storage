@@ -4,11 +4,18 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.StrUtil;
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.*;
+import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
@@ -25,14 +32,6 @@ import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
-
-import java.io.BufferedInputStream;
-import java.io.InputStream;
-import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * Amazon S3 存储<br/>
@@ -80,7 +79,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        ObjectCannedACL fileAcl = getAcl(fileInfo);
+        ObjectCannedACL fileAcl = getAcl(fileInfo.getFileAcl());
         Map<String, String> metadata = getObjectMetadata(fileInfo); // 使用 Map 代替 ObjectMetadata
         ProgressListener listener = pre.getProgressListener();
         S3Client client = getClient(); // 使用 S3Client 替代 AmazonS3
@@ -111,11 +110,13 @@ public class AmazonS3V2FileStorage implements FileStorage {
                             .bucket(bucketName)
                             .key(newFileKey)
                             .uploadId(uploadId)
-                            .partNumber(++i)    // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，AmazonS3将返回InvalidArgument错误码。
+                            .partNumber(
+                                    ++i) // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，AmazonS3将返回InvalidArgument错误码。
                             .contentLength((long) bytes.length)
                             .build();
                     // 使用 InputStreamPlus 自动监听进度，无需在这里单独设置监听
-                    UploadPartResponse uploadResponse = client.uploadPart(uploadPartRequest, RequestBody.fromBytes(bytes));
+                    UploadPartResponse uploadResponse =
+                            client.uploadPart(uploadPartRequest, RequestBody.fromBytes(bytes));
 
                     // 更新进度
                     if (listener != null) {
@@ -133,7 +134,9 @@ public class AmazonS3V2FileStorage implements FileStorage {
                         .bucket(bucketName)
                         .key(newFileKey)
                         .uploadId(uploadId)
-                        .multipartUpload(CompletedMultipartUpload.builder().parts(partList).build())
+                        .multipartUpload(CompletedMultipartUpload.builder()
+                                .parts(partList)
+                                .build())
                         .build();
                 client.completeMultipartUpload(completeRequest);
 
@@ -150,7 +153,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
                 if (listener != null) {
                     listener.finish();
                 }
-            } else {    // 普通上传
+            } else { // 普通上传
                 BufferedInputStream bin = new BufferedInputStream(in);
                 PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                         .bucket(bucketName)
@@ -178,6 +181,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
                         .bucket(bucketName)
                         .key(newThFileKey)
                         .metadata(getThObjectMetadata(fileInfo))
+                        .acl(fileAcl)
                         .build();
                 client.putObject(thRequest, RequestBody.fromBytes(thumbnailBytes));
             }
@@ -217,14 +221,13 @@ public class AmazonS3V2FileStorage implements FileStorage {
         Map<String, String> metadata = getObjectMetadata(fileInfo);
         S3Client client = getClient();
         try {
-            String uploadId = client.createMultipartUpload(
-                    CreateMultipartUploadRequest.builder()
+            String uploadId = client.createMultipartUpload(CreateMultipartUploadRequest.builder()
                             .bucket(bucketName)
                             .key(newFileKey)
                             .metadata(metadata)
-                            .acl(getAcl(fileInfo))
-                            .build()
-            ).uploadId();
+                            .acl(getAcl(fileInfo.getFileAcl()))
+                            .build())
+                    .uploadId();
 
             fileInfo.setUploadId(uploadId);
         } catch (Exception e) {
@@ -284,7 +287,9 @@ public class AmazonS3V2FileStorage implements FileStorage {
                     .bucket(bucketName)
                     .key(newFileKey)
                     .uploadId(fileInfo.getUploadId())
-                    .multipartUpload(CompletedMultipartUpload.builder().parts(completedParts).build())
+                    .multipartUpload(CompletedMultipartUpload.builder()
+                            .parts(completedParts)
+                            .build())
                     .build();
             client.completeMultipartUpload(completeRequest);
 
@@ -304,7 +309,6 @@ public class AmazonS3V2FileStorage implements FileStorage {
             throw ExceptionFactory.completeMultipartUpload(fileInfo, platform, e);
         }
     }
-
 
     @Override
     public void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {
@@ -421,7 +425,6 @@ public class AmazonS3V2FileStorage implements FileStorage {
         }
     }
 
-
     @Override
     public RemoteFileInfo getFile(GetFilePretreatment pre) {
         String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
@@ -463,8 +466,6 @@ public class AmazonS3V2FileStorage implements FileStorage {
         }
     }
 
-
-
     /**
      * 获取文件的访问控制列表
      */
@@ -484,7 +485,6 @@ public class AmazonS3V2FileStorage implements FileStorage {
             throw ExceptionFactory.unrecognizedAcl(acl, platform);
         }
     }
-
 
     /**
      * 获取对象的元数据
@@ -551,21 +551,18 @@ public class AmazonS3V2FileStorage implements FileStorage {
             String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
 
             // 构建 GetObjectRequest
-            GetObjectRequest.Builder getObjectRequestBuilder = GetObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(fileKey);
+            GetObjectRequest.Builder getObjectRequestBuilder =
+                    GetObjectRequest.builder().bucket(bucketName).key(fileKey);
 
             // 构建查询参数，用于覆盖响应头
             Map<String, String> queryParams = new HashMap<>();
-            pre.getResponseHeaders().forEach((key, value) ->
-                    queryParams.put("response-" + key.toLowerCase(), value)
-            );
+            pre.getResponseHeaders().forEach((key, value) -> queryParams.put("response-" + key.toLowerCase(), value));
 
             // 合并用户元数据和请求头
             Map<String, String> headers = new HashMap<>(pre.getHeaders());
-            pre.getUserMetadata().forEach((key, value) ->
-                    headers.put(key.startsWith("x-amz-meta-") ? key : "x-amz-meta-" + key, value)
-            );
+            pre.getUserMetadata()
+                    .forEach((key, value) ->
+                            headers.put(key.startsWith("x-amz-meta-") ? key : "x-amz-meta-" + key, value));
 
             // 将用户元数据转换为查询参数（AWS SDK 不直接支持请求头）
             queryParams.putAll(headers);
@@ -608,9 +605,8 @@ public class AmazonS3V2FileStorage implements FileStorage {
         } else if (!url.endsWith("&")) {
             sb.append("&");
         }
-        queryParams.forEach((key, value) ->
-                sb.append(key).append("=").append(value).append("&")
-        );
+        queryParams.forEach(
+                (key, value) -> sb.append(key).append("=").append(value).append("&"));
         // 移除末尾多余的 "&"
         sb.setLength(sb.length() - 1);
         return sb.toString();
@@ -674,7 +670,6 @@ public class AmazonS3V2FileStorage implements FileStorage {
         }
     }
 
-
     @Override
     public boolean exists(FileInfo fileInfo) {
         try {
@@ -696,7 +691,6 @@ public class AmazonS3V2FileStorage implements FileStorage {
         }
     }
 
-
     @Override
     public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
         S3Client client = getClient();
@@ -714,7 +708,6 @@ public class AmazonS3V2FileStorage implements FileStorage {
             throw ExceptionFactory.download(fileInfo, platform, e);
         }
     }
-
 
     @Override
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
@@ -749,10 +742,8 @@ public class AmazonS3V2FileStorage implements FileStorage {
 
         // 获取远程文件信息
         String srcFileKey = getFileKey(srcFileInfo);
-        HeadObjectRequest headRequest = HeadObjectRequest.builder()
-                .bucket(bucketName)
-                .key(srcFileKey)
-                .build();
+        HeadObjectRequest headRequest =
+                HeadObjectRequest.builder().bucket(bucketName).key(srcFileKey).build();
         HeadObjectResponse srcFile;
         try {
             srcFile = client.headObject(headRequest);
@@ -793,7 +784,8 @@ public class AmazonS3V2FileStorage implements FileStorage {
                         .key(destFileKey)
                         .acl(getAcl(destFileInfo.getFileAcl()))
                         .build();
-                CreateMultipartUploadResponse multipartUploadResponse = client.createMultipartUpload(multipartUploadRequest);
+                CreateMultipartUploadResponse multipartUploadResponse =
+                        client.createMultipartUpload(multipartUploadRequest);
                 uploadId = multipartUploadResponse.uploadId();
 
                 ProgressListener.quickStart(pre.getProgressListener(), fileSize);
@@ -824,7 +816,9 @@ public class AmazonS3V2FileStorage implements FileStorage {
                         .bucket(bucketName)
                         .key(destFileKey)
                         .uploadId(uploadId)
-                        .multipartUpload(CompletedMultipartUpload.builder().parts(partList).build())
+                        .multipartUpload(CompletedMultipartUpload.builder()
+                                .parts(partList)
+                                .build())
                         .build();
                 client.completeMultipartUpload(completeRequest);
                 ProgressListener.quickFinish(pre.getProgressListener());
@@ -868,7 +862,6 @@ public class AmazonS3V2FileStorage implements FileStorage {
             throw ExceptionFactory.sameCopy(srcFileInfo, destFileInfo, platform, e);
         }
     }
-
 
     @Override
     public boolean isSupportSameMove() {
@@ -947,5 +940,4 @@ public class AmazonS3V2FileStorage implements FileStorage {
             throw ExceptionFactory.sameMove(srcFileInfo, destFileInfo, platform, e);
         }
     }
-
 }

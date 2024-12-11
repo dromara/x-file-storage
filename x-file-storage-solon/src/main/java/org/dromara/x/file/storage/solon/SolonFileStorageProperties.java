@@ -192,8 +192,9 @@ public class SolonFileStorageProperties {
                 minio.stream().filter(SpringMinioConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setAmazonS3(
                 amazonS3.stream().filter(SpringAmazonS3Config::getEnableStorage).collect(Collectors.toList()));
-        properties.setAmazonS3V2(
-                amazonS3V2.stream().filter(SpringAmazonS3V2Config::getEnableStorage).collect(Collectors.toList()));
+        properties.setAmazonS3V2(amazonS3V2.stream()
+                .filter(SpringAmazonS3V2Config::getEnableStorage)
+                .collect(Collectors.toList()));
         properties.setFtp(ftp.stream().filter(SpringFtpConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setSftp(
                 sftp.stream().filter(SpringSftpConfig::getEnableStorage).collect(Collectors.toList()));

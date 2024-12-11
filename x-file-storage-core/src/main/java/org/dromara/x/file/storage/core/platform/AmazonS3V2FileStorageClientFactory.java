@@ -1,6 +1,7 @@
 package org.dromara.x.file.storage.core.platform;
 
 import cn.hutool.core.util.StrUtil;
+import java.net.URI;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,8 +11,6 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
-
-import java.net.URI;
 
 /**
  * Amazon S3 存储平台的 Client 工厂<br/>
@@ -45,9 +44,8 @@ public class AmazonS3V2FileStorageClientFactory implements FileStorageClientFact
             synchronized (this) {
                 if (client == null) {
                     S3ClientBuilder builder = S3Client.builder()
-                            .credentialsProvider(StaticCredentialsProvider.create(
-                                    AwsBasicCredentials.create(accessKey, secretKey)
-                            ))
+                            .credentialsProvider(
+                                    StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
                             .region(Region.of(region));
                     if (StrUtil.isNotBlank(endPoint)) {
                         builder.endpointOverride(URI.create(endPoint));
