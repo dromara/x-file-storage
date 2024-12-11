@@ -17,8 +17,8 @@ import org.dromara.x.file.storage.core.tika.ContentTypeDetect;
 import org.dromara.x.file.storage.core.tika.DefaultTikaFactory;
 import org.dromara.x.file.storage.core.tika.TikaContentTypeDetect;
 import org.dromara.x.file.storage.core.tika.TikaFactory;
-import org.dromara.x.file.storage.solon.SolonFileStorageProperties.SpringLocalConfig;
-import org.dromara.x.file.storage.solon.SolonFileStorageProperties.SpringLocalPlusConfig;
+import org.dromara.x.file.storage.solon.SolonFileStorageProperties.SolonLocalConfig;
+import org.dromara.x.file.storage.solon.SolonFileStorageProperties.SolonLocalPlusConfig;
 import org.dromara.x.file.storage.solon.file.UploadedFileWrapperAdapter;
 import org.noear.solon.Solon;
 import org.noear.solon.annotation.*;
@@ -140,12 +140,12 @@ public class FileStorageAutoConfiguration {
 
         if (doesNotExistClass("org.noear.solon.web.staticfiles.StaticMappings")) {
             long localAccessNum = properties.getLocal().stream()
-                    .filter(SpringLocalConfig::getEnableStorage)
-                    .filter(SpringLocalConfig::getEnableAccess)
+                    .filter(SolonLocalConfig::getEnableStorage)
+                    .filter(SolonLocalConfig::getEnableAccess)
                     .count();
             long localPlusAccessNum = properties.getLocalPlus().stream()
-                    .filter(SpringLocalPlusConfig::getEnableStorage)
-                    .filter(SpringLocalPlusConfig::getEnableAccess)
+                    .filter(SolonLocalPlusConfig::getEnableStorage)
+                    .filter(SolonLocalPlusConfig::getEnableAccess)
                     .count();
 
             if (localAccessNum + localPlusAccessNum > 0) {

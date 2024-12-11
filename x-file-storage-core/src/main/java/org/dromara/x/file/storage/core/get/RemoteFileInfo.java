@@ -12,6 +12,7 @@ import com.baidubce.services.bos.model.BosObjectSummary;
 import com.github.sardine.DavResource;
 import com.google.cloud.storage.Blob;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
+import com.mongodb.client.gridfs.model.GridFSFile;
 import com.obs.services.model.ObsObject;
 import com.qcloud.cos.model.COSObject;
 import com.qcloud.cos.model.COSObjectSummary;
@@ -300,6 +301,13 @@ public class RemoteFileInfo {
      */
     public DavResource getOriginalWebDav() {
         return getOriginal(DavResource.class);
+    }
+
+    /**
+     * 获取 Mongo GridFS 存储平台的文件原始数据，失败返回 null
+     */
+    public GridFSFile getOriginalMongoGridFs() {
+        return getOriginal(GridFSFile.class);
     }
 
     /**
