@@ -81,6 +81,11 @@ public class FileStorageProperties {
     private List<? extends QiniuKodoConfig> qiniuKodo = new ArrayList<>();
 
     /**
+     * 火山云 TOS
+     */
+    private List<? extends VolcengineTosConfig> volcengineTos = new ArrayList<>();
+
+    /**
      * 腾讯云 COS
      */
     private List<? extends TencentCosConfig> tencentCos = new ArrayList<>();
@@ -187,7 +192,7 @@ public class FileStorageProperties {
         private String basePath = "";
 
         /**
-         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+         * 存储路径，上传的文件都会存储在这个路径下面，默认"/"，注意"/"结尾
          */
         private String storagePath = "/";
 
@@ -319,6 +324,55 @@ public class FileStorageProperties {
          * 基础路径
          */
         private String basePath = "";
+
+        /**
+         * 其它自定义配置
+         */
+        private Map<String, Object> attr = new LinkedHashMap<>();
+    }
+
+    /**
+     * 火山云 TOS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class VolcengineTosConfig extends BaseConfig {
+
+        private String accessKey;
+
+        private String secretKey;
+
+        private String endPoint;
+
+        private String region;
+
+        private String bucketName;
+
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+
+        /**
+         * 默认的 ACL 详情 {@link Constant.VolcengineTosACL}
+         */
+        private String defaultAcl;
+
+        /**
+         * 自动分片上传阈值，达到此大小则使用分片上传，默认 128MB
+         */
+        private int multipartThreshold = 128 * 1024 * 1024;
+
+        /**
+         * 自动分片上传时每个分片大小，默认 32MB
+         */
+        private int multipartPartSize = 32 * 1024 * 1024;
 
         /**
          * 其它自定义配置
@@ -566,7 +620,7 @@ public class FileStorageProperties {
         private int port = 21;
 
         /**
-         * 用户名，默认 anonymous（匿名）
+         * 用户名，默认anonymous（匿名）
          */
         private String user = "anonymous";
 
@@ -617,7 +671,7 @@ public class FileStorageProperties {
         private String basePath = "";
 
         /**
-         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+         * 存储路径，上传的文件都会存储在这个路径下面，默认"/"，注意"/"结尾
          */
         private String storagePath = "/";
 
@@ -686,7 +740,7 @@ public class FileStorageProperties {
         private String basePath = "";
 
         /**
-         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+         * 存储路径，上传的文件都会存储在这个路径下面，默认"/"，注意"/"结尾
          */
         private String storagePath = "/";
 
@@ -710,7 +764,7 @@ public class FileStorageProperties {
     public static class WebDavConfig extends BaseConfig {
 
         /**
-         * 服务器地址，注意“/”结尾，例如：http://192.168.1.105:8405/
+         * 服务器地址，注意"/"结尾，例如：http://192.168.1.105:8405/
          */
         private String server;
 
@@ -735,7 +789,7 @@ public class FileStorageProperties {
         private String basePath = "";
 
         /**
-         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+         * 存储路径，上传的文件都会存储在这个路径下面，默认"/"，注意"/"结尾
          */
         private String storagePath = "/";
 
@@ -958,7 +1012,7 @@ public class FileStorageProperties {
         private String endPoint;
 
         /**
-         * 访问域名，注意“/”结尾，与 end-point 保持一致
+         * 访问域名，注意"/"结尾，与 end-point 保持一致
          */
         private String domain = "";
 

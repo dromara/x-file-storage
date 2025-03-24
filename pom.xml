@@ -113,6 +113,7 @@
         <fastdfs-client-java.version>1.30-20230328</fastdfs-client-java.version>
         <azure-storage-blob.version>12.23.1</azure-storage-blob.version>
         <azure-storage-file-datalake.version>12.18.1</azure-storage-file-datalake.version>
+        <ve-tos-java-sdk.version>2.8.8</ve-tos-java-sdk.version>
         <!--endregion-->
 
         <!--region Maven Plugins-->
@@ -290,6 +291,12 @@
                 <groupId>com.azure</groupId>
                 <artifactId>azure-storage-file-datalake</artifactId>
                 <version>${azure-storage-file-datalake.version}</version>
+            </dependency>
+            <!-- 火山云 TOS -->
+            <dependency>
+                <groupId>com.volcengine</groupId>
+                <artifactId>ve-tos-java-sdk</artifactId>
+                <version>${ve-tos-java-sdk.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

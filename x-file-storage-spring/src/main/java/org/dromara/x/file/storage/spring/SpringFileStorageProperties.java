@@ -164,6 +164,11 @@ public class SpringFileStorageProperties {
     private List<? extends SpringAzureBlobStorageConfig> azureBlob = new ArrayList<>();
 
     /**
+     * 火山云 TOS
+     */
+    private List<? extends SpringVolcengineTosConfig> volcengineTos = new ArrayList<>();
+
+    /**
      * 转换成 FileStorageProperties ，并过滤掉没有启用的存储平台
      */
     public FileStorageProperties toFileStorageProperties() {
@@ -213,6 +218,9 @@ public class SpringFileStorageProperties {
                 fastdfs.stream().filter(SpringFastDfsConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setAzureBlob(azureBlob.stream()
                 .filter(SpringAzureBlobStorageConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setVolcengineTos(volcengineTos.stream()
+                .filter(SpringVolcengineTosConfig::getEnableStorage)
                 .collect(Collectors.toList()));
 
         return properties;
@@ -439,6 +447,19 @@ public class SpringFileStorageProperties {
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SpringAzureBlobStorageConfig extends AzureBlobStorageConfig {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+
+    /**
+     * 火山云 TOS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class SpringVolcengineTosConfig extends FileStorageProperties.VolcengineTosConfig {
         /**
          * 启用存储
          */
