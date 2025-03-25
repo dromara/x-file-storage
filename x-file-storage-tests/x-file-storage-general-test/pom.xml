@@ -102,6 +102,10 @@
             <groupId>com.huaweicloud</groupId>
             <artifactId>esdk-obs-java</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.volcengine</groupId>
+            <artifactId>ve-tos-java-sdk</artifactId>
+        </dependency>
         <!--        &lt;!&ndash; 谷歌云 Google Cloud Platform Storage&ndash;&gt;-->
         <!--        <dependency>-->
         <!--            <groupId>com.google.cloud</groupId>-->

@@ -60,6 +60,14 @@
                 <role>Contrib</role>
             </roles>
         </developer>
+        <developer>
+            <id>capybara-zy</id>
+            <name>capybara-zy</name>
+            <email>zhouye@cpbara.com</email>
+            <roles>
+                <role>Contrib</role>
+            </roles>
+        </developer>
     </developers>
 
     <modules>

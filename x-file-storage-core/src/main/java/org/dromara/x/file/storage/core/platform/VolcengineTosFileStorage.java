@@ -26,7 +26,6 @@ import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.get.*;
-import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.Tools;
 
 /**
@@ -102,7 +101,7 @@ public class VolcengineTosFileStorage implements FileStorage {
             getClient().headObject(input);
             return true;
         } catch (Exception e) {
-            if (e.getMessage().contains("404")) {
+            if (e.getMessage() != null && e.getMessage().contains("404")) {
                 return false;
             }
             throw ExceptionFactory.exists(fileInfo, platform, e);
@@ -114,11 +113,24 @@ public class VolcengineTosFileStorage implements FileStorage {
         try {
             GetObjectV2Input input =
                     new GetObjectV2Input().setBucket(bucketName).setKey(getFileKey(fileInfo));
-            GetObjectV2Output output = getClient().getObject(input);
-            try (InputStream in = output.getContent()) {
-                consumer.accept(in);
+            try {
+                GetObjectV2Output output = getClient().getObject(input);
+                try (InputStream in = output.getContent()) {
+                    consumer.accept(in);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            } catch (Exception e) {
+                if (e.getMessage() != null && e.getMessage().contains("404")) {
+                    throw new FileStorageRuntimeException(
+                            StrUtil.format("文件下载失败，文件不存在！platform：{},fileInfo：{}", platform, fileInfo));
+                }
+                throw e;
             }
         } catch (Exception e) {
+            if (e instanceof FileStorageRuntimeException) {
+                throw (FileStorageRuntimeException) e;
+            }
             throw ExceptionFactory.download(fileInfo, platform, e);
         }
     }
@@ -130,11 +142,23 @@ public class VolcengineTosFileStorage implements FileStorage {
         try {
             GetObjectV2Input input =
                     new GetObjectV2Input().setBucket(bucketName).setKey(getThFileKey(fileInfo));
-            GetObjectV2Output output = getClient().getObject(input);
-            try (InputStream in = output.getContent()) {
-                consumer.accept(in);
+            try {
+                GetObjectV2Output output = getClient().getObject(input);
+                try (InputStream in = output.getContent()) {
+                    consumer.accept(in);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            } catch (Exception e) {
+                if (e.getMessage() != null && e.getMessage().contains("404")) {
+                    throw ExceptionFactory.downloadThNotFound(fileInfo, platform);
+                }
+                throw e;
             }
         } catch (Exception e) {
+            if (e instanceof FileStorageRuntimeException) {
+                throw (FileStorageRuntimeException) e;
+            }
             throw ExceptionFactory.downloadTh(fileInfo, platform, e);
         }
     }
@@ -152,17 +176,16 @@ public class VolcengineTosFileStorage implements FileStorage {
 
         // 获取远程文件信息
         String srcFileKey = getFileKey(srcFileInfo);
-        HeadObjectV2Output srcFile;
         try {
             HeadObjectV2Input headInput =
                     new HeadObjectV2Input().setBucket(bucketName).setKey(srcFileKey);
-            srcFile = client.headObject(headInput);
+            client.headObject(headInput);
         } catch (Exception e) {
             throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, e);
         }
 
         // 复制缩略图文件
-        String destThFileKey = null;
+        String destThFileKey;
         if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
             destThFileKey = getThFileKey(destFileInfo);
             destFileInfo.setThUrl(domain + destThFileKey);
@@ -208,19 +231,14 @@ public class VolcengineTosFileStorage implements FileStorage {
         ACLType tosAcl = getAcl(acl);
         if (tosAcl == null) return false;
         try {
-            // 通过PutObjectBasicInput和相应options设置ACL
             ObjectMetaRequestOptions options = new ObjectMetaRequestOptions();
             options.setAclType(tosAcl);
 
-            PutObjectBasicInput basicInput = new PutObjectBasicInput();
-            basicInput.setBucket(bucketName);
-            basicInput.setKey(getFileKey(fileInfo));
-            basicInput.setOptions(options);
-
-            // 目前TOS Java SDK没有直接的putObjectACL方法，需要重新上传或创建对象
-            // 这是一个变通实现，在实际使用时可能需要根据SDK的更新进行调整
+            // 设置bucket、key和选
             PutObjectInput input = new PutObjectInput();
-            input.setPutObjectBasicInput(basicInput);
+            input.setBucket(bucketName);
+            input.setKey(getFileKey(fileInfo));
+            input.setOptions(options);
             input.setContent(new ByteArrayInputStream(new byte[0])); // 空内容，仅更新元数据
 
             getClient().putObject(input);
@@ -237,19 +255,15 @@ public class VolcengineTosFileStorage implements FileStorage {
         String key = getThFileKey(fileInfo);
         if (key == null) return false;
         try {
-            // 通过PutObjectBasicInput和相应options设置ACL
+            // 通过选项设置ACL
             ObjectMetaRequestOptions options = new ObjectMetaRequestOptions();
             options.setAclType(tosAcl);
 
-            PutObjectBasicInput basicInput = new PutObjectBasicInput();
-            basicInput.setBucket(bucketName);
-            basicInput.setKey(key);
-            basicInput.setOptions(options);
-
-            // 目前TOS Java SDK没有直接的putObjectACL方法，需要重新上传或创建对象
-            // 这是一个变通实现，在实际使用时可能需要根据SDK的更新进行调整
+            // 设置bucket、key和选项
             PutObjectInput input = new PutObjectInput();
-            input.setPutObjectBasicInput(basicInput);
+            input.setBucket(bucketName);
+            input.setKey(key);
+            input.setOptions(options);
             input.setContent(new ByteArrayInputStream(new byte[0])); // 空内容，仅更新元数据
 
             getClient().putObject(input);
@@ -343,6 +357,7 @@ public class VolcengineTosFileStorage implements FileStorage {
 
     @Override
     public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
+        fileInfo.setBasePath(basePath);
         // 检查存储平台是否支持对应的元数据/ACL设置
         if ((fileInfo.getMetadata() != null || fileInfo.getUserMetadata() != null)
                 && !isSupportMetadata()
@@ -368,23 +383,42 @@ public class VolcengineTosFileStorage implements FileStorage {
         } catch (Exception e) {
             // 无需处理
         }
-        if (!isRequiredLength || size < multipartThreshold) {
-            // 小文件上传
-            uploadNormal(fileInfo, pre, file);
-        } else {
-            // 大文件上传
-            uploadMultipart(fileInfo, pre, file, size);
-        }
 
-        // 上传缩略图
-        byte[] thumbnailBytes = pre.getThumbnailBytes();
-        if (thumbnailBytes != null) {
-            String newThFileKey = getThFileKey(fileInfo);
-            fileInfo.setThUrl(domain + newThFileKey);
-            uploadNormalTh(fileInfo, pre, thumbnailBytes);
-        }
+        String thFileKey = null;
+        try {
+            // 上传主文件
+            if (!isRequiredLength || size < multipartThreshold) {
+                // 小文件上传
+                uploadNormal(fileInfo, pre, file);
+            } else {
+                // 大文件上传
+                uploadMultipart(fileInfo, pre, file, size);
+            }
 
-        return true;
+            // 上传缩略图
+            byte[] thumbnailBytes = pre.getThumbnailBytes();
+            if (thumbnailBytes != null) {
+                thFileKey = getThFileKey(fileInfo);
+                fileInfo.setThUrl(domain + thFileKey);
+                uploadNormalTh(fileInfo, pre, thumbnailBytes);
+            }
+
+            return true;
+        } catch (Exception e) {
+            // 清理已上传的文件
+            TOSV2 client = getClient();
+            try {
+                if (thFileKey != null) {
+                    client.deleteObject(
+                            new DeleteObjectInput().setBucket(bucketName).setKey(thFileKey));
+                }
+                client.deleteObject(
+                        new DeleteObjectInput().setBucket(bucketName).setKey(newFileKey));
+            } catch (Exception ignored) {
+                // 忽略清理异常
+            }
+            throw ExceptionFactory.upload(fileInfo, platform, e);
+        }
     }
 
     /**
@@ -392,14 +426,7 @@ public class VolcengineTosFileStorage implements FileStorage {
      */
     public void uploadNormal(FileInfo fileInfo, UploadPretreatment pre, FileWrapper file) {
         try {
-            PutObjectBasicInput basicInput =
-                    new PutObjectBasicInput().setBucket(bucketName).setKey(getFileKey(fileInfo));
-
             ObjectMetaRequestOptions meta = getObjectMetadata(fileInfo);
-            if (meta != null) {
-                basicInput.setOptions(meta);
-            }
-
             InputStream in = file.getInputStream();
             ProgressListener progressListener = pre.getProgressListener();
 
@@ -408,8 +435,12 @@ public class VolcengineTosFileStorage implements FileStorage {
                 progressListener.progress(0L, fileInfo.getSize());
             }
 
-            PutObjectInput input =
-                    new PutObjectInput().setPutObjectBasicInput(basicInput).setContent(in);
+            // 设置bucket、key和选项
+            PutObjectInput input = new PutObjectInput();
+            input.setBucket(bucketName);
+            input.setKey(getFileKey(fileInfo));
+            input.setOptions(meta);
+            input.setContent(in);
 
             getClient().putObject(input);
 
@@ -426,28 +457,30 @@ public class VolcengineTosFileStorage implements FileStorage {
      */
     public void uploadNormalTh(FileInfo fileInfo, UploadPretreatment pre, byte[] thumbnailBytes) {
         try {
-            PutObjectBasicInput basicInput =
-                    new PutObjectBasicInput().setBucket(bucketName).setKey(getThFileKey(fileInfo));
-
-            // 设置 ACL
+            // 设置 ACL 选项
+            ObjectMetaRequestOptions options = null;
             if (fileInfo.getThFileAcl() != null) {
-                ObjectMetaRequestOptions meta = new ObjectMetaRequestOptions();
-                meta.setAclType(getAcl(fileInfo.getThFileAcl()));
-                basicInput.setOptions(meta);
+                options = new ObjectMetaRequestOptions();
+                options.setAclType(getAcl(fileInfo.getThFileAcl()));
             } else if (StrUtil.isNotBlank(defaultAcl)) {
-                ObjectMetaRequestOptions meta = new ObjectMetaRequestOptions();
-                meta.setAclType(getAcl(defaultAcl));
-                basicInput.setOptions(meta);
+                options = new ObjectMetaRequestOptions();
+                options.setAclType(getAcl(defaultAcl));
             }
 
             InputStream in = new ByteArrayInputStream(thumbnailBytes);
 
-            PutObjectInput input =
-                    new PutObjectInput().setPutObjectBasicInput(basicInput).setContent(in);
+            // 设置bucket、key和选项
+            PutObjectInput input = new PutObjectInput();
+            input.setBucket(bucketName);
+            input.setKey(getThFileKey(fileInfo));
+            if (options != null) {
+                input.setOptions(options);
+            }
+            input.setContent(in);
 
             getClient().putObject(input);
         } catch (Exception e) {
-            throw new FileStorageRuntimeException("上传缩略图失败: " + e.getMessage(), e);
+            throw ExceptionFactory.upload(fileInfo, platform, e);
         }
     }
 
@@ -463,9 +496,7 @@ public class VolcengineTosFileStorage implements FileStorage {
                     new CreateMultipartUploadInput().setBucket(bucketName).setKey(getFileKey(fileInfo));
 
             ObjectMetaRequestOptions meta = getObjectMetadata(fileInfo);
-            if (meta != null) {
-                createInput.setOptions(meta);
-            }
+            createInput.setOptions(meta);
 
             CreateMultipartUploadOutput createOutput = client.createMultipartUpload(createInput);
             uploadId = createOutput.getUploadID();
@@ -574,7 +605,7 @@ public class VolcengineTosFileStorage implements FileStorage {
 
             return remoteFileInfo;
         } catch (Exception e) {
-            throw new FileStorageRuntimeException("获取文件信息失败: " + e.getMessage(), e);
+            throw ExceptionFactory.getFile(pre, basePath, e);
         }
     }
 }

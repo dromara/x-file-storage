@@ -163,3 +163,13 @@ dromara:
         container-name: ?? # 容器名称，类似于 s3 的 bucketName，AzureBlob控制台-数据存储-容器
         domain: ?? # 访问域名，注意“/”结尾，与 end-point 保持一致
         base-path: hy/ # 基础路径
+    volcengine-tos: # 火山引擎TOS存储
+      - platform: volcengine-tos-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        access-key: ??
+        secret-key: ??
+        region: ?? # 地区
+        end-point: ?? # 终端节点
+        bucket-name: ?? # 桶名称
+        domain: ?? # 访问域名，注意"/"结尾，例如：https://your-bucket.tos-cn-beijing.volces.com/
+        base-path: tos/ # 基础路径
