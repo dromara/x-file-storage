@@ -240,6 +240,16 @@ public class FileStorageService {
     }
 
     /**
+     * 生成预签名 URL
+     * @return 生成预签名 URL 预处理器
+     */
+    public GeneratePresignedUrlPretreatment generatePresignedUrl(String platform) {
+        return new GeneratePresignedUrlPretreatment()
+                .setFileStorageService(self)
+                .setPlatform(platform);
+    }
+
+    /**
      * 对文件生成可以签名访问的 URL，无法生成则返回 null
      *
      * @param expiration 到期时间
@@ -256,6 +266,22 @@ public class FileStorageService {
     }
 
     /**
+     * 对文件生成可以签名访问的 URL，无法生成则返回 null
+     *
+     * @param expiration 到期时间
+     */
+    public String generatePresignedUrl(FileInfo fileInfo, Date expiration, String platform) {
+        if (fileInfo == null) return null;
+        GeneratePresignedUrlResult result = generatePresignedUrl(platform)
+                .setExpiration(expiration)
+                .setPath(fileInfo.getPath())
+                .setFilename(fileInfo.getFilename())
+                .setMethod(Constant.GeneratePresignedUrl.Method.GET)
+                .generatePresignedUrl();
+        return result == null ? null : result.getUrl();
+    }
+
+    /**
      * 对缩略图文件生成可以签名访问的 URL，无法生成则返回 null
      *
      * @param expiration 到期时间
@@ -263,6 +289,22 @@ public class FileStorageService {
     public String generateThPresignedUrl(FileInfo fileInfo, Date expiration) {
         if (fileInfo == null) return null;
         GeneratePresignedUrlResult result = generatePresignedUrl()
+                .setExpiration(expiration)
+                .setPath(fileInfo.getPath())
+                .setFilename(fileInfo.getThFilename())
+                .setMethod(Constant.GeneratePresignedUrl.Method.GET)
+                .generatePresignedUrl();
+        return result == null ? null : result.getUrl();
+    }
+
+    /**
+     * 对缩略图文件生成可以签名访问的 URL，无法生成则返回 null
+     *
+     * @param expiration 到期时间
+     */
+    public String generateThPresignedUrl(FileInfo fileInfo, Date expiration, String platform) {
+        if (fileInfo == null) return null;
+        GeneratePresignedUrlResult result = generatePresignedUrl(platform)
                 .setExpiration(expiration)
                 .setPath(fileInfo.getPath())
                 .setFilename(fileInfo.getThFilename())
