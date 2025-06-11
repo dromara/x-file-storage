@@ -25,6 +25,9 @@
     <a target="_blank" href='https://gitee.com/dromara/x-file-storage'>
         <img src='https://gitee.com/dromara/x-file-storage/badge/star.svg?theme=dark' alt='star' />
     </a>
+    <a href='https://gitcode.com/dromara/x-file-storage'>
+        <img src='https://gitcode.com/dromara/x-file-storage/star/badge.svg' alt='star' />
+    </a>
     <a target="_blank" href='https://jq.qq.com/?_wv=1027&k=eGfeNqka'>
         <img src='https://img.shields.io/badge/QQ%E7%BE%A4-515706495-orange' alt='515706495' />
     </a>
