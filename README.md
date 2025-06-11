@@ -278,7 +278,7 @@ X File Storage 的源码分为两个分支，功能如下：
 6. 等待维护者合并
 
 #### 🧬 开发约定 & 配置
-1. JDK 11+、Maven 3.8.1+
+1. JDK 11+、Maven 3.9.9+
 2. 代码风格，目前代码风格通过 spotless-maven-plugin + palantir-java-format 统一控制，Maven 构建时统一格式化代码
 3. 在开发阶段，IDE 要识别到 spotless-maven-plugin + palantir-java-format 需要安装插件：[palantir-java-format](https://plugins.jetbrains.com/plugin/13180-palantir-java-format)
 
