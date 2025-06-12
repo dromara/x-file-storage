@@ -219,6 +219,7 @@ public class SpringFileStorageProperties {
                 .collect(Collectors.toList()));
         properties.setGoFastdfs(goFastdfs.stream()
                 .filter(SpringGoFastDfsConfig::getEnableStorage)
+                .collect(Collectors.toList()));
         properties.setVolcengineTos(volcengineTos.stream()
                 .filter(SpringVolcengineTosConfig::getEnableStorage)
                 .collect(Collectors.toList()));
@@ -481,7 +482,7 @@ public class SpringFileStorageProperties {
 
     /**
      * 火山云 TOS
-     */ 
+     */
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
@@ -491,5 +492,4 @@ public class SpringFileStorageProperties {
          */
         private Boolean enableStorage = false;
     }
-
 }

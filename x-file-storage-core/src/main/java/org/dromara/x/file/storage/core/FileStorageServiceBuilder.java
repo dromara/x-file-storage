@@ -571,6 +571,7 @@ public class FileStorageServiceBuilder {
                 .collect(Collectors.toList());
     }
 
+    /**
      * 根据配置文件创建 Mongo GridFS 存储平台
      */
     public static List<MongoGridFsFileStorage> buildMongoGridFsStorage(
@@ -602,7 +603,7 @@ public class FileStorageServiceBuilder {
                 .collect(Collectors.toList());
     }
 
-     /**
+    /**
      * 根据配置文件创建火山云 TOS 存储平台
      */
     public static List<VolcengineTosFileStorage> buildVolcengineTosFileStorage(

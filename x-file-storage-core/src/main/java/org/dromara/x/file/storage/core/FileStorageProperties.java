@@ -630,7 +630,7 @@ public class FileStorageProperties {
         private int port = 21;
 
         /**
-         * 用户名，默认anonymous（匿名）
+         * 用户名，默认 anonymous（匿名）
          */
         private String user = "anonymous";
 

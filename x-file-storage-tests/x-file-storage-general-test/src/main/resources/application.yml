@@ -118,7 +118,7 @@ dromara:
         password: "" # 密码，默认空
         domain: ?? # 访问域名，注意“/”结尾，例如：ftp://192.168.1.105/
         base-path: ftp/ # 基础路径
-        storage-path: / # 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+        storage-path: / # 存储路径，上传的文件都会存储在这个路径下面，默认"/"，注意"/"结尾
     sftp: # SFTP
       - platform: sftp-1 # 存储平台标识
         enable-storage: true  # 启用存储
@@ -138,7 +138,7 @@ dromara:
         password: ?? # 密码
         domain: ?? # 访问域名，注意“/”结尾，例如：https://file.abc.com/
         base-path: webdav/ # 基础路径
-        storage-path: / # 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+        storage-path: / # 存储路径，上传的文件都会存储在这个路径下面，默认"/"，注意"/"结尾
     google-cloud-storage: # 谷歌云存储
       - platform: google-1 # 存储平台标识
         enable-storage: true  # 启用存储
