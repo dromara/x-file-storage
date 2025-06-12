@@ -184,3 +184,13 @@ dromara:
         time-out: 30000 #超时时间
         domain: http://127.0.0.1:38880/ # 访问域名，注意“/”结尾，与 server 保持一致
         base-path: '/abc' # 基础路径
+    volcengine-tos: # 火山引擎 TOS 存储
+      - platform: volcengine-tos-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        access-key: ??
+        secret-key: ??
+        region: ?? # 地区
+        end-point: ?? # 终端节点
+        bucket-name: ?? # 桶名称
+        domain: ?? # 访问域名，注意"/"结尾，例如：https://your-bucket.tos-cn-beijing.volces.com/
+        base-path: tos/ # 基础路径

@@ -124,6 +124,11 @@
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-blob</artifactId>
         </dependency>
+        <!-- 火山云 TOS -->
+        <dependency>
+            <groupId>com.volcengine</groupId>
+            <artifactId>ve-tos-java-sdk</artifactId>
+        </dependency>
         <!-- Azure File Data Lake 用于处理 ACL -->
         <dependency>
             <groupId>com.azure</groupId>

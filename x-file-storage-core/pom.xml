@@ -154,6 +154,13 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
+        <!-- 火山云 TOS -->
+        <dependency>
+            <groupId>com.volcengine</groupId>
+            <artifactId>ve-tos-java-sdk</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
 
         <!--糊涂工具类核心-->
         <dependency>

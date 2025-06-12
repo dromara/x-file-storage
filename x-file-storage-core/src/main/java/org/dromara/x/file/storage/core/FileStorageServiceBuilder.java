@@ -250,6 +250,7 @@ public class FileStorageServiceBuilder {
         fileStorageList.addAll(buildAzureBlobFileStorage(properties.getAzureBlob(), clientFactoryList));
         fileStorageList.addAll(buildMongoGridFsStorage(properties.getMongoGridFs(), clientFactoryList));
         fileStorageList.addAll(buildGoFastDfsStorage(properties.getGoFastdfs()));
+        fileStorageList.addAll(buildVolcengineTosFileStorage(properties.getVolcengineTos(), clientFactoryList));
 
         // 本体
         FileStorageService service = new FileStorageService();
@@ -557,10 +558,10 @@ public class FileStorageServiceBuilder {
     public static List<AzureBlobStorageFileStorage> buildAzureBlobFileStorage(
             List<? extends AzureBlobStorageConfig> list, List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list, "microsoft azure blob ", "com.azure.storage.blob.BlobServiceClient");
+        buildFileStorageDetect(list, "Azure Blob Storage", "com.azure.storage.blob.BlobServiceClient");
         return list.stream()
                 .map(config -> {
-                    log.info("加载 microsoft azure blob 存储平台：{}", config.getPlatform());
+                    log.info("加载 Azure Blob Storage 存储平台：{}", config.getPlatform());
                     FileStorageClientFactory<AzureBlobStorageClient> clientFactory = getFactory(
                             config.getPlatform(),
                             clientFactoryList,
@@ -570,7 +571,6 @@ public class FileStorageServiceBuilder {
                 .collect(Collectors.toList());
     }
 
-    /**
      * 根据配置文件创建 Mongo GridFS 存储平台
      */
     public static List<MongoGridFsFileStorage> buildMongoGridFsStorage(
@@ -598,6 +598,25 @@ public class FileStorageServiceBuilder {
                 .map(config -> {
                     log.info("加载GoFastDfs存储平台：{}", config.getPlatform());
                     return new GoFastDfsFileStorage(config);
+                })
+                .collect(Collectors.toList());
+    }
+
+     /**
+     * 根据配置文件创建火山云 TOS 存储平台
+     */
+    public static List<VolcengineTosFileStorage> buildVolcengineTosFileStorage(
+            List<? extends VolcengineTosConfig> list, List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        if (CollUtil.isEmpty(list)) return Collections.emptyList();
+        buildFileStorageDetect(list, "火山云 TOS", "com.volcengine.tos.TOSV2");
+        return list.stream()
+                .map(config -> {
+                    log.info("加载 火山云 TOS 存储平台：{}", config.getPlatform());
+                    FileStorageClientFactory<com.volcengine.tos.TOSV2> clientFactory = getFactory(
+                            config.getPlatform(),
+                            clientFactoryList,
+                            () -> new VolcengineTosFileStorageClientFactory(config));
+                    return new VolcengineTosFileStorage(config, clientFactory);
                 })
                 .collect(Collectors.toList());
     }

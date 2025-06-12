@@ -69,6 +69,17 @@ public interface Constant {
     }
 
     /**
+     * 火山云 TOS 的 ACL
+     * {@link com.volcengine.tos.comm.common.ACLType}
+     */
+    interface VolcengineTosACL extends ACL {
+        String DEFAULT = "default";
+        String AUTHENTICATED_READ = "authenticated-read";
+        String BUCKET_OWNER_READ = "bucket-owner-read";
+        String BUCKET_OWNER_FULL_CONTROL = "bucket-owner-full-control";
+    }
+
+    /**
      * GoogleCloud Storage 的 ACL（已经做了命名规则转换）
      * {@link com.google.cloud.storage.Storage.PredefinedAcl}
      * 如果这里的预定义ACL满足不了要求，也可以使用 {@link com.google.cloud.storage.Acl}
