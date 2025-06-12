@@ -122,7 +122,7 @@ public class SolonFileStorageProperties {
     /**
      * Amazon S3 V2
      */
-    private List<? extends SpringAmazonS3V2Config> amazonS3V2 = new ArrayList<>();
+    private List<? extends SolonAmazonS3V2Config> amazonS3V2 = new ArrayList<>();
 
     /**
      * FTP
@@ -165,6 +165,11 @@ public class SolonFileStorageProperties {
     private List<? extends SolonGoFastDfsConfig> goFastdfs = new ArrayList<>();
 
     /**
+     * 火山引擎 TOS
+     */
+    private List<? extends SolonVolcengineTosConfig> volcengineTos = new ArrayList<>();
+
+    /**
      * 转换成 FileStorageProperties ，并过滤掉没有启用的存储平台
      */
     public FileStorageProperties toFileStorageProperties() {
@@ -201,11 +206,11 @@ public class SolonFileStorageProperties {
         properties.setMinio(
                 minio.stream().filter(SolonMinioConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setAmazonS3(
-                amazonS3.stream().filter(SpringAmazonS3Config::getEnableStorage).collect(Collectors.toList()));
+                amazonS3.stream().filter(SolonAmazonS3Config::getEnableStorage).collect(Collectors.toList()));
         properties.setAmazonS3V2(amazonS3V2.stream()
-                .filter(SpringAmazonS3V2Config::getEnableStorage)
+                .filter(SolonAmazonS3V2Config::getEnableStorage)
                 .collect(Collectors.toList()));
-        properties.setFtp(ftp.stream().filter(SpringFtpConfig::getEnableStorage).collect(Collectors.toList()));
+        properties.setFtp(ftp.stream().filter(SolonFtpConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setSftp(
                 sftp.stream().filter(SolonSftpConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setWebdav(
@@ -224,7 +229,9 @@ public class SolonFileStorageProperties {
         properties.setGoFastdfs(goFastdfs.stream()
                 .filter(SolonGoFastDfsConfig::getEnableStorage)
                 .collect(Collectors.toList()));
-
+        properties.setVolcengineTos(volcengineTos.stream()
+                .filter(SolonVolcengineTosConfig::getEnableStorage)
+                .collect(Collectors.toList()));
         return properties;
     }
 
@@ -381,7 +388,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringAmazonS3V2Config extends AmazonS3V2Config {
+    public static class SolonAmazonS3V2Config extends AmazonS3V2Config {
         /**
          * 启用存储
          */
@@ -489,6 +496,19 @@ public class SolonFileStorageProperties {
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
     public static class SolonGoFastDfsConfig extends GoFastDfsConfig {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+
+    /**
+     * 火山引擎 TOS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class SolonVolcengineTosConfig extends VolcengineTosConfig {
         /**
          * 启用存储
          */

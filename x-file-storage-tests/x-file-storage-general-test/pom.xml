@@ -124,7 +124,7 @@
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-blob</artifactId>
         </dependency>
-        <!-- 火山云 TOS -->
+        <!-- 火山引擎 TOS -->
         <dependency>
             <groupId>com.volcengine</groupId>
             <artifactId>ve-tos-java-sdk</artifactId>

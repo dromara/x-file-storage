@@ -29,7 +29,7 @@ import org.dromara.x.file.storage.core.get.*;
 import org.dromara.x.file.storage.core.util.Tools;
 
 /**
- * 火山云 TOS 存储
+ * 火山引擎 TOS 存储
  */
 @Getter
 @Setter

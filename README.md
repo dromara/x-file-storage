@@ -42,7 +42,8 @@
 ### 📚简介
 
 一行代码将文件存储到本地、FTP、SFTP、WebDAV、阿里云 OSS、华为云 OBS、七牛云 Kodo、腾讯云 COS、百度云 BOS、又拍云 USS、MinIO、
-Amazon S3、GoogleCloud Storage、FastDFS、 Azure Blob Storage、Mongo GridFS、Cloudflare R2、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动 云EOS、沃云 OSS、
+Amazon S3、Amazon S3 V2、GoogleCloud Storage、FastDFS、 Azure Blob Storage、Mongo GridFS、Mongo GridFS、go-fastdfs、
+火山引擎 TOS、Cloudflare R2、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动 云EOS、沃云 OSS、
 网易数帆 NOS、Ucloud US3、青云 QingStor、平安云 OBS、首云 OSS、IBM COS、其它兼容 S3 协议的存储平台。查看 [所有支持的存储平台](https://x-file-storage.xuyanwu.cn/#/存储平台)
 
 💡 通过 WebDAV 连接到 Alist 后，可以使用百度网盘、天翼云盘、阿里云盘、迅雷网盘等常见存储服务，查看 [Alist 支持的存储平台](https://alist.nn.ci/zh/guide/webdav.html#webdav-%E5%AD%98%E5%82%A8%E6%94%AF%E6%8C%81)
@@ -73,7 +74,7 @@ GitCode：https://gitcode.com/dromara/x-file-storage
 
 ### 📅更新计划
 
-- 接入存储平台：HDFS、火山云 TOS、Samba、NFS
+- 接入存储平台：HDFS、Samba、NFS
 - 追加缩略图
 - 文件内容预加载
 - 新增 Access 模块，尝试通过 HTTP、FTP、WebDAV 等协议对外提供接口，方便其它程序使用

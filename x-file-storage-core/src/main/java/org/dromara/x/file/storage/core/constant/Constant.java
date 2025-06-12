@@ -69,7 +69,7 @@ public interface Constant {
     }
 
     /**
-     * 火山云 TOS 的 ACL
+     * 火山引擎 TOS 的 ACL
      * {@link com.volcengine.tos.comm.common.ACLType}
      */
     interface VolcengineTosACL extends ACL {

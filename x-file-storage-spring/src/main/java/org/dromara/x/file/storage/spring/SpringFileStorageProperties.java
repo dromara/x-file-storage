@@ -164,7 +164,7 @@ public class SpringFileStorageProperties {
     private List<? extends SpringGoFastDfsConfig> goFastdfs = new ArrayList<>();
 
     /**
-     * 火山云 TOS
+     * 火山引擎 TOS
      */
     private List<? extends SpringVolcengineTosConfig> volcengineTos = new ArrayList<>();
 
@@ -502,12 +502,12 @@ public class SpringFileStorageProperties {
     }
 
     /**
-     * 火山云 TOS
+     * 火山引擎 TOS
      */
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringVolcengineTosConfig extends FileStorageProperties.VolcengineTosConfig {
+    public static class SpringVolcengineTosConfig extends VolcengineTosConfig {
         /**
          * 启用存储
          */

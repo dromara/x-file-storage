@@ -81,11 +81,6 @@ public class FileStorageProperties {
     private List<? extends QiniuKodoConfig> qiniuKodo = new ArrayList<>();
 
     /**
-     * 火山云 TOS
-     */
-    private List<? extends VolcengineTosConfig> volcengineTos = new ArrayList<>();
-
-    /**
      * 腾讯云 COS
      */
     private List<? extends TencentCosConfig> tencentCos = new ArrayList<>();
@@ -154,6 +149,11 @@ public class FileStorageProperties {
      * GoFastDFS
      */
     private List<? extends GoFastDfsConfig> goFastdfs = new ArrayList<>();
+
+    /**
+     * 火山引擎 TOS
+     */
+    private List<? extends VolcengineTosConfig> volcengineTos = new ArrayList<>();
 
     /**
      * 基本的存储平台配置
@@ -339,55 +339,6 @@ public class FileStorageProperties {
          * 基础路径
          */
         private String basePath = "";
-
-        /**
-         * 其它自定义配置
-         */
-        private Map<String, Object> attr = new LinkedHashMap<>();
-    }
-
-    /**
-     * 火山云 TOS
-     */
-    @Data
-    @Accessors(chain = true)
-    @EqualsAndHashCode(callSuper = true)
-    public static class VolcengineTosConfig extends BaseConfig {
-
-        private String accessKey;
-
-        private String secretKey;
-
-        private String endPoint;
-
-        private String region;
-
-        private String bucketName;
-
-        /**
-         * 访问域名
-         */
-        private String domain = "";
-
-        /**
-         * 基础路径
-         */
-        private String basePath = "";
-
-        /**
-         * 默认的 ACL 详情 {@link Constant.VolcengineTosACL}
-         */
-        private String defaultAcl;
-
-        /**
-         * 自动分片上传阈值，达到此大小则使用分片上传，默认 128MB
-         */
-        private int multipartThreshold = 128 * 1024 * 1024;
-
-        /**
-         * 自动分片上传时每个分片大小，默认 32MB
-         */
-        private int multipartPartSize = 32 * 1024 * 1024;
 
         /**
          * 其它自定义配置
@@ -1206,6 +1157,55 @@ public class FileStorageProperties {
          * 上传时候base路径
          */
         private String basePath;
+        /**
+         * 其它自定义配置
+         */
+        private Map<String, Object> attr = new LinkedHashMap<>();
+    }
+
+    /**
+     * 火山引擎 TOS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class VolcengineTosConfig extends BaseConfig {
+
+        private String accessKey;
+
+        private String secretKey;
+
+        private String endPoint;
+
+        private String region;
+
+        private String bucketName;
+
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+
+        /**
+         * 默认的 ACL 详情 {@link Constant.VolcengineTosACL}
+         */
+        private String defaultAcl;
+
+        /**
+         * 自动分片上传阈值，达到此大小则使用分片上传，默认 128MB
+         */
+        private int multipartThreshold = 128 * 1024 * 1024;
+
+        /**
+         * 自动分片上传时每个分片大小，默认 32MB
+         */
+        private int multipartPartSize = 32 * 1024 * 1024;
+
         /**
          * 其它自定义配置
          */

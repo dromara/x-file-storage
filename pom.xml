@@ -219,7 +219,6 @@
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
             </dependency>
-            <!--region 所有存储平台-->
             <!-- 华为云 OBS -->
             <dependency>
                 <groupId>com.huaweicloud</groupId>
@@ -322,7 +321,7 @@
                 <artifactId>azure-storage-file-datalake</artifactId>
                 <version>${azure-storage-file-datalake.version}</version>
             </dependency>
-            <!-- 火山云 TOS -->
+            <!-- 火山引擎 TOS -->
             <dependency>
                 <groupId>com.volcengine</groupId>
                 <artifactId>ve-tos-java-sdk</artifactId>

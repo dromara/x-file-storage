@@ -14,7 +14,7 @@ import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
 /**
  * Amazon S3 存储平台的 Client 工厂<br/>
- * 适用于AWS SDK for Java 2.x，根据Amazon公告，AWS SDK for Java 1.x 自 2024 年 7 月 31 日起将进入维护模式，并于2025 年 12 月 31 日终止支持<br/>
+ * 适用于AWS SDK for Java 2.x，根据 Amazon 公告，AWS SDK for Java 1.x 自 2024 年 7 月 31 日起将进入维护模式，并于 2025 年 12 月 31 日终止支持<br/>
  * 公告链接地址：<a href="https://aws.amazon.com/blogs/developer/the-aws-sdk-for-java-1-x-is-in-maintenance-mode-effective-july-31-2024/">The AWS SDK for Java 1.x is in maintenance mode, effective July 31, 2024</a>
  * @author zhangxin
  * @date 2024-12-08

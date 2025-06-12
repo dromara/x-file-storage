@@ -8,7 +8,7 @@ import lombok.Setter;
 import org.dromara.x.file.storage.core.FileStorageProperties.VolcengineTosConfig;
 
 /**
- * 火山云 TOS 存储平台的 Client 工厂
+ * 火山引擎 TOS 存储平台的 Client 工厂
  */
 @Getter
 @Setter
