@@ -227,7 +227,7 @@ public class FastDfsFileStorage implements FileStorage {
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
             info.setUserMetadata(headers.entrySet().stream()
                     .filter(e -> e.getKey().startsWith("x-amz-meta-"))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+                    .collect(Collectors.toMap(e -> e.getKey().substring(11), Map.Entry::getValue)));
             info.setOriginal(new FastDfsFileInfo(file, metadata));
             return info;
         } catch (Exception e) {

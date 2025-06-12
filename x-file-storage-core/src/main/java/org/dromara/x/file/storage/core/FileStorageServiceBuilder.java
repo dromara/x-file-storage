@@ -27,6 +27,7 @@ import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.*;
 import org.dromara.x.file.storage.core.platform.*;
 import org.dromara.x.file.storage.core.platform.AzureBlobStorageFileStorageClientFactory.AzureBlobStorageClient;
+import org.dromara.x.file.storage.core.platform.MongoGridFsFileStorageClientFactory.MongoGridFsClient;
 import org.dromara.x.file.storage.core.platform.QiniuKodoFileStorageClientFactory.QiniuKodoClient;
 import org.dromara.x.file.storage.core.recorder.DefaultFileRecorder;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
@@ -247,6 +248,8 @@ public class FileStorageServiceBuilder {
                 buildGoogleCloudStorageFileStorage(properties.getGoogleCloudStorage(), clientFactoryList));
         fileStorageList.addAll(buildFastDfsFileStorage(properties.getFastdfs(), clientFactoryList));
         fileStorageList.addAll(buildAzureBlobFileStorage(properties.getAzureBlob(), clientFactoryList));
+        fileStorageList.addAll(buildMongoGridFsStorage(properties.getMongoGridFs(), clientFactoryList));
+        fileStorageList.addAll(buildGoFastDfsStorage(properties.getGoFastdfs()));
         fileStorageList.addAll(buildVolcengineTosFileStorage(properties.getVolcengineTos(), clientFactoryList));
 
         // 本体
@@ -568,7 +571,38 @@ public class FileStorageServiceBuilder {
                 .collect(Collectors.toList());
     }
 
+     * 根据配置文件创建 Mongo GridFS 存储平台
+     */
+    public static List<MongoGridFsFileStorage> buildMongoGridFsStorage(
+            List<? extends MongoGridFsConfig> list, List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        if (CollUtil.isEmpty(list)) return Collections.emptyList();
+        buildFileStorageDetect(list, "Mongo GridFS", "com.mongodb.client.MongoClient");
+        return list.stream()
+                .map(config -> {
+                    log.info("加载 Mongo GridFS 存储平台：{}", config.getPlatform());
+                    FileStorageClientFactory<MongoGridFsClient> clientFactory = getFactory(
+                            config.getPlatform(),
+                            clientFactoryList,
+                            () -> new MongoGridFsFileStorageClientFactory(config));
+                    return new MongoGridFsFileStorage(config, clientFactory);
+                })
+                .collect(Collectors.toList());
+    }
+
     /**
+     * 根据配置文件创建goFastDfs存储平台
+     */
+    public static List<GoFastDfsFileStorage> buildGoFastDfsStorage(List<? extends GoFastDfsConfig> list) {
+        if (CollUtil.isEmpty(list)) return Collections.emptyList();
+        return list.stream()
+                .map(config -> {
+                    log.info("加载GoFastDfs存储平台：{}", config.getPlatform());
+                    return new GoFastDfsFileStorage(config);
+                })
+                .collect(Collectors.toList());
+    }
+
+     /**
      * 根据配置文件创建火山云 TOS 存储平台
      */
     public static List<VolcengineTosFileStorage> buildVolcengineTosFileStorage(
@@ -632,7 +666,7 @@ public class FileStorageServiceBuilder {
             if (doesNotExistClass(className)) {
                 throw new FileStorageRuntimeException(
                         "检测到【" + platformName + "】配置，但是没有找到对应的依赖类：【" + className
-                                + "】，所以无法加载此存储平台！配置参考地址：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8");
+                                + "】，所以无法加载此存储平台！配置参考地址：https://x-file-storage.xuyanwu.cn/2.2.1/#/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8");
             }
         }
     }

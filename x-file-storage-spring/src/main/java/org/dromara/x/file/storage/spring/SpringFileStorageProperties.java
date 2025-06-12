@@ -7,22 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.dromara.x.file.storage.core.FileStorageProperties;
-import org.dromara.x.file.storage.core.FileStorageProperties.AliyunOssConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.AmazonS3Config;
-import org.dromara.x.file.storage.core.FileStorageProperties.AzureBlobStorageConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.BaiduBosConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.FastDfsConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.FtpConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.GoogleCloudStorageConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.HuaweiObsConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.LocalConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.LocalPlusConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.MinioConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.QiniuKodoConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.SftpConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.TencentCosConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.UpyunUssConfig;
-import org.dromara.x.file.storage.core.FileStorageProperties.WebDavConfig;
+import org.dromara.x.file.storage.core.FileStorageProperties.*;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -164,6 +149,16 @@ public class SpringFileStorageProperties {
     private List<? extends SpringAzureBlobStorageConfig> azureBlob = new ArrayList<>();
 
     /**
+     * Mongo GridFS
+     */
+    private List<? extends SpringMongoGridFsConfig> mongoGridFs = new ArrayList<>();
+
+    /**
+     * GoFastDFS
+     */
+    private List<? extends SpringGoFastDfsConfig> goFastdfs = new ArrayList<>();
+
+    /**
      * 火山云 TOS
      */
     private List<? extends SpringVolcengineTosConfig> volcengineTos = new ArrayList<>();
@@ -219,6 +214,11 @@ public class SpringFileStorageProperties {
         properties.setAzureBlob(azureBlob.stream()
                 .filter(SpringAzureBlobStorageConfig::getEnableStorage)
                 .collect(Collectors.toList()));
+        properties.setMongoGridFs(mongoGridFs.stream()
+                .filter(SpringMongoGridFsConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setGoFastdfs(goFastdfs.stream()
+                .filter(SpringGoFastDfsConfig::getEnableStorage)
         properties.setVolcengineTos(volcengineTos.stream()
                 .filter(SpringVolcengineTosConfig::getEnableStorage)
                 .collect(Collectors.toList()));
@@ -454,8 +454,34 @@ public class SpringFileStorageProperties {
     }
 
     /**
-     * 火山云 TOS
+     * Mongo GridFS
      */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class SpringMongoGridFsConfig extends MongoGridFsConfig {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+
+    /**
+     * GoFastDFS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class SpringGoFastDfsConfig extends GoFastDfsConfig {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+
+    /**
+     * 火山云 TOS
+     */ 
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
@@ -465,4 +491,5 @@ public class SpringFileStorageProperties {
          */
         private Boolean enableStorage = false;
     }
+
 }
