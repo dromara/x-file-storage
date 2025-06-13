@@ -34,24 +34,7 @@ public class VolcengineTosFileStorageClientFactory implements FileStorageClientF
         if (client == null) {
             synchronized (this) {
                 if (client == null) {
-                    // 检查配置是否完整
-                    if (accessKey == null || accessKey.trim().isEmpty()) {
-                        throw new IllegalArgumentException("火山引擎TOS配置错误: accessKey不能为空");
-                    }
-                    if (secretKey == null || secretKey.trim().isEmpty()) {
-                        throw new IllegalArgumentException("火山引擎TOS配置错误: secretKey不能为空");
-                    }
-                    if (endPoint == null || endPoint.trim().isEmpty()) {
-                        throw new IllegalArgumentException("火山引擎TOS配置错误: endPoint不能为空");
-                    }
-                    if (region == null || region.trim().isEmpty()) {
-                        throw new IllegalArgumentException("火山引擎TOS配置错误: region不能为空");
-                    }
-                    try {
-                        client = new TOSV2ClientBuilder().build(region, endPoint, accessKey, secretKey);
-                    } catch (Exception e) {
-                        throw new RuntimeException("初始化火山引擎TOS客户端失败: " + e.getMessage(), e);
-                    }
+                    client = new TOSV2ClientBuilder().build(region, endPoint, accessKey, secretKey);
                 }
             }
         }

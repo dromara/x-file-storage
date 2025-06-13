@@ -69,17 +69,6 @@ public interface Constant {
     }
 
     /**
-     * 火山引擎 TOS 的 ACL
-     * {@link com.volcengine.tos.comm.common.ACLType}
-     */
-    interface VolcengineTosACL extends ACL {
-        String DEFAULT = "default";
-        String AUTHENTICATED_READ = "authenticated-read";
-        String BUCKET_OWNER_READ = "bucket-owner-read";
-        String BUCKET_OWNER_FULL_CONTROL = "bucket-owner-full-control";
-    }
-
-    /**
      * GoogleCloud Storage 的 ACL（已经做了命名规则转换）
      * {@link com.google.cloud.storage.Storage.PredefinedAcl}
      * 如果这里的预定义ACL满足不了要求，也可以使用 {@link com.google.cloud.storage.Acl}
@@ -100,6 +89,19 @@ public interface Constant {
      * 文档：https://learn.microsoft.com/zh-cn/azure/storage/blobs/data-lake-storage-access-control
      */
     interface AzureBlobStorageACL extends ACL {}
+
+    /**
+     * 火山引擎 TOS 的 ACL
+     * {@link com.volcengine.tos.comm.common.ACLType}
+     */
+    interface VolcengineTosACL extends ACL {
+        String AUTHENTICATED_READ = "authenticated-read";
+        String BUCKET_OWNER_READ = "bucket-owner-read";
+        String BUCKET_OWNER_FULL_CONTROL = "bucket-owner-full-control";
+        String ACL_LOG_DELIVERY_WRITE = "log-delivery-write";
+        String ACL_BUCKET_OWNER_ENTRUSTED = "bucket-owner-entrusted";
+        String ACL_UNKNOWN = "unknown";
+    }
 
     /**
      * 元数据名称，这里列举的是一些相对通用的名称，但不一定每个存储平台都支持，具体支持情况自行查阅对应存储的相关文档

@@ -1,16 +1,23 @@
 package org.dromara.x.file.storage.core.platform;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.io.file.FileNameUtil;
+import cn.hutool.core.text.NamingCase;
+import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
 import com.volcengine.tos.TOSV2;
+import com.volcengine.tos.TosServerException;
 import com.volcengine.tos.comm.common.ACLType;
+import com.volcengine.tos.comm.event.DataTransferType;
 import com.volcengine.tos.model.object.*;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -18,15 +25,17 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageProperties.VolcengineTosConfig;
+import org.dromara.x.file.storage.core.InputStreamPlus;
 import org.dromara.x.file.storage.core.ProgressListener;
 import org.dromara.x.file.storage.core.UploadPretreatment;
 import org.dromara.x.file.storage.core.copy.CopyPretreatment;
 import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
-import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.get.*;
-import org.dromara.x.file.storage.core.util.Tools;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
+import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
+import org.dromara.x.file.storage.core.upload.*;
 
 /**
  * 火山引擎 TOS 存储
@@ -66,8 +75,465 @@ public class VolcengineTosFileStorage implements FileStorage {
     }
 
     @Override
+    public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
+        fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
+        fileInfo.setUrl(domain + newFileKey);
+        ObjectMetaRequestOptions metadata = getObjectMetadata(fileInfo);
+        ProgressListener listener = pre.getProgressListener();
+        TOSV2 client = getClient();
+        boolean useMultipartUpload = fileInfo.getSize() == null || fileInfo.getSize() >= multipartThreshold;
+        String uploadId = null;
+        try (InputStreamPlus in = pre.getInputStreamPlus(false)) {
+            if (useMultipartUpload) { // 分片上传
+                uploadId = client.createMultipartUpload(new CreateMultipartUploadInput()
+                                .setBucket(bucketName)
+                                .setKey(newFileKey)
+                                .setOptions(metadata))
+                        .getUploadID();
+
+                List<UploadedPartV2> partList = new ArrayList<>();
+                int i = 0;
+                AtomicLong progressSize = new AtomicLong();
+                if (listener != null) listener.start();
+                while (true) {
+                    byte[] bytes = IoUtil.readBytes(in, multipartPartSize);
+                    if (bytes == null || bytes.length == 0) break;
+                    UploadPartV2Input part = new UploadPartV2Input()
+                            .setBucket(bucketName)
+                            .setKey(newFileKey)
+                            .setUploadID(uploadId)
+                            .setPartNumber(++i)
+                            .setContentLength(bytes.length)
+                            .setContent(new ByteArrayInputStream(bytes));
+                    if (listener != null) {
+                        part.setDataTransferListener(e -> {
+                            if (e.getType() == DataTransferType.DATA_TRANSFER_RW) {
+                                listener.progress(progressSize.addAndGet(e.getRwOnceBytes()), fileInfo.getSize());
+                            }
+                        });
+                    }
+                    partList.add(new UploadedPartV2()
+                            .setPartNumber(i)
+                            .setEtag(client.uploadPart(part).getEtag()));
+                }
+                client.completeMultipartUpload(new CompleteMultipartUploadV2Input()
+                        .setBucket(bucketName)
+                        .setKey(newFileKey)
+                        .setUploadID(uploadId)
+                        .setUploadedParts(partList));
+                if (listener != null) listener.finish();
+            } else {
+                PutObjectInput input = new PutObjectInput()
+                        .setBucket(bucketName)
+                        .setKey(newFileKey)
+                        .setContent(in)
+                        .setOptions(metadata);
+                if (listener != null) {
+                    input.setDataTransferListener(e -> {
+                        if (e.getType() == DataTransferType.DATA_TRANSFER_STARTED) {
+                            listener.start();
+                        } else if (e.getType() == DataTransferType.DATA_TRANSFER_RW) {
+                            listener.progress(e.getConsumedBytes(), fileInfo.getSize());
+                        } else if (e.getType() == DataTransferType.DATA_TRANSFER_FAILED) {
+                            listener.finish();
+                        }
+                    });
+                }
+                client.putObject(input);
+            }
+            if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
+
+            byte[] thumbnailBytes = pre.getThumbnailBytes();
+            if (thumbnailBytes != null) { // 上传缩略图
+                String newThFileKey = getThFileKey(fileInfo);
+                fileInfo.setThUrl(domain + newThFileKey);
+                PutObjectInput input = new PutObjectInput()
+                        .setBucket(bucketName)
+                        .setKey(newThFileKey)
+                        .setContent(new ByteArrayInputStream(thumbnailBytes))
+                        .setOptions(getThObjectMetadata(fileInfo));
+                client.putObject(input);
+            }
+
+            return true;
+        } catch (Exception e) {
+            try {
+                if (useMultipartUpload) {
+                    client.abortMultipartUpload(new AbortMultipartUploadInput()
+                            .setBucket(bucketName)
+                            .setKey(newFileKey)
+                            .setUploadID(uploadId));
+                } else {
+                    client.deleteObject(bucketName, newFileKey);
+                }
+            } catch (Exception ignored) {
+            }
+            throw ExceptionFactory.upload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public MultipartUploadSupportInfo isSupportMultipartUpload() {
+        return MultipartUploadSupportInfo.supportAll();
+    }
+
+    @Override
+    public void initiateMultipartUpload(FileInfo fileInfo, InitiateMultipartUploadPretreatment pre) {
+        fileInfo.setBasePath(basePath);
+        String newFileKey = getFileKey(fileInfo);
+        fileInfo.setUrl(domain + newFileKey);
+        ObjectMetaRequestOptions metadata = getObjectMetadata(fileInfo);
+        TOSV2 client = getClient();
+        try {
+            String uploadId = client.createMultipartUpload(new CreateMultipartUploadInput()
+                            .setBucket(bucketName)
+                            .setKey(newFileKey)
+                            .setOptions(metadata))
+                    .getUploadID();
+            fileInfo.setUploadId(uploadId);
+        } catch (Exception e) {
+            throw ExceptionFactory.initiateMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public FilePartInfo uploadPart(UploadPartPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        TOSV2 client = getClient();
+        FileWrapper partFileWrapper = pre.getPartFileWrapper();
+        Long partSize = partFileWrapper.getSize();
+        try (InputStreamPlus in = pre.getInputStreamPlus()) {
+            UploadPartV2Input part = new UploadPartV2Input()
+                    .setBucket(bucketName)
+                    .setKey(newFileKey)
+                    .setUploadID(fileInfo.getUploadId())
+                    .setContent(in)
+                    .setContentLength(partSize)
+                    .setPartNumber(pre.getPartNumber());
+
+            String partETag = client.uploadPart(part).getEtag();
+            FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+            filePartInfo.setETag(partETag);
+            filePartInfo.setPartNumber(pre.getPartNumber());
+            filePartInfo.setPartSize(in.getProgressSize());
+            filePartInfo.setCreateTime(new Date());
+            return filePartInfo;
+        } catch (Exception e) {
+            throw ExceptionFactory.uploadPart(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        TOSV2 client = getClient();
+        try {
+            List<UploadedPartV2> partList = pre.getPartInfoList().stream()
+                    .map(part -> new UploadedPartV2()
+                            .setPartNumber(part.getPartNumber())
+                            .setEtag(part.getETag()))
+                    .collect(Collectors.toList());
+            ProgressListener.quickStart(pre.getProgressListener(), fileInfo.getSize());
+            client.completeMultipartUpload(new CompleteMultipartUploadV2Input()
+                    .setBucket(bucketName)
+                    .setKey(newFileKey)
+                    .setUploadID(fileInfo.getUploadId())
+                    .setUploadedParts(partList));
+            ProgressListener.quickFinish(pre.getProgressListener(), fileInfo.getSize());
+        } catch (Exception e) {
+            throw ExceptionFactory.completeMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        TOSV2 client = getClient();
+        try {
+            client.abortMultipartUpload(new AbortMultipartUploadInput()
+                    .setBucket(bucketName)
+                    .setKey(newFileKey)
+                    .setUploadID(fileInfo.getUploadId()));
+        } catch (Exception e) {
+            throw ExceptionFactory.abortMultipartUpload(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public FilePartInfoList listParts(ListPartsPretreatment pre) {
+        FileInfo fileInfo = pre.getFileInfo();
+        String newFileKey = getFileKey(fileInfo);
+        TOSV2 client = getClient();
+        try {
+            ListPartsInput request = ListPartsInput.builder()
+                    .bucket(bucketName)
+                    .key(newFileKey)
+                    .uploadID(fileInfo.getUploadId())
+                    .maxParts(pre.getMaxParts())
+                    .partNumberMarker(pre.getPartNumberMarker())
+                    .build();
+            ListPartsOutput result = client.listParts(request);
+            FilePartInfoList list = new FilePartInfoList();
+            list.setFileInfo(fileInfo);
+            if (CollUtil.isEmpty(result.getUploadedParts())) {
+                list.setList(new ArrayList<>());
+            } else {
+                list.setList(result.getUploadedParts().stream()
+                        .map(p -> {
+                            FilePartInfo filePartInfo = new FilePartInfo(fileInfo);
+                            filePartInfo.setETag(p.getEtag());
+                            filePartInfo.setPartNumber(p.getPartNumber());
+                            filePartInfo.setPartSize(p.getSize());
+                            filePartInfo.setLastModified(p.getLastModified());
+                            return filePartInfo;
+                        })
+                        .collect(Collectors.toList()));
+            }
+            list.setMaxParts(result.getMaxParts());
+            list.setIsTruncated(result.isTruncated());
+            list.setPartNumberMarker(result.getPartNumberMarker());
+            list.setNextPartNumberMarker(result.getNextPartNumberMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listParts(fileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public ListFilesSupportInfo isSupportListFiles() {
+        return ListFilesSupportInfo.supportAll();
+    }
+
+    @Override
+    public ListFilesResult listFiles(ListFilesPretreatment pre) {
+        TOSV2 client = getClient();
+        try {
+            ListObjectsV2Input request = ListObjectsV2Input.builder()
+                    .bucket(bucketName)
+                    .maxKeys(pre.getMaxFiles())
+                    .marker(pre.getMarker())
+                    .delimiter("/")
+                    .prefix(basePath + pre.getPath() + pre.getFilenamePrefix())
+                    .build();
+
+            ListObjectsV2Output result = client.listObjects(request);
+            ListFilesResult list = new ListFilesResult();
+            if (CollUtil.isEmpty(result.getCommonPrefixes())) {
+                list.setDirList(new ArrayList<>());
+            } else {
+                list.setDirList(result.getCommonPrefixes().stream()
+                        .map(item -> {
+                            RemoteDirInfo dir = new RemoteDirInfo();
+                            dir.setPlatform(pre.getPlatform());
+                            dir.setBasePath(basePath);
+                            dir.setPath(pre.getPath());
+                            dir.setName(FileNameUtil.getName(item.getPrefix()));
+                            dir.setOriginal(item);
+                            return dir;
+                        })
+                        .collect(Collectors.toList()));
+            }
+            if (CollUtil.isEmpty(result.getContents())) {
+                list.setFileList(new ArrayList<>());
+            } else {
+                list.setFileList(result.getContents().stream()
+                        .map(item -> {
+                            RemoteFileInfo info = new RemoteFileInfo();
+                            info.setPlatform(pre.getPlatform());
+                            info.setBasePath(basePath);
+                            info.setPath(pre.getPath());
+                            info.setFilename(FileNameUtil.getName(item.getKey()));
+                            info.setUrl(
+                                    domain + getFileKey(new FileInfo(basePath, info.getPath(), info.getFilename())));
+                            info.setSize(item.getSize());
+                            info.setExt(FileNameUtil.extName(info.getFilename()));
+                            info.setETag(item.getEtag());
+                            info.setLastModified(item.getLastModified());
+                            info.setOriginal(item);
+                            return info;
+                        })
+                        .collect(Collectors.toList()));
+            }
+            list.setPlatform(pre.getPlatform());
+            list.setBasePath(basePath);
+            list.setPath(pre.getPath());
+            list.setFilenamePrefix(pre.getFilenamePrefix());
+            list.setMaxFiles(result.getMaxKeys());
+            list.setIsTruncated(result.isTruncated());
+            list.setMarker(result.getMarker());
+            list.setNextMarker(result.getNextMarker());
+            return list;
+        } catch (Exception e) {
+            throw ExceptionFactory.listFiles(pre, basePath, e);
+        }
+    }
+
+    @Override
+    public RemoteFileInfo getFile(GetFilePretreatment pre) {
+        String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+        TOSV2 client = getClient();
+        try {
+            GetObjectV2Output file;
+            try {
+                file = client.getObject(
+                        new GetObjectV2Input().setBucket(bucketName).setKey(fileKey));
+            } catch (Exception e) {
+                return null;
+            }
+            if (file == null) return null;
+            RemoteFileInfo info = new RemoteFileInfo();
+            info.setPlatform(pre.getPlatform());
+            info.setBasePath(basePath);
+            info.setPath(pre.getPath());
+            info.setFilename(FileNameUtil.getName(fileKey));
+            info.setUrl(domain + fileKey);
+            info.setSize(file.getContentLength());
+            info.setExt(FileNameUtil.extName(info.getFilename()));
+            info.setETag(file.getEtag());
+            info.setContentDisposition(file.getContentDisposition());
+            info.setContentType(file.getContentType());
+            info.setContentMd5(file.getContentMD5());
+            info.setLastModified(DateUtil.parse(file.getLastModified()));
+            info.setMetadata(file.getRequestInfo().getHeader().entrySet().stream()
+                    .filter(e -> !e.getKey().startsWith("x-tos-meta-"))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+            if (file.getCustomMetadata() != null) info.setUserMetadata(new HashMap<>(file.getCustomMetadata()));
+            info.setOriginal(file);
+            return info;
+        } catch (Exception e) {
+            throw ExceptionFactory.getFile(pre, basePath, e);
+        }
+    }
+
+    /**
+     * 获取 TOS ACL 枚举
+     */
+    private ACLType getAcl(Object acl) {
+        if (acl instanceof ACLType) {
+            return (ACLType) acl;
+        } else if (acl instanceof String || acl == null) {
+            String sAcl = (String) acl;
+            if (StrUtil.isEmpty(sAcl)) sAcl = defaultAcl;
+            for (ACLType item : ACLType.values()) {
+                if (item.toString().equalsIgnoreCase(sAcl)) {
+                    return item;
+                }
+            }
+            return null;
+        } else {
+            throw ExceptionFactory.unrecognizedAcl(acl, platform);
+        }
+    }
+
+    /**
+     * 获取文件对象元数据
+     */
+    private ObjectMetaRequestOptions getObjectMetadata(FileInfo fileInfo) {
+        ObjectMetaRequestOptions metadata = new ObjectMetaRequestOptions();
+        metadata.setContentType(fileInfo.getContentType());
+        metadata.setAclType(getAcl(fileInfo.getFileAcl()));
+        metadata.setCustomMetadata(fileInfo.getUserMetadata());
+        if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
+            CopyOptions copyOptions = CopyOptions.create()
+                    .ignoreCase()
+                    .setFieldNameEditor(name -> NamingCase.toCamelCase(name, CharUtil.DASHED));
+            BeanUtil.copyProperties(fileInfo.getMetadata(), metadata, copyOptions);
+        }
+        return metadata;
+    }
+
+    /**
+     * 获取缩略图文件对象元数据
+     */
+    private ObjectMetaRequestOptions getThObjectMetadata(FileInfo fileInfo) {
+        ObjectMetaRequestOptions metadata = new ObjectMetaRequestOptions();
+        metadata.setContentType(fileInfo.getThContentType());
+        metadata.setAclType(getAcl(fileInfo.getThFileAcl()));
+        metadata.setCustomMetadata(fileInfo.getThUserMetadata());
+        if (CollUtil.isNotEmpty(fileInfo.getThMetadata())) {
+            CopyOptions copyOptions = CopyOptions.create()
+                    .ignoreCase()
+                    .setFieldNameEditor(name -> NamingCase.toCamelCase(name, CharUtil.DASHED));
+            BeanUtil.copyProperties(fileInfo.getThMetadata(), metadata, copyOptions);
+        }
+        return metadata;
+    }
+
+    @Override
+    public boolean isSupportPresignedUrl() {
+        return true;
+    }
+
+    @Override
+    public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
+        try {
+            String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
+            Map<String, String> headers = new HashMap<>(pre.getHeaders());
+            headers.putAll(pre.getUserMetadata().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().startsWith("x-tos-meta-") ? e.getKey() : "x-tos-meta-" + e.getKey(),
+                            Map.Entry::getValue)));
+            HashMap<String, String> queryParams = new HashMap<>(pre.getQueryParams());
+            pre.getResponseHeaders()
+                    .forEach((k, v) -> queryParams.put(NamingCase.toCamelCase("response-" + k.toLowerCase(), '-'), v));
+
+            PreSignedURLInput request = PreSignedURLInput.builder()
+                    .bucket(bucketName)
+                    .key(fileKey)
+                    .expires((pre.getExpiration().getTime() - System.currentTimeMillis()) / 1000)
+                    .httpMethod(String.valueOf(pre.getMethod()).toUpperCase())
+                    .header(headers)
+                    .query(queryParams)
+                    .build();
+            PreSignedURLOutput output = getClient().preSignedURL(request);
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+            result.setUrl(output.getSignedUrl());
+            result.setHeaders(output.getSignedHeader());
+            return result;
+        } catch (Exception e) {
+            throw ExceptionFactory.generatePresignedUrl(pre, e);
+        }
+    }
+
+    @Override
     public boolean isSupportAcl() {
         return true;
+    }
+
+    @Override
+    public boolean setFileAcl(FileInfo fileInfo, Object acl) {
+        ACLType oAcl = getAcl(acl);
+        if (oAcl == null) return false;
+        try {
+            PutObjectACLInput input = new PutObjectACLInput()
+                    .setBucket(bucketName)
+                    .setKey(getFileKey(fileInfo))
+                    .setAcl(oAcl);
+            getClient().putObjectAcl(input);
+            return true;
+        } catch (Exception e) {
+            throw ExceptionFactory.setFileAcl(fileInfo, oAcl, platform, e);
+        }
+    }
+
+    @Override
+    public boolean setThFileAcl(FileInfo fileInfo, Object acl) {
+        ACLType oAcl = getAcl(acl);
+        if (oAcl == null) return false;
+        try {
+            PutObjectACLInput input = new PutObjectACLInput()
+                    .setBucket(bucketName)
+                    .setKey(getThFileKey(fileInfo))
+                    .setAcl(oAcl);
+            getClient().putObjectAcl(input);
+            return true;
+        } catch (Exception e) {
+            throw ExceptionFactory.setThFileAcl(fileInfo, oAcl, platform, e);
+        }
     }
 
     @Override
@@ -96,14 +562,13 @@ public class VolcengineTosFileStorage implements FileStorage {
     @Override
     public boolean exists(FileInfo fileInfo) {
         try {
-            HeadObjectV2Input input =
-                    new HeadObjectV2Input().setBucket(bucketName).setKey(getFileKey(fileInfo));
-            getClient().headObject(input);
-            return true;
+            HeadObjectV2Output output = getClient()
+                    .headObject(new HeadObjectV2Input().setBucket(bucketName).setKey(getFileKey(fileInfo)));
+            return output != null;
+        } catch (TosServerException e) {
+            if (e.getStatusCode() == 404) return false;
+            throw ExceptionFactory.exists(fileInfo, platform, e);
         } catch (Exception e) {
-            if (e.getMessage() != null && e.getMessage().contains("404")) {
-                return false;
-            }
             throw ExceptionFactory.exists(fileInfo, platform, e);
         }
     }
@@ -111,26 +576,12 @@ public class VolcengineTosFileStorage implements FileStorage {
     @Override
     public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
         try {
-            GetObjectV2Input input =
-                    new GetObjectV2Input().setBucket(bucketName).setKey(getFileKey(fileInfo));
-            try {
-                GetObjectV2Output output = getClient().getObject(input);
-                try (InputStream in = output.getContent()) {
-                    consumer.accept(in);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            } catch (Exception e) {
-                if (e.getMessage() != null && e.getMessage().contains("404")) {
-                    throw new FileStorageRuntimeException(
-                            StrUtil.format("文件下载失败，文件不存在！platform：{},fileInfo：{}", platform, fileInfo));
-                }
-                throw e;
+            GetObjectV2Output output = getClient()
+                    .getObject(new GetObjectV2Input().setBucket(bucketName).setKey(getFileKey(fileInfo)));
+            try (InputStream in = output.getContent()) {
+                consumer.accept(in);
             }
         } catch (Exception e) {
-            if (e instanceof FileStorageRuntimeException) {
-                throw (FileStorageRuntimeException) e;
-            }
             throw ExceptionFactory.download(fileInfo, platform, e);
         }
     }
@@ -138,27 +589,13 @@ public class VolcengineTosFileStorage implements FileStorage {
     @Override
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
         Check.downloadThBlankThFilename(platform, fileInfo);
-
         try {
-            GetObjectV2Input input =
-                    new GetObjectV2Input().setBucket(bucketName).setKey(getThFileKey(fileInfo));
-            try {
-                GetObjectV2Output output = getClient().getObject(input);
-                try (InputStream in = output.getContent()) {
-                    consumer.accept(in);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            } catch (Exception e) {
-                if (e.getMessage() != null && e.getMessage().contains("404")) {
-                    throw ExceptionFactory.downloadThNotFound(fileInfo, platform);
-                }
-                throw e;
+            GetObjectV2Output output = getClient()
+                    .getObject(new GetObjectV2Input().setBucket(bucketName).setKey(getThFileKey(fileInfo)));
+            try (InputStream in = output.getContent()) {
+                consumer.accept(in);
             }
         } catch (Exception e) {
-            if (e instanceof FileStorageRuntimeException) {
-                throw (FileStorageRuntimeException) e;
-            }
             throw ExceptionFactory.downloadTh(fileInfo, platform, e);
         }
     }
@@ -176,31 +613,29 @@ public class VolcengineTosFileStorage implements FileStorage {
 
         // 获取远程文件信息
         String srcFileKey = getFileKey(srcFileInfo);
+        GetObjectV2Output srcFile;
         try {
-            HeadObjectV2Input headInput =
-                    new HeadObjectV2Input().setBucket(bucketName).setKey(srcFileKey);
-            client.headObject(headInput);
+            srcFile = client.getObject(
+                    new GetObjectV2Input().setBucket(bucketName).setKey(srcFileKey));
         } catch (Exception e) {
             throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, e);
         }
 
         // 复制缩略图文件
-        String destThFileKey;
+        String destThFileKey = null;
         if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
             destThFileKey = getThFileKey(destFileInfo);
             destFileInfo.setThUrl(domain + destThFileKey);
             try {
-                CopyObjectV2Input copyRequest = new CopyObjectV2Input()
+                CopyObjectV2Input input = new CopyObjectV2Input()
+                        .setSrcBucket(bucketName)
+                        .setSrcKey(getThFileKey(srcFileInfo))
                         .setBucket(bucketName)
                         .setKey(destThFileKey)
-                        .setSrcBucket(bucketName)
-                        .setSrcKey(getThFileKey(srcFileInfo));
-                if (destFileInfo.getThFileAcl() != null) {
-                    ObjectMetaRequestOptions options = new ObjectMetaRequestOptions();
-                    options.setAclType(getAcl(destFileInfo.getThFileAcl()));
-                    copyRequest.setOptions(options);
-                }
-                client.copyObject(copyRequest);
+                        //
+                        // .setMetadataDirective(MetadataDirectiveType.METADATA_DIRECTIVE_REPLACE)
+                        .setOptions(getThObjectMetadata(destFileInfo));
+                client.copyObject(input);
             } catch (Exception e) {
                 throw ExceptionFactory.sameCopyTh(srcFileInfo, destFileInfo, platform, e);
             }
@@ -209,403 +644,75 @@ public class VolcengineTosFileStorage implements FileStorage {
         // 复制文件
         String destFileKey = getFileKey(destFileInfo);
         destFileInfo.setUrl(domain + destFileKey);
-        try {
-            CopyObjectV2Input copyRequest = new CopyObjectV2Input()
-                    .setBucket(bucketName)
-                    .setKey(destFileKey)
-                    .setSrcBucket(bucketName)
-                    .setSrcKey(srcFileKey);
-            if (destFileInfo.getFileAcl() != null) {
-                ObjectMetaRequestOptions options = new ObjectMetaRequestOptions();
-                options.setAclType(getAcl(destFileInfo.getFileAcl()));
-                copyRequest.setOptions(options);
-            }
-            client.copyObject(copyRequest);
-        } catch (Exception e) {
-            throw ExceptionFactory.sameCopy(srcFileInfo, destFileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public boolean setFileAcl(FileInfo fileInfo, Object acl) {
-        ACLType tosAcl = getAcl(acl);
-        if (tosAcl == null) return false;
-        try {
-            ObjectMetaRequestOptions options = new ObjectMetaRequestOptions();
-            options.setAclType(tosAcl);
-
-            // 设置bucket、key和选
-            PutObjectInput input = new PutObjectInput();
-            input.setBucket(bucketName);
-            input.setKey(getFileKey(fileInfo));
-            input.setOptions(options);
-            input.setContent(new ByteArrayInputStream(new byte[0])); // 空内容，仅更新元数据
-
-            getClient().putObject(input);
-            return true;
-        } catch (Exception e) {
-            throw ExceptionFactory.setFileAcl(fileInfo, tosAcl, platform, e);
-        }
-    }
-
-    @Override
-    public boolean setThFileAcl(FileInfo fileInfo, Object acl) {
-        ACLType tosAcl = getAcl(acl);
-        if (tosAcl == null) return false;
-        String key = getThFileKey(fileInfo);
-        if (key == null) return false;
-        try {
-            // 通过选项设置ACL
-            ObjectMetaRequestOptions options = new ObjectMetaRequestOptions();
-            options.setAclType(tosAcl);
-
-            // 设置bucket、key和选项
-            PutObjectInput input = new PutObjectInput();
-            input.setBucket(bucketName);
-            input.setKey(key);
-            input.setOptions(options);
-            input.setContent(new ByteArrayInputStream(new byte[0])); // 空内容，仅更新元数据
-
-            getClient().putObject(input);
-            return true;
-        } catch (Exception e) {
-            throw ExceptionFactory.setThFileAcl(fileInfo, tosAcl, platform, e);
-        }
-    }
-
-    /**
-     * 获取 TOS ACL 枚举
-     */
-    private ACLType getAcl(Object acl) {
-        if (acl instanceof ACLType) {
-            return (ACLType) acl;
-        } else if (acl instanceof String || acl == null) {
-            String sAcl = (String) acl;
-            if (StrUtil.isEmpty(sAcl)) sAcl = defaultAcl;
-            if (StrUtil.isEmpty(sAcl)) return null;
-
-            // 尝试遍历枚举值进行匹配
-            for (ACLType item : ACLType.values()) {
-                if (item.toString().equalsIgnoreCase(sAcl)) {
-                    return item;
-                }
-            }
-            // 处理常见的ACL名称映射
-            if ("private".equalsIgnoreCase(sAcl)) return ACLType.ACL_PRIVATE;
-            if ("public-read".equalsIgnoreCase(sAcl)) return ACLType.ACL_PUBLIC_READ;
-            if ("public-read-write".equalsIgnoreCase(sAcl)) return ACLType.ACL_PUBLIC_READ_WRITE;
-            if ("authenticated-read".equalsIgnoreCase(sAcl)) return ACLType.ACL_AUTHENTICATED_READ;
-            if ("bucket-owner-read".equalsIgnoreCase(sAcl)) return ACLType.ACL_BUCKET_OWNER_READ;
-            if ("bucket-owner-full-control".equalsIgnoreCase(sAcl)) return ACLType.ACL_BUCKET_OWNER_FULL_CONTROL;
-        } else {
-            throw ExceptionFactory.unrecognizedAcl(acl, platform);
-        }
-        return null;
-    }
-
-    /**
-     * 获取文件存储路径
-     */
-    public String getFileKey(FileInfo fileInfo) {
-        return Tools.join(fileInfo.getBasePath(), fileInfo.getPath(), fileInfo.getFilename());
-    }
-
-    /**
-     * 获取缩略图文件存储路径
-     */
-    public String getThFileKey(FileInfo fileInfo) {
-        if (StrUtil.isBlank(fileInfo.getThFilename())) return null;
-        return Tools.join(fileInfo.getBasePath(), fileInfo.getPath(), fileInfo.getThFilename());
-    }
-
-    /**
-     * 获取文件对象元数据
-     */
-    private ObjectMetaRequestOptions getObjectMetadata(FileInfo fileInfo) {
-        ObjectMetaRequestOptions meta = new ObjectMetaRequestOptions();
-        // 设置 Content-Type
-        meta.setContentType(fileInfo.getContentType());
-        // 设置文件 ACL
-        if (fileInfo.getFileAcl() != null) {
-            meta.setAclType(getAcl(fileInfo.getFileAcl()));
-        } else if (StrUtil.isNotBlank(defaultAcl)) {
-            meta.setAclType(getAcl(defaultAcl));
-        }
-        // 设置 HTTP 标准标头
-        if (CollUtil.isNotEmpty(fileInfo.getMetadata())) {
-            Map<String, String> customMeta = fileInfo.getMetadata().entrySet().stream()
-                    .filter(entry -> {
-                        String name = entry.getKey().toLowerCase();
-                        return name.startsWith("x-tos-meta-");
-                    })
-                    .collect(Collectors.toMap(
-                            entry -> {
-                                String name = entry.getKey().trim();
-                                if (name.toLowerCase().startsWith("x-tos-meta-")) {
-                                    return name.substring("x-tos-meta-".length());
-                                }
-                                return name;
-                            },
-                            Map.Entry::getValue,
-                            (oldValue, newValue) -> newValue));
-            if (CollUtil.isNotEmpty(customMeta)) {
-                meta.setCustomMetadata(customMeta);
-            }
-        }
-        return meta;
-    }
-
-    @Override
-    public boolean save(FileInfo fileInfo, UploadPretreatment pre) {
-        fileInfo.setBasePath(basePath);
-        // 检查存储平台是否支持对应的元数据/ACL设置
-        if ((fileInfo.getMetadata() != null || fileInfo.getUserMetadata() != null)
-                && !isSupportMetadata()
-                && pre.getNotSupportMetadataThrowException()) {
-            throw ExceptionFactory.uploadNotSupportMetadata(fileInfo, platform);
-        }
-
-        if ((fileInfo.getFileAcl() != null || fileInfo.getThFileAcl() != null)
-                && !isSupportAcl()
-                && pre.getNotSupportAclThrowException()) {
-            throw ExceptionFactory.uploadNotSupportAcl(fileInfo, platform);
-        }
-
-        String newFileKey = getFileKey(fileInfo);
-        fileInfo.setUrl(domain + newFileKey);
-
-        FileWrapper file = pre.getFileWrapper();
-        long size = 0;
-        boolean isRequiredLength = false;
-        try {
-            size = file.getSize();
-            isRequiredLength = true;
-        } catch (Exception e) {
-            // 无需处理
-        }
-
-        String thFileKey = null;
-        try {
-            // 上传主文件
-            if (!isRequiredLength || size < multipartThreshold) {
-                // 小文件上传
-                uploadNormal(fileInfo, pre, file);
-            } else {
-                // 大文件上传
-                uploadMultipart(fileInfo, pre, file, size);
-            }
-
-            // 上传缩略图
-            byte[] thumbnailBytes = pre.getThumbnailBytes();
-            if (thumbnailBytes != null) {
-                thFileKey = getThFileKey(fileInfo);
-                fileInfo.setThUrl(domain + thFileKey);
-                uploadNormalTh(fileInfo, pre, thumbnailBytes);
-            }
-
-            return true;
-        } catch (Exception e) {
-            // 清理已上传的文件
-            TOSV2 client = getClient();
-            try {
-                if (thFileKey != null) {
-                    client.deleteObject(
-                            new DeleteObjectInput().setBucket(bucketName).setKey(thFileKey));
-                }
-                client.deleteObject(
-                        new DeleteObjectInput().setBucket(bucketName).setKey(newFileKey));
-            } catch (Exception ignored) {
-                // 忽略清理异常
-            }
-            throw ExceptionFactory.upload(fileInfo, platform, e);
-        }
-    }
-
-    /**
-     * 普通上传，对象
-     */
-    public void uploadNormal(FileInfo fileInfo, UploadPretreatment pre, FileWrapper file) {
-        try {
-            ObjectMetaRequestOptions meta = getObjectMetadata(fileInfo);
-            InputStream in = file.getInputStream();
-            ProgressListener progressListener = pre.getProgressListener();
-
-            if (progressListener != null) {
-                progressListener.start();
-                progressListener.progress(0L, fileInfo.getSize());
-            }
-
-            // 设置bucket、key和选项
-            PutObjectInput input = new PutObjectInput();
-            input.setBucket(bucketName);
-            input.setKey(getFileKey(fileInfo));
-            input.setOptions(meta);
-            input.setContent(in);
-
-            getClient().putObject(input);
-
-            if (progressListener != null) {
-                progressListener.finish();
-            }
-        } catch (Exception e) {
-            throw ExceptionFactory.upload(fileInfo, platform, e);
-        }
-    }
-
-    /**
-     * 普通上传，缩略图
-     */
-    public void uploadNormalTh(FileInfo fileInfo, UploadPretreatment pre, byte[] thumbnailBytes) {
-        try {
-            // 设置 ACL 选项
-            ObjectMetaRequestOptions options = null;
-            if (fileInfo.getThFileAcl() != null) {
-                options = new ObjectMetaRequestOptions();
-                options.setAclType(getAcl(fileInfo.getThFileAcl()));
-            } else if (StrUtil.isNotBlank(defaultAcl)) {
-                options = new ObjectMetaRequestOptions();
-                options.setAclType(getAcl(defaultAcl));
-            }
-
-            InputStream in = new ByteArrayInputStream(thumbnailBytes);
-
-            // 设置bucket、key和选项
-            PutObjectInput input = new PutObjectInput();
-            input.setBucket(bucketName);
-            input.setKey(getThFileKey(fileInfo));
-            if (options != null) {
-                input.setOptions(options);
-            }
-            input.setContent(in);
-
-            getClient().putObject(input);
-        } catch (Exception e) {
-            throw ExceptionFactory.upload(fileInfo, platform, e);
-        }
-    }
-
-    /**
-     * 分片上传，对象
-     */
-    public void uploadMultipart(FileInfo fileInfo, UploadPretreatment pre, FileWrapper file, long size) {
-        TOSV2 client = getClient();
+        long fileSize = srcFile.getContentLength();
+        boolean useMultipartCopy = fileSize >= 2 * 1024; // 按照火山引擎 TOS 官方文档小于 5GB，但为了统一，这里还是 1GB，走小文件复制
         String uploadId = null;
         try {
-            // 1. 初始化分片上传任务
-            CreateMultipartUploadInput createInput =
-                    new CreateMultipartUploadInput().setBucket(bucketName).setKey(getFileKey(fileInfo));
-
-            ObjectMetaRequestOptions meta = getObjectMetadata(fileInfo);
-            createInput.setOptions(meta);
-
-            CreateMultipartUploadOutput createOutput = client.createMultipartUpload(createInput);
-            uploadId = createOutput.getUploadID();
-
-            // 2. 上传分片
-            List<UploadedPartV2> parts = new ArrayList<>();
-            ProgressListener progressListener = pre.getProgressListener();
-            if (progressListener != null) {
-                progressListener.start();
-            }
-
-            InputStream in = file.getInputStream();
-            long partSize = multipartPartSize;
-            long uploadedSize = 0;
-            int partNumber = 1;
-
-            byte[] buffer = new byte[multipartPartSize];
-            int len;
-            while ((len = in.read(buffer)) > 0) {
-                byte[] partBuffer = buffer;
-                if (len != buffer.length) {
-                    partBuffer = new byte[len];
-                    System.arraycopy(buffer, 0, partBuffer, 0, len);
+            if (useMultipartCopy) { // 大文件复制，火山引擎 TOS 内部不会自动复制 Metadata 和 ACL，需要重新设置
+                ObjectMetaRequestOptions metadata = getObjectMetadata(destFileInfo);
+                uploadId = client.createMultipartUpload(new CreateMultipartUploadInput()
+                                .setBucket(bucketName)
+                                .setKey(destFileKey)
+                                .setOptions(metadata))
+                        .getUploadID();
+                ProgressListener.quickStart(pre.getProgressListener(), fileSize);
+                ArrayList<UploadedPartV2> partList = new ArrayList<>();
+                long progressSize = 0;
+                for (int i = 1; progressSize < fileSize; i++) {
+                    // 设置分片大小为 256 MB。单位为字节。
+                    long partSize = Math.min(16 * 1024 * 1024, fileSize - progressSize);
+                    UploadPartCopyV2Input part = new UploadPartCopyV2Input();
+                    part.setBucket(bucketName);
+                    part.setKey(destFileKey);
+                    part.setSourceBucket(bucketName);
+                    part.setSourceKey(srcFileKey);
+                    part.setUploadID(uploadId);
+                    part.setCopySourceRange(progressSize, progressSize + partSize - 1);
+                    part.setPartNumber(i);
+                    UploadPartCopyV2Output partCopyResponse = client.uploadPartCopy(part);
+                    partList.add(new UploadedPartV2()
+                            .setPartNumber(i)
+                            .setEtag(partCopyResponse.getEtag())
+                            .setSize(partSize));
+                    ProgressListener.quickProgress(pre.getProgressListener(), progressSize += partSize, fileSize);
                 }
-
-                UploadPartV2Input partInput = new UploadPartV2Input()
+                client.completeMultipartUpload(new CompleteMultipartUploadV2Input()
                         .setBucket(bucketName)
-                        .setKey(getFileKey(fileInfo))
+                        .setKey(destFileKey)
                         .setUploadID(uploadId)
-                        .setPartNumber(partNumber)
-                        .setContentLength((long) len)
-                        .setContent(new ByteArrayInputStream(partBuffer));
-
-                UploadPartV2Output partOutput = client.uploadPart(partInput);
-                parts.add(new UploadedPartV2().setPartNumber(partNumber).setEtag(partOutput.getEtag()));
-
-                uploadedSize += len;
-                partNumber++;
-
-                if (progressListener != null) {
-                    progressListener.progress(uploadedSize, fileInfo.getSize());
-                }
-            }
-
-            // 3. 完成分片上传
-            CompleteMultipartUploadV2Input completeInput = new CompleteMultipartUploadV2Input()
-                    .setBucket(bucketName)
-                    .setKey(getFileKey(fileInfo))
-                    .setUploadID(uploadId)
-                    .setUploadedParts(parts);
-
-            client.completeMultipartUpload(completeInput);
-
-            if (progressListener != null) {
-                progressListener.finish();
+                        .setUploadedParts(partList));
+                ProgressListener.quickFinish(pre.getProgressListener());
+            } else { // 小文件复制，火山引擎 TOS 内部会自动复制 Metadata ，但是 ACL 需要重新设置，因为 ACL 包含在 Metadata 中，所以这里全部重新设置
+                ProgressListener.quickStart(pre.getProgressListener(), fileSize);
+                CopyObjectV2Input input = new CopyObjectV2Input()
+                        .setSrcBucket(bucketName)
+                        .setSrcKey(srcFileKey)
+                        .setBucket(bucketName)
+                        .setKey(destFileKey)
+                        //
+                        // .setMetadataDirective(MetadataDirectiveType.METADATA_DIRECTIVE_REPLACE)
+                        .setOptions(getObjectMetadata(destFileInfo));
+                client.copyObject(input);
+                ProgressListener.quickFinish(pre.getProgressListener(), fileSize);
             }
         } catch (Exception e) {
-            // 出现异常时，尝试取消分片上传任务
-            if (uploadId != null) {
+            if (destThFileKey != null)
                 try {
-                    AbortMultipartUploadInput abortInput = new AbortMultipartUploadInput()
-                            .setBucket(bucketName)
-                            .setKey(getFileKey(fileInfo))
-                            .setUploadID(uploadId);
-                    client.abortMultipartUpload(abortInput);
+                    client.deleteObject(bucketName, destThFileKey);
                 } catch (Exception ignored) {
-                    // 忽略取消时的异常
                 }
+            try {
+                if (useMultipartCopy) {
+                    client.abortMultipartUpload(new AbortMultipartUploadInput()
+                            .setBucket(bucketName)
+                            .setKey(destFileKey)
+                            .setUploadID(uploadId));
+                } else {
+                    client.deleteObject(bucketName, destFileKey);
+                }
+            } catch (Exception ignored) {
             }
-            throw ExceptionFactory.upload(fileInfo, platform, e);
-        }
-    }
-
-    @Override
-    public RemoteFileInfo getFile(GetFilePretreatment pre) {
-        String path = pre.getPath();
-        String filename = pre.getFilename();
-        String key = Tools.join(basePath, path, filename);
-
-        try {
-            HeadObjectV2Input headInput =
-                    new HeadObjectV2Input().setBucket(bucketName).setKey(key);
-            HeadObjectV2Output headOutput = getClient().headObject(headInput);
-
-            FileInfo fileInfo = new FileInfo();
-            fileInfo.setPlatform(platform)
-                    .setBasePath(basePath)
-                    .setPath(path)
-                    .setFilename(filename)
-                    .setContentType(headOutput.getContentType())
-                    .setSize(headOutput.getContentLength())
-                    .setCreateTime(new Date())
-                    .setUrl(domain + key);
-
-            RemoteFileInfo remoteFileInfo = new RemoteFileInfo();
-            remoteFileInfo
-                    .setPlatform(platform)
-                    .setBasePath(basePath)
-                    .setPath(path)
-                    .setFilename(filename)
-                    .setContentType(headOutput.getContentType())
-                    .setSize(headOutput.getContentLength())
-                    .setLastModified(new Date())
-                    .setUrl(domain + key)
-                    .setOriginal(headOutput);
-
-            return remoteFileInfo;
-        } catch (Exception e) {
-            throw ExceptionFactory.getFile(pre, basePath, e);
+            throw ExceptionFactory.sameCopy(srcFileInfo, destFileInfo, platform, e);
         }
     }
 }
