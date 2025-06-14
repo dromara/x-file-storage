@@ -33,6 +33,7 @@ import org.dromara.x.file.storage.core.exception.Check;
 import org.dromara.x.file.storage.core.exception.ExceptionFactory;
 import org.dromara.x.file.storage.core.file.FileWrapper;
 import org.dromara.x.file.storage.core.get.*;
+import org.dromara.x.file.storage.core.move.MovePretreatment;
 import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlPretreatment;
 import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
@@ -573,6 +574,17 @@ public class VolcengineTosFileStorage implements FileStorage {
         }
     }
 
+    public boolean exists(String fileKey) {
+        try {
+            HeadObjectV2Output output = getClient()
+                    .headObject(new HeadObjectV2Input().setBucket(bucketName).setKey(fileKey));
+            return output != null;
+        } catch (TosServerException e) {
+            if (e.getStatusCode() == 404) return false;
+            throw e;
+        }
+    }
+
     @Override
     public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
         try {
@@ -645,7 +657,7 @@ public class VolcengineTosFileStorage implements FileStorage {
         String destFileKey = getFileKey(destFileInfo);
         destFileInfo.setUrl(domain + destFileKey);
         long fileSize = srcFile.getContentLength();
-        boolean useMultipartCopy = fileSize >= 2 * 1024; // 按照火山引擎 TOS 官方文档小于 5GB，但为了统一，这里还是 1GB，走小文件复制
+        boolean useMultipartCopy = fileSize >= 1024 * 1024 * 1024; // 按照火山引擎 TOS 官方文档小于 5GB，但为了统一，这里还是 1GB，走小文件复制
         String uploadId = null;
         try {
             if (useMultipartCopy) { // 大文件复制，火山引擎 TOS 内部不会自动复制 Metadata 和 ACL，需要重新设置
@@ -660,7 +672,7 @@ public class VolcengineTosFileStorage implements FileStorage {
                 long progressSize = 0;
                 for (int i = 1; progressSize < fileSize; i++) {
                     // 设置分片大小为 256 MB。单位为字节。
-                    long partSize = Math.min(16 * 1024 * 1024, fileSize - progressSize);
+                    long partSize = Math.min(256 * 1024 * 1024, fileSize - progressSize);
                     UploadPartCopyV2Input part = new UploadPartCopyV2Input();
                     part.setBucket(bucketName);
                     part.setKey(destFileKey);
@@ -713,6 +725,84 @@ public class VolcengineTosFileStorage implements FileStorage {
             } catch (Exception ignored) {
             }
             throw ExceptionFactory.sameCopy(srcFileInfo, destFileInfo, platform, e);
+        }
+    }
+
+    @Override
+    public boolean isSupportSameMove() {
+        return true;
+    }
+
+    @Override
+    public void sameMove(FileInfo srcFileInfo, FileInfo destFileInfo, MovePretreatment pre) {
+
+        TOSV2 client = getClient();
+        // 获取远程文件信息
+        String srcFileKey = getFileKey(srcFileInfo);
+        GetObjectV2Output srcFile;
+        try {
+            srcFile = client.getObject(
+                    new GetObjectV2Input().setBucket(bucketName).setKey(srcFileKey));
+        } catch (Exception e) {
+            throw ExceptionFactory.sameMoveNotFound(srcFileInfo, destFileInfo, platform, e);
+        }
+
+        // 移动缩略图文件
+        String srcThFileKey = null;
+        String destThFileKey = null;
+        if (StrUtil.isNotBlank(srcFileInfo.getThFilename())) {
+            srcThFileKey = getThFileKey(srcFileInfo);
+            destThFileKey = getThFileKey(destFileInfo);
+            destFileInfo.setThUrl(domain + destThFileKey);
+            try {
+                client.renameObject(new RenameObjectInput()
+                        .setBucket(bucketName)
+                        .setKey(srcThFileKey)
+                        .setNewKey(destThFileKey)
+                        .setForbidOverwrite(false)
+                        .setRecursiveMkdir(true));
+            } catch (Exception e) {
+                throw ExceptionFactory.sameMoveTh(srcFileInfo, destFileInfo, platform, e);
+            }
+        }
+
+        // 移动文件
+        String destFileKey = getFileKey(destFileInfo);
+        destFileInfo.setUrl(domain + destFileKey);
+        try {
+            ProgressListener.quickStart(pre.getProgressListener(), srcFile.getContentLength());
+            client.renameObject(new RenameObjectInput()
+                    .setBucket(bucketName)
+                    .setKey(srcFileKey)
+                    .setNewKey(destFileKey)
+                    .setForbidOverwrite(false)
+                    .setRecursiveMkdir(true));
+            ProgressListener.quickFinish(pre.getProgressListener(), srcFile.getContentLength());
+        } catch (Exception e) {
+            if (destThFileKey != null)
+                try {
+                    client.renameObject(new RenameObjectInput()
+                            .setBucket(bucketName)
+                            .setKey(destThFileKey)
+                            .setNewKey(srcThFileKey)
+                            .setForbidOverwrite(false)
+                            .setRecursiveMkdir(true));
+                } catch (Exception ignored) {
+                }
+            try {
+                if (exists(srcFileKey)) {
+                    client.deleteObject(bucketName, destFileKey);
+                } else {
+                    client.renameObject(new RenameObjectInput()
+                            .setBucket(bucketName)
+                            .setKey(destFileKey)
+                            .setNewKey(srcFileKey)
+                            .setForbidOverwrite(false)
+                            .setRecursiveMkdir(true));
+                }
+            } catch (Exception ignored) {
+            }
+            throw ExceptionFactory.sameMove(srcFileInfo, destFileInfo, platform, e);
         }
     }
 }
