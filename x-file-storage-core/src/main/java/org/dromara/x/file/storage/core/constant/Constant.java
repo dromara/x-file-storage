@@ -29,16 +29,25 @@ public interface Constant {
     }
 
     /**
-     * Aws S3 的 ACL
+     * Amazon S3 的 ACL
      * {@link com.amazonaws.services.s3.model.CannedAccessControlList}
      */
-    interface AwsS3ACL extends ACL {
+    interface AmazonS3ACL extends ACL {
         String AUTHENTICATED_READ = "authenticated-read";
         String LOG_DELIVERY_WRITE = "log-delivery-write";
         String BUCKET_OWNER_READ = "bucket-owner-read";
         String BUCKET_OWNER_FULL_CONTROL = "bucket-owner-full-control";
         String AWS_EXEC_READ = "aws-exec-read";
     }
+
+    /**
+     * Amazon S3 的 ACL
+     * {@link com.amazonaws.services.s3.model.CannedAccessControlList}
+     */
+    @Deprecated
+    interface AwsS3ACL extends AmazonS3ACL{}
+
+
 
     /**
      * 华为云 OBS 的 ACL
