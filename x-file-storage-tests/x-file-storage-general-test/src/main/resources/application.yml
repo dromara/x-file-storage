@@ -104,20 +104,20 @@ dromara:
         enable-storage: true  # 启用存储
         access-key: ??
         secret-key: ??
-        region: ?? # 与 end-point 参数至少填一个
-        end-point: ?? # 与 region 参数至少填一个
-        bucket-name: ??
-        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.hn-bkt.clouddn.com/
+        region: ap-east-1 # 可选
+        end-point: https://s3.ap-east-1.amazonaws.com/ # 必传
+        bucket-name: abcd #桶名称
+        domain: https://abcd.s3.ap-east-1.amazonaws.com/ # 访问域名，注意“/”结尾，例如：https://abcd.s3.ap-east-1.amazonaws.com/
         base-path: s3/ # 基础路径
-    amazon-s3-v2: # Amazon S3 SDK V2
+    amazon-s3-v2: # Amazon S3 V2
       - platform: amazon-s3-v2-1 # 存储平台标识
         enable-storage: true  # 启用存储
         access-key: ??
         secret-key: ??
-        region: ?? # 可选
-        end-point: ?? # 必传
-        bucket-name: ??
-        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.hn-bkt.clouddn.com/
+        region: ap-east-1 # 可选
+        end-point: https://s3.ap-east-1.amazonaws.com/ # 必传
+        bucket-name: abcd #桶名称
+        domain: https://abcd.s3.ap-east-1.amazonaws.com/ # 访问域名，注意“/”结尾，例如：https://abcd.s3.ap-east-1.amazonaws.com/
         base-path: s3/ # 基础路径
     ftp: # FTP
       - platform: ftp-1 # 存储平台标识
