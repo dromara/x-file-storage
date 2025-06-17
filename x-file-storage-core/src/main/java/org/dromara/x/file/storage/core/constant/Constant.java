@@ -125,6 +125,7 @@ public interface Constant {
      * <p>GoogleCloud Storage {@link com.google.cloud.storage.BlobInfo} {@link com.google.cloud.storage.Storage.BlobField}</p>
      * <p>FastDFS {@link org.dromara.x.file.storage.core.platform.FastDfsFileStorage#getObjectMetadata(org.dromara.x.file.storage.core.FileInfo)}</p>
      * <p>Azure Blob Storage {@link com.azure.storage.blob.models.BlobHttpHeaders}</p>
+     * <p>火山引擎 TOS {@link com.volcengine.tos.model.object.ObjectMetaRequestOptions}</p>
      */
     interface Metadata {
         String CACHE_CONTROL = "Cache-Control";
