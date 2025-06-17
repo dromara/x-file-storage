@@ -45,9 +45,19 @@ public interface Constant {
      * {@link com.amazonaws.services.s3.model.CannedAccessControlList}
      */
     @Deprecated
-    interface AwsS3ACL extends AmazonS3ACL{}
+    interface AwsS3ACL extends AmazonS3ACL {}
 
-
+    /**
+     * Amazon S3 V2 的 ACL
+     * {@link software.amazon.awssdk.services.s3.model.ObjectCannedACL}
+     */
+    interface AmazonS3V2ACL extends ACL {
+        String AUTHENTICATED_READ = "authenticated-read";
+        String AWS_EXEC_READ = "aws-exec-read";
+        String BUCKET_OWNER_READ = "bucket-owner-read";
+        String BUCKET_OWNER_FULL_CONTROL = "bucket-owner-full-control";
+        String UNKNOWN_TO_SDK_VERSION = null;
+    }
 
     /**
      * 华为云 OBS 的 ACL
@@ -116,6 +126,7 @@ public interface Constant {
      * 元数据名称，这里列举的是一些相对通用的名称，但不一定每个存储平台都支持，具体支持情况自行查阅对应存储的相关文档
      * <p>阿里云 OSS {@link com.aliyun.oss.model.ObjectMetadata} {@link com.aliyun.oss.internal.OSSHeaders}</p>
      * <p>Amazon S3 {@link com.amazonaws.services.s3.model.ObjectMetadata} {@link com.amazonaws.services.s3.Headers}</p>
+     * <p>Amazon S3 V2 {@link software.amazon.awssdk.services.s3.model.PutObjectRequest.Builder} {@link software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest.Builder} {@link software.amazon.awssdk.services.s3.model.CopyObjectRequest.Builder}</p>
      * <p>华为云 OBS {@link com.obs.services.model.ObjectMetadata }</p>
      * <p>百度云 BOS {@link com.baidubce.services.bos.model.ObjectMetadata }</p>
      * <p>腾讯云 COS {@link com.qcloud.cos.model.ObjectMetadata }</p>
