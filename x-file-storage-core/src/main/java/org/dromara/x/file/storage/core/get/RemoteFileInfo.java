@@ -31,6 +31,8 @@ import org.dromara.x.file.storage.core.platform.FastDfsFileStorage.FastDfsFileIn
 import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
 import org.json.JSONObject;
+import software.amazon.awssdk.services.s3.model.CommonPrefix;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
 /**
  * 远程文件信息
@@ -165,6 +167,29 @@ public class RemoteFileInfo {
      */
     public S3ObjectSummary getOriginalAmazonS3ObjectSummary() {
         return getOriginal(S3ObjectSummary.class);
+    }
+
+    /**
+     * 获取 Amazon S3 V2 存储平台的文件原始数据，失败返回 null，
+     * 仅在获取文件的返回值中使用
+     */
+    public HeadObjectResponse getOriginalAmazonS3V2HeadObjectResponse() {
+        return getOriginal(HeadObjectResponse.class);
+    }
+    /**
+     * 获取 Amazon S3 V2 存储平台的文件原始数据，失败返回 null，
+     * 仅在列举文件的返回值中使用
+     */
+    public S3Object getOriginalAmazonS3V2S3Object() {
+        return getOriginal(S3Object.class);
+    }
+
+    /**
+     * 获取 Amazon S3 V2 存储平台的文件原始数据，失败返回 null，
+     * 仅在列举文件的返回值中使用
+     */
+    public CommonPrefix getOriginalAmazonS3V2CommonPrefix() {
+        return getOriginal(CommonPrefix.class);
     }
 
     /**
