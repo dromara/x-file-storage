@@ -16,6 +16,9 @@ import com.mongodb.client.gridfs.model.GridFSFile;
 import com.obs.services.model.ObsObject;
 import com.qcloud.cos.model.COSObject;
 import com.qcloud.cos.model.COSObjectSummary;
+import com.volcengine.tos.model.object.GetObjectV2Output;
+import com.volcengine.tos.model.object.ListedCommonPrefix;
+import com.volcengine.tos.model.object.ListedObjectV2;
 import io.minio.StatObjectResponse;
 import io.minio.messages.Contents;
 import java.io.File;
@@ -333,6 +336,30 @@ public class RemoteFileInfo {
      */
     public GridFSFile getOriginalMongoGridFs() {
         return getOriginal(GridFSFile.class);
+    }
+
+    /**
+     * 获取火山引擎 TOS 存储平台的文件原始数据，失败返回 null，
+     * 仅在获取文件的返回值中使用
+     */
+    public ListedObjectV2 getOriginalVolcengineTosListedObjectV2() {
+        return getOriginal(ListedObjectV2.class);
+    }
+
+    /**
+     * 获取火山引擎 TOS 存储平台的文件原始数据，失败返回 null，
+     * 仅在列举文件的返回值中使用
+     */
+    public GetObjectV2Output getOriginalVolcengineTosGetObjectV2Output() {
+        return getOriginal(GetObjectV2Output.class);
+    }
+
+    /**
+     * 获取火山引擎 TOS 存储平台的文件原始数据，失败返回 null，
+     * 仅在列举文件的返回值中使用
+     */
+    public ListedCommonPrefix getOriginalVolcengineTosListedCommonPrefix() {
+        return getOriginal(ListedCommonPrefix.class);
     }
 
     /**
