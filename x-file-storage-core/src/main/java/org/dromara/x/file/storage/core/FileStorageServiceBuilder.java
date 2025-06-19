@@ -26,6 +26,7 @@ import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.*;
 import org.dromara.x.file.storage.core.platform.*;
+import org.dromara.x.file.storage.core.platform.AmazonS3V2FileStorageClientFactory.AmazonS3V2Client;
 import org.dromara.x.file.storage.core.platform.AzureBlobStorageFileStorageClientFactory.AzureBlobStorageClient;
 import org.dromara.x.file.storage.core.platform.MongoGridFsFileStorageClientFactory.MongoGridFsClient;
 import org.dromara.x.file.storage.core.platform.QiniuKodoFileStorageClientFactory.QiniuKodoClient;
@@ -36,7 +37,6 @@ import org.dromara.x.file.storage.core.tika.DefaultTikaFactory;
 import org.dromara.x.file.storage.core.tika.TikaContentTypeDetect;
 import org.dromara.x.file.storage.core.tika.TikaFactory;
 import org.dromara.x.file.storage.core.util.Tools;
-import software.amazon.awssdk.services.s3.S3Client;
 
 @Slf4j
 @Getter
@@ -460,7 +460,7 @@ public class FileStorageServiceBuilder {
         return list.stream()
                 .map(config -> {
                     log.info("加载 Amazon S3 v2 存储平台：{}", config.getPlatform());
-                    FileStorageClientFactory<S3Client> clientFactory = getFactory(
+                    FileStorageClientFactory<AmazonS3V2Client> clientFactory = getFactory(
                             config.getPlatform(),
                             clientFactoryList,
                             () -> new AmazonS3V2FileStorageClientFactory(config));

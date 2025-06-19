@@ -1,5 +1,7 @@
 package org.dromara.x.file.storage.core.platform;
 
+import static org.dromara.x.file.storage.core.platform.AmazonS3V2FileStorageClientFactory.AmazonS3V2Client;
+
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.collection.CollUtil;
@@ -32,12 +34,13 @@ import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
 import org.dromara.x.file.storage.core.upload.*;
 import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
+import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
+import software.amazon.awssdk.awscore.presigner.PresignedRequest;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.*;
 
 /**
  * Amazon S3 存储<br/>
@@ -51,17 +54,19 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequ
 @NoArgsConstructor
 public class AmazonS3V2FileStorage implements FileStorage {
     private String platform;
+    private String region;
     private String bucketName;
     private String domain;
     private String basePath;
     private String defaultAcl;
     private int multipartThreshold;
     private int multipartPartSize;
-    private FileStorageClientFactory<S3Client> clientFactory;
+    private FileStorageClientFactory<AmazonS3V2Client> clientFactory;
 
     public AmazonS3V2FileStorage(
-            FileStorageProperties.AmazonS3V2Config config, FileStorageClientFactory<S3Client> clientFactory) {
+            FileStorageProperties.AmazonS3V2Config config, FileStorageClientFactory<AmazonS3V2Client> clientFactory) {
         platform = config.getPlatform();
+        region = config.getRegion();
         bucketName = config.getBucketName();
         domain = config.getDomain();
         basePath = config.getBasePath();
@@ -71,7 +76,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
         this.clientFactory = clientFactory;
     }
 
-    public S3Client getClient() {
+    public AmazonS3V2Client getClient() {
         return clientFactory.getClient();
     }
 
@@ -86,7 +91,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
         ProgressListener listener = pre.getProgressListener();
-        S3Client client = getClient(); // 使用 S3Client 替代 AmazonS3
+        S3Client client = getClient().getClient(); // 使用 S3Client 替代 AmazonS3
         boolean useMultipartUpload = fileInfo.getSize() == null || fileInfo.getSize() >= multipartThreshold;
         String uploadId = null;
         try (InputStreamPlus in = pre.getInputStreamPlus(false)) {
@@ -196,7 +201,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
         fileInfo.setBasePath(basePath);
         String newFileKey = getFileKey(fileInfo);
         fileInfo.setUrl(domain + newFileKey);
-        S3Client client = getClient();
+        S3Client client = getClient().getClient();
         try {
             String uploadId = client.createMultipartUpload(setMetadata(
                                     CreateMultipartUploadRequest.builder()
@@ -215,7 +220,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
     public FilePartInfo uploadPart(UploadPartPretreatment pre) {
         FileInfo fileInfo = pre.getFileInfo();
         String newFileKey = getFileKey(fileInfo);
-        S3Client client = getClient();
+        S3Client client = getClient().getClient();
         FileWrapper partFileWrapper = pre.getPartFileWrapper();
         Long partSize = partFileWrapper.getSize();
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
@@ -244,7 +249,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
     public void completeMultipartUpload(CompleteMultipartUploadPretreatment pre) {
         FileInfo fileInfo = pre.getFileInfo();
         String newFileKey = getFileKey(fileInfo);
-        S3Client client = getClient();
+        S3Client client = getClient().getClient();
         try {
             List<CompletedPart> partList = pre.getPartInfoList().stream()
                     .map(part -> CompletedPart.builder()
@@ -270,7 +275,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
     public void abortMultipartUpload(AbortMultipartUploadPretreatment pre) {
         FileInfo fileInfo = pre.getFileInfo();
         String newFileKey = getFileKey(fileInfo);
-        S3Client client = getClient();
+        S3Client client = getClient().getClient();
         try {
             client.abortMultipartUpload(AbortMultipartUploadRequest.builder()
                     .bucket(bucketName)
@@ -286,7 +291,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
     public FilePartInfoList listParts(ListPartsPretreatment pre) {
         FileInfo fileInfo = pre.getFileInfo();
         String newFileKey = getFileKey(fileInfo);
-        S3Client client = getClient();
+        S3Client client = getClient().getClient();
         try {
             ListPartsRequest request = ListPartsRequest.builder()
                     .bucket(bucketName)
@@ -325,7 +330,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
 
     @Override
     public ListFilesResult listFiles(ListFilesPretreatment pre) {
-        S3Client client = getClient();
+        S3Client client = getClient().getClient();
         try {
             ListObjectsV2Request request = ListObjectsV2Request.builder()
                     .bucket(bucketName)
@@ -382,7 +387,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
     @Override
     public RemoteFileInfo getFile(GetFilePretreatment pre) {
         String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
-        S3Client client = getClient();
+        S3Client client = getClient().getClient();
         try {
             HeadObjectResponse file;
             try {
@@ -505,21 +510,50 @@ public class AmazonS3V2FileStorage implements FileStorage {
 
     @Override
     public boolean isSupportPresignedUrl() {
-        return false;
+        return true;
     }
 
     @Override
     public GeneratePresignedUrlResult generatePresignedUrl(GeneratePresignedUrlPretreatment pre) {
-        try (S3Presigner s3Presigner = S3Presigner.create()) { // 使用 try-with-resources 管理 s3Presigner
+
+        S3Presigner presigner = getClient().getPresigner();
+        try {
             String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
 
-            // 构建 GetObjectRequest
-            GetObjectRequest.Builder getObjectRequestBuilder =
-                    GetObjectRequest.builder().bucket(bucketName).key(fileKey);
+            // 将过期时间转换为 Duration
+            Duration duration = Duration.ofMillis(pre.getExpiration().getTime() - System.currentTimeMillis());
 
-            // 构建查询参数，用于覆盖响应头
-            Map<String, String> queryParams = new HashMap<>();
-            pre.getResponseHeaders().forEach((key, value) -> queryParams.put("response-" + key.toLowerCase(), value));
+            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
+
+            Map<String, String> responseHeaders = pre.getResponseHeaders().entrySet().stream()
+                    .collect(Collectors.toMap(e -> "response-" + e.getKey(), Map.Entry::getValue));
+
+            String method = String.valueOf(pre.getMethod());
+
+            S3Request.Builder requestBuilder;
+            if ("GET".equalsIgnoreCase(method)) {
+                requestBuilder = GetObjectRequest.builder().bucket(bucketName).key(fileKey);
+            } else if ("PUT".equalsIgnoreCase(method)) {
+                requestBuilder = PutObjectRequest.builder().bucket(bucketName).key(fileKey);
+            } else if ("DELETE".equalsIgnoreCase(method)) {
+                requestBuilder =
+                        DeleteObjectRequest.builder().bucket(bucketName).key(fileKey);
+            } else if ("CreateMultipartUpload".equalsIgnoreCase(method)) {
+                requestBuilder = CreateMultipartUploadRequest.builder()
+                        .bucket(bucketName)
+                        .key(fileKey);
+            } else if ("CompleteMultipartUpload".equalsIgnoreCase(method)) {
+                requestBuilder = CompleteMultipartUploadRequest.builder()
+                        .bucket(bucketName)
+                        .key(fileKey);
+            } else if ("AbortMultipartUpload".equalsIgnoreCase(method)) {
+                requestBuilder =
+                        AbortMultipartUploadRequest.builder().bucket(bucketName).key(fileKey);
+            } else if ("UploadPart".equalsIgnoreCase(method)) {
+                requestBuilder = UploadPartRequest.builder().bucket(bucketName).key(fileKey);
+            } else {
+                throw new RuntimeException("暂不支持 method：" + method);
+            }
 
             // 合并用户元数据和请求头
             Map<String, String> headers = new HashMap<>(pre.getHeaders());
@@ -527,52 +561,65 @@ public class AmazonS3V2FileStorage implements FileStorage {
                     .forEach((key, value) ->
                             headers.put(key.startsWith("x-amz-meta-") ? key : "x-amz-meta-" + key, value));
 
-            // 将用户元数据转换为查询参数（AWS SDK 不直接支持请求头）
-            queryParams.putAll(headers);
+            AwsRequestOverrideConfiguration.Builder configBuilder = AwsRequestOverrideConfiguration.builder();
+            headers.forEach(configBuilder::putHeader);
+            pre.getQueryParams().forEach(configBuilder::putRawQueryParameter);
+            requestBuilder.overrideConfiguration(configBuilder.build());
 
-            // 将过期时间转换为 Duration
-            Duration duration = Duration.ofMillis(pre.getExpiration().getTime() - System.currentTimeMillis());
-
-            // 构建预签名请求
-            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                    .getObjectRequest(getObjectRequestBuilder.build())
-                    .signatureDuration(duration)
-                    .build();
+            CopyOptions copyOptions = CopyOptions.create()
+                    .ignoreCase()
+                    .setFieldNameEditor(name -> NamingCase.toCamelCase(name, CharUtil.DASHED));
+            BeanUtil.copyProperties(responseHeaders, requestBuilder, copyOptions);
 
             // 生成预签名 URL
-            PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
-
-            // 将查询参数拼接到 URL
-            String url = appendQueryParams(presignedRequest.url().toString(), queryParams);
+            PresignedRequest presigned;
+            if ("GET".equalsIgnoreCase(method)) {
+                presigned = presigner.presignGetObject(GetObjectPresignRequest.builder()
+                        .getObjectRequest((GetObjectRequest) requestBuilder.build())
+                        .signatureDuration(duration)
+                        .build());
+            } else if ("PUT".equalsIgnoreCase(method)) {
+                presigned = presigner.presignPutObject(PutObjectPresignRequest.builder()
+                        .putObjectRequest((PutObjectRequest) requestBuilder.build())
+                        .signatureDuration(duration)
+                        .build());
+            } else if ("DELETE".equalsIgnoreCase(method)) {
+                presigned = presigner.presignDeleteObject(DeleteObjectPresignRequest.builder()
+                        .deleteObjectRequest((DeleteObjectRequest) requestBuilder.build())
+                        .signatureDuration(duration)
+                        .build());
+            } else if ("CreateMultipartUpload".equalsIgnoreCase(method)) {
+                presigned = presigner.presignCreateMultipartUpload(CreateMultipartUploadPresignRequest.builder()
+                        .createMultipartUploadRequest((CreateMultipartUploadRequest) requestBuilder.build())
+                        .signatureDuration(duration)
+                        .build());
+            } else if ("CompleteMultipartUpload".equalsIgnoreCase(method)) {
+                presigned = presigner.presignCompleteMultipartUpload(CompleteMultipartUploadPresignRequest.builder()
+                        .completeMultipartUploadRequest((CompleteMultipartUploadRequest) requestBuilder.build())
+                        .signatureDuration(duration)
+                        .build());
+            } else if ("AbortMultipartUpload".equalsIgnoreCase(method)) {
+                presigned = presigner.presignAbortMultipartUpload(AbortMultipartUploadPresignRequest.builder()
+                        .abortMultipartUploadRequest((AbortMultipartUploadRequest) requestBuilder.build())
+                        .signatureDuration(duration)
+                        .build());
+            } else if ("UploadPart".equalsIgnoreCase(method)) {
+                presigned = presigner.presignUploadPart(UploadPartPresignRequest.builder()
+                        .uploadPartRequest((UploadPartRequest) requestBuilder.build())
+                        .signatureDuration(duration)
+                        .build());
+            } else {
+                throw new RuntimeException("暂不支持 method：" + method);
+            }
 
             // 将结果封装到 GeneratePresignedUrlResult 中
-            GeneratePresignedUrlResult result = new GeneratePresignedUrlResult(platform, basePath, pre);
-            result.setUrl(url);
-            result.setHeaders(headers);
+            result.setUrl(presigned.url().toString());
+            result.setHeaders(presigned.signedHeaders().entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, v -> CollUtil.get(v.getValue(), 0))));
             return result;
         } catch (Exception e) {
             throw ExceptionFactory.generatePresignedUrl(pre, e);
         }
-    }
-
-    /**
-     * 将查询参数附加到 URL
-     */
-    private String appendQueryParams(String url, Map<String, String> queryParams) {
-        if (queryParams.isEmpty()) {
-            return url;
-        }
-        StringBuilder sb = new StringBuilder(url);
-        if (!url.contains("?")) {
-            sb.append("?");
-        } else if (!url.endsWith("&")) {
-            sb.append("&");
-        }
-        queryParams.forEach(
-                (key, value) -> sb.append(key).append("=").append(value).append("&"));
-        // 移除末尾多余的 "&"
-        sb.setLength(sb.length() - 1);
-        return sb.toString();
     }
 
     public boolean isSupportAcl() {
@@ -585,6 +632,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
         try {
             if (oAcl == null) return false;
             getClient()
+                    .getClient()
                     .putObjectAcl(PutObjectAclRequest.builder()
                             .bucket(bucketName)
                             .key(getFileKey(fileInfo))
@@ -602,6 +650,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
         try {
             if (oAcl == null) return false;
             getClient()
+                    .getClient()
                     .putObjectAcl(PutObjectAclRequest.builder()
                             .bucket(bucketName)
                             .key(getThFileKey(fileInfo))
@@ -620,7 +669,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
 
     @Override
     public boolean delete(FileInfo fileInfo) {
-        S3Client client = getClient();
+        S3Client client = getClient().getClient();
         try {
             if (fileInfo.getThFilename() != null) { // 删除缩略图
                 client.deleteObject(DeleteObjectRequest.builder()
@@ -643,6 +692,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
         try {
             // 如果文件存在，headObject 不会抛出异常
             getClient()
+                    .getClient()
                     .headObject(HeadObjectRequest.builder()
                             .bucket(bucketName)
                             .key(getFileKey(fileInfo))
@@ -660,7 +710,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
 
     @Override
     public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
-        S3Client client = getClient();
+        S3Client client = getClient().getClient();
         try {
             GetObjectRequest request = GetObjectRequest.builder()
                     .bucket(bucketName)
@@ -680,7 +730,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
         Check.downloadThBlankThFilename(platform, fileInfo);
 
-        S3Client client = getClient();
+        S3Client client = getClient().getClient();
         try {
             GetObjectRequest request = GetObjectRequest.builder()
                     .bucket(bucketName)
@@ -705,7 +755,7 @@ public class AmazonS3V2FileStorage implements FileStorage {
     public void sameCopy(FileInfo srcFileInfo, FileInfo destFileInfo, CopyPretreatment pre) {
         Check.sameCopyBasePath(platform, basePath, srcFileInfo, destFileInfo);
 
-        S3Client client = getClient();
+        S3Client client = getClient().getClient();
 
         // 获取远程文件信息
         String srcFileKey = getFileKey(srcFileInfo);
