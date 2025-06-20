@@ -1146,7 +1146,7 @@ public class FileStorageProperties {
         /**
          * 超时时间
          */
-        private Integer timeOut;
+        private Integer timeout;
 
         /**
          * domain

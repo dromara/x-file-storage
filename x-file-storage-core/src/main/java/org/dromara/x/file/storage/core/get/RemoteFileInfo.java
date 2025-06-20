@@ -31,6 +31,8 @@ import okhttp3.Response;
 import org.apache.commons.net.ftp.FTPFile;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.platform.FastDfsFileStorage.FastDfsFileInfo;
+import org.dromara.x.file.storage.core.platform.GoFastDfsFileStorageClientFactory.GoFastDfsClient.GetFileInfo.GetFileInfoData;
+import org.dromara.x.file.storage.core.platform.GoFastDfsFileStorageClientFactory.GoFastDfsClient.ListFileInfo.ListFileInfoDataItem;
 import org.dromara.x.file.storage.core.util.KebabCaseInsensitiveMap;
 import org.dromara.x.file.storage.core.util.Tools;
 import org.json.JSONObject;
@@ -336,6 +338,22 @@ public class RemoteFileInfo {
      */
     public GridFSFile getOriginalMongoGridFs() {
         return getOriginal(GridFSFile.class);
+    }
+
+    /**
+     * 获取 go-fastdfs 存储平台的文件原始数据，失败返回 null,
+     * 仅在获取文件的返回值中使用
+     */
+    public GetFileInfoData getOriginalGoFastDfsGetFileInfoData() {
+        return getOriginal(GetFileInfoData.class);
+    }
+
+    /**
+     * 获取 go-fastdfs 存储平台的文件原始数据，失败返回 null,
+     * 仅在列举文件的返回值中使用
+     */
+    public ListFileInfoDataItem getOriginalGoFastDfsListFileInfoDataItem() {
+        return getOriginal(ListFileInfoDataItem.class);
     }
 
     /**

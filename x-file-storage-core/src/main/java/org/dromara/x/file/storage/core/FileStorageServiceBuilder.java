@@ -28,6 +28,7 @@ import org.dromara.x.file.storage.core.file.*;
 import org.dromara.x.file.storage.core.platform.*;
 import org.dromara.x.file.storage.core.platform.AmazonS3V2FileStorageClientFactory.AmazonS3V2Client;
 import org.dromara.x.file.storage.core.platform.AzureBlobStorageFileStorageClientFactory.AzureBlobStorageClient;
+import org.dromara.x.file.storage.core.platform.GoFastDfsFileStorageClientFactory.GoFastDfsClient;
 import org.dromara.x.file.storage.core.platform.MongoGridFsFileStorageClientFactory.MongoGridFsClient;
 import org.dromara.x.file.storage.core.platform.QiniuKodoFileStorageClientFactory.QiniuKodoClient;
 import org.dromara.x.file.storage.core.recorder.DefaultFileRecorder;
@@ -251,7 +252,7 @@ public class FileStorageServiceBuilder {
         fileStorageList.addAll(buildFastDfsFileStorage(properties.getFastdfs(), clientFactoryList));
         fileStorageList.addAll(buildAzureBlobFileStorage(properties.getAzureBlob(), clientFactoryList));
         fileStorageList.addAll(buildMongoGridFsStorage(properties.getMongoGridFs(), clientFactoryList));
-        fileStorageList.addAll(buildGoFastDfsStorage(properties.getGoFastdfs()));
+        fileStorageList.addAll(buildGoFastDfsStorage(properties.getGoFastdfs(), clientFactoryList));
         fileStorageList.addAll(buildVolcengineTosFileStorage(properties.getVolcengineTos(), clientFactoryList));
 
         // 本体
@@ -614,12 +615,17 @@ public class FileStorageServiceBuilder {
     /**
      * 根据配置文件创建goFastDfs存储平台
      */
-    public static List<GoFastDfsFileStorage> buildGoFastDfsStorage(List<? extends GoFastDfsConfig> list) {
+    public static List<GoFastDfsFileStorage> buildGoFastDfsStorage(
+            List<? extends GoFastDfsConfig> list, List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
         return list.stream()
                 .map(config -> {
-                    log.info("加载GoFastDfs存储平台：{}", config.getPlatform());
-                    return new GoFastDfsFileStorage(config);
+                    log.info("加载 GoFastDfs 存储平台：{}", config.getPlatform());
+                    FileStorageClientFactory<GoFastDfsClient> clientFactory = getFactory(
+                            config.getPlatform(),
+                            clientFactoryList,
+                            () -> new GoFastDfsFileStorageClientFactory(config));
+                    return new GoFastDfsFileStorage(config, clientFactory);
                 })
                 .collect(Collectors.toList());
     }
