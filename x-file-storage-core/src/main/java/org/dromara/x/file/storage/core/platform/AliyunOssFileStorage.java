@@ -11,7 +11,10 @@ import com.aliyun.oss.model.*;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -249,7 +252,9 @@ public class AliyunOssFileStorage implements FileStorage {
         try {
             ListPartsRequest request = new ListPartsRequest(bucketName, newFileKey, fileInfo.getUploadId());
             request.setMaxParts(pre.getMaxParts());
-            request.setPartNumberMarker(pre.getPartNumberMarker());
+            if (pre.getPartNumberMarker() > 0) {
+                request.setPartNumberMarker(pre.getPartNumberMarker());
+            }
             PartListing result = client.listParts(request);
             FilePartInfoList list = new FilePartInfoList();
             list.setFileInfo(fileInfo);
