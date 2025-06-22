@@ -62,6 +62,7 @@ GitCode：https://gitcode.com/dromara/x-file-storage
 
 这里是简要的更新记录，查看 [详细的更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录)
 
+`2.3.0` 新增 Mongo GridFS、go-fastdfs、Amazon S3 V2、火山引擎 TOS 存储平台，修复资源泄露、上传等问题 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_230)
 `2.2.1` 修复某些情况下哈希计算错误的问题、七牛云 Kodo 预签名 URL 无法使用的问题 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_221)
 <br />
 `2.2.0` 修复大量问题，新增获取文件、列举文件，重构预签名 URL 支持客户端上传、下载、删除等操作，新增 Solon 插件，优化手动分片上传等功能，详情查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_220)
