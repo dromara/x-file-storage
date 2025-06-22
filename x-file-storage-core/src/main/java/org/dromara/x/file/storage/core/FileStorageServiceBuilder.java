@@ -618,7 +618,7 @@ public class FileStorageServiceBuilder {
     public static List<GoFastDfsFileStorage> buildGoFastDfsStorage(
             List<? extends GoFastDfsConfig> list, List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list, "go-fastdfs", "cn.hutool.json.JSONUtil","cn.hutool.http.HttpUtil");
+        buildFileStorageDetect(list, "go-fastdfs", "cn.hutool.json.JSONUtil", "cn.hutool.http.HttpUtil");
         return list.stream()
                 .map(config -> {
                     log.info("加载 go-fastdfs 存储平台：{}", config.getPlatform());
