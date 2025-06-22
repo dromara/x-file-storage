@@ -60,6 +60,22 @@
                 <role>Contrib</role>
             </roles>
         </developer>
+        <developer>
+            <id>capybara-zy</id>
+            <name>capybara-zy</name>
+            <email>zhouye@cpbara.com</email>
+            <roles>
+                <role>Contrib</role>
+            </roles>
+        </developer>
+        <developer>
+            <id>fenghlkevin</id>
+            <name>fenghlkevin</name>
+            <email>fenghlkevin@gmail.com</email>
+            <roles>
+                <role>Contrib</role>
+            </roles>
+        </developer>
     </developers>
 
     <modules>
@@ -75,9 +91,9 @@
     </scm>
 
     <properties>
-        <revision>2.2.1</revision>
+        <revision>2.3.0</revision>
         <!--region Maven Base-->
-        <maven.version>3.8.1</maven.version>
+        <maven.version>3.9.9</maven.version>
         <java.version>8</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
@@ -93,6 +109,7 @@
         <!--region 3rd SDK-->
         <aliyun-sdk-oss.version>3.16.1</aliyun-sdk-oss.version>
         <aws-java-sdk-s3.version>1.12.429</aws-java-sdk-s3.version>
+        <aws-java-sdk-s3-v2.version>2.29.29</aws-java-sdk-s3-v2.version>
         <bce-java-sdk.version>0.10.251</bce-java-sdk.version>
         <commons-net.version>3.9.0</commons-net.version>
         <commons-pool2.version>2.11.1</commons-pool2.version>
@@ -105,6 +122,7 @@
         <jsch.version>0.1.55</jsch.version>
         <lombok.version>1.18.16</lombok.version>
         <minio.version>8.5.2</minio.version>
+        <mongodb-gridfs.version>4.6.1</mongodb-gridfs.version>
         <qiniu-java-sdk.version>7.12.1</qiniu-java-sdk.version>
         <sardine.version>5.10</sardine.version>
         <thumbnailator.version>0.4.20</thumbnailator.version>
@@ -113,6 +131,7 @@
         <fastdfs-client-java.version>1.30-20230328</fastdfs-client-java.version>
         <azure-storage-blob.version>12.23.1</azure-storage-blob.version>
         <azure-storage-file-datalake.version>12.18.1</azure-storage-file-datalake.version>
+        <ve-tos-java-sdk.version>2.8.8</ve-tos-java-sdk.version>
         <!--endregion-->
 
         <!--region Maven Plugins-->
@@ -121,7 +140,7 @@
         <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.6.0</maven-javadoc-plugin.version>
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
-        <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
+        <central-publishing-maven-plugin.version>0.7.0</central-publishing-maven-plugin.version>
         <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
         <maven-enforcer-plugin.version>3.3.0</maven-enforcer-plugin.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
@@ -200,14 +219,19 @@
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
             </dependency>
-            <!--region 所有存储平台-->
             <!-- 华为云 OBS -->
             <dependency>
                 <groupId>com.huaweicloud</groupId>
                 <artifactId>esdk-obs-java</artifactId>
                 <version>${esdk-obs-java.version}</version>
             </dependency>
-            <!-- Amazon S3 -->
+            <!-- Amazon S3 v2 -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>s3</artifactId>
+                <version>${aws-java-sdk-s3-v2.version}</version>
+            </dependency>
+            <!-- Amazon S3 v1 -->
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk-s3</artifactId>
@@ -248,6 +272,12 @@
                 <groupId>io.minio</groupId>
                 <artifactId>minio</artifactId>
                 <version>${minio.version}</version>
+            </dependency>
+            <!-- MongoDB GridFS -->
+            <dependency>
+                <groupId>org.mongodb</groupId>
+                <artifactId>mongodb-driver-sync</artifactId>
+                <version>${mongodb-gridfs.version}</version>
             </dependency>
             <!-- 又拍云 USS -->
             <dependency>
@@ -290,6 +320,12 @@
                 <groupId>com.azure</groupId>
                 <artifactId>azure-storage-file-datalake</artifactId>
                 <version>${azure-storage-file-datalake.version}</version>
+            </dependency>
+            <!-- 火山引擎 TOS -->
+            <dependency>
+                <groupId>com.volcengine</groupId>
+                <artifactId>ve-tos-java-sdk</artifactId>
+                <version>${ve-tos-java-sdk.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -407,16 +443,6 @@
         </profile>
         <profile>
             <id>release</id>
-            <distributionManagement>
-                <repository>
-                    <id>oss</id>
-                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-                </repository>
-                <snapshotRepository>
-                    <id>oss</id>
-                    <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-                </snapshotRepository>
-            </distributionManagement>
             <build>
                 <plugins>
                     <!-- Source -->
@@ -467,15 +493,13 @@
                         </executions>
                     </plugin>
                     <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>${nexus-staging-maven-plugin.version}</version>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central-publishing-maven-plugin.version}</version>
                         <extensions>true</extensions>
                         <configuration>
-                            <serverId>oss</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                            <stagingProgressTimeoutMinutes>10</stagingProgressTimeoutMinutes>
+                            <publishingServerId>oss</publishingServerId>
+                            <autoPublish>true</autoPublish>
                         </configuration>
                     </plugin>
                 </plugins>

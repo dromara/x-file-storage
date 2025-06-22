@@ -338,14 +338,17 @@ public class TencentCosFileStorage implements FileStorage {
         String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         COSClient client = getClient();
         try {
-            COSObject file;
+            COSObject file = null;
+            ObjectMetadata metadata;
             try {
                 file = client.getObject(bucketName, fileKey);
+                metadata = file.getObjectMetadata();
             } catch (Exception e) {
                 return null;
+            } finally {
+                IoUtil.close(file);
             }
-            if (file == null) return null;
-            ObjectMetadata metadata = file.getObjectMetadata();
+            if (metadata == null) return null;
             RemoteFileInfo info = new RemoteFileInfo();
             info.setPlatform(pre.getPlatform());
             info.setBasePath(basePath);
@@ -508,9 +511,9 @@ public class TencentCosFileStorage implements FileStorage {
 
     @Override
     public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
-        COSObject object =
-                getClient().getObject(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
-        try (InputStream in = object.getObjectContent()) {
+        try (COSObject object = getClient()
+                        .getObject(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getFilename());
+                InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (Exception e) {
             throw ExceptionFactory.download(fileInfo, platform, e);
@@ -521,9 +524,9 @@ public class TencentCosFileStorage implements FileStorage {
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
         Check.downloadThBlankThFilename(platform, fileInfo);
 
-        COSObject object = getClient()
-                .getObject(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
-        try (InputStream in = object.getObjectContent()) {
+        try (COSObject object = getClient()
+                        .getObject(bucketName, fileInfo.getBasePath() + fileInfo.getPath() + fileInfo.getThFilename());
+                InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (Exception e) {
             throw ExceptionFactory.downloadTh(fileInfo, platform, e);

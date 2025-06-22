@@ -15,9 +15,13 @@ spring:
     multipart:
       resolve-lazily: true # multipart 懒加载
 
+#  data:
+#    mongodb:
+#      uri: mongodb://admin:123456@192.168.1.111:27017
+
 dromara:
   x-file-storage: #文件存储配置，不使用的情况下可以不写
-    default-platform: local-plus-1 #默认使用的存储平台
+    default-platform: go-fastdfs-1 #默认使用的存储平台
     thumbnail-suffix: ".min.jpg" #缩略图后缀，例如【.min.jpg】【.png】
     local: # 本地存储（不推荐使用）
       - platform: local-1 # 存储平台标识
@@ -100,10 +104,20 @@ dromara:
         enable-storage: true  # 启用存储
         access-key: ??
         secret-key: ??
-        region: ?? # 与 end-point 参数至少填一个
-        end-point: ?? # 与 region 参数至少填一个
-        bucket-name: ??
-        domain: ?? # 访问域名，注意“/”结尾，例如：https://abc.hn-bkt.clouddn.com/
+        region: ap-east-1 # 与 end-point 参数至少填一个
+        end-point: https://s3.ap-east-1.amazonaws.com/ # 与 region 参数至少填一个
+        bucket-name: abcd #桶名称
+        domain: https://abcd.s3.ap-east-1.amazonaws.com/ # 访问域名，注意“/”结尾，例如：https://abcd.s3.ap-east-1.amazonaws.com/
+        base-path: s3/ # 基础路径
+    amazon-s3-v2: # Amazon S3 V2
+      - platform: amazon-s3-v2-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        access-key: ??
+        secret-key: ??
+        region: ap-east-1 # 必填
+        end-point: https://s3.ap-east-1.amazonaws.com/ # 必填
+        bucket-name: abcd #桶名称
+        domain: https://abcd.s3.ap-east-1.amazonaws.com/ # 访问域名，注意“/”结尾，例如：https://abcd.s3.ap-east-1.amazonaws.com/
         base-path: s3/ # 基础路径
     ftp: # FTP
       - platform: ftp-1 # 存储平台标识
@@ -114,7 +128,7 @@ dromara:
         password: "" # 密码，默认空
         domain: ?? # 访问域名，注意“/”结尾，例如：ftp://192.168.1.105/
         base-path: ftp/ # 基础路径
-        storage-path: / # 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+        storage-path: / # 存储路径，上传的文件都会存储在这个路径下面，默认"/"，注意"/"结尾
     sftp: # SFTP
       - platform: sftp-1 # 存储平台标识
         enable-storage: true  # 启用存储
@@ -134,7 +148,7 @@ dromara:
         password: ?? # 密码
         domain: ?? # 访问域名，注意“/”结尾，例如：https://file.abc.com/
         base-path: webdav/ # 基础路径
-        storage-path: / # 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+        storage-path: / # 存储路径，上传的文件都会存储在这个路径下面，默认"/"，注意"/"结尾
     google-cloud-storage: # 谷歌云存储
       - platform: google-1 # 存储平台标识
         enable-storage: true  # 启用存储
@@ -163,3 +177,30 @@ dromara:
         container-name: ?? # 容器名称，类似于 s3 的 bucketName，AzureBlob控制台-数据存储-容器
         domain: ?? # 访问域名，注意“/”结尾，与 end-point 保持一致
         base-path: hy/ # 基础路径
+    mongo-grid-fs:
+      - platform: mongo-grid-fs-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        connection-string: mongodb://admin:123456@192.168.1.111:27017
+        database: abc # 数据库名称
+        bucket-name: ccd # GridFS 存储通名称
+        domain: https://abc.com/ # 访问域名，注意“/”结尾，主要用于配合你自己写的访问接口进行访问
+        base-path: hy/ # 基础路径
+    go-fastdfs:
+      - platform: go-fastdfs-1 # 存储平台标识
+        enable-storage: true # 启用存储
+        server: '127.0.0.1:38880'        #服务地址
+        group: group1 #组名
+        scene: x-file-storage #场景
+        time-out: 30000 #超时时间
+        domain: http://127.0.0.1:38880/ # 访问域名，注意“/”结尾，与 server 保持一致
+        base-path: '/abc' # 基础路径
+    volcengine-tos: # 火山引擎 TOS 存储
+      - platform: volcengine-tos-1 # 存储平台标识
+        enable-storage: true  # 启用存储
+        access-key: ??
+        secret-key: ??
+        region: ?? # 地区
+        end-point: ?? # 终端节点
+        bucket-name: ?? # 桶名称
+        domain: ?? # 访问域名，注意"/"结尾，例如：https://your-bucket.tos-cn-beijing.volces.com/
+        base-path: tos/ # 基础路径

@@ -240,6 +240,16 @@ public class FileStorageService {
     }
 
     /**
+     * 生成预签名 URL
+     * @return 生成预签名 URL 预处理器
+     */
+    public GeneratePresignedUrlPretreatment generatePresignedUrl(String platform) {
+        return new GeneratePresignedUrlPretreatment()
+                .setFileStorageService(self)
+                .setPlatform(platform);
+    }
+
+    /**
      * 对文件生成可以签名访问的 URL，无法生成则返回 null
      *
      * @param expiration 到期时间
@@ -248,6 +258,7 @@ public class FileStorageService {
         if (fileInfo == null) return null;
         GeneratePresignedUrlResult result = generatePresignedUrl()
                 .setExpiration(expiration)
+                .setPlatform(fileInfo.getPlatform())
                 .setPath(fileInfo.getPath())
                 .setFilename(fileInfo.getFilename())
                 .setMethod(Constant.GeneratePresignedUrl.Method.GET)
@@ -264,6 +275,7 @@ public class FileStorageService {
         if (fileInfo == null) return null;
         GeneratePresignedUrlResult result = generatePresignedUrl()
                 .setExpiration(expiration)
+                .setPlatform(fileInfo.getPlatform())
                 .setPath(fileInfo.getPath())
                 .setFilename(fileInfo.getThFilename())
                 .setMethod(Constant.GeneratePresignedUrl.Method.GET)
@@ -457,7 +469,7 @@ public class FileStorageService {
      *                 一定要保证这里的 fileInfo 也有相同的信息，否则有些存储平台会不生效，
      *                 这是因为每个存储平台的逻辑不一样，有些是初始化时传入的，有些是完成时传入的，
      *                 建议将 FileInfo 保存到数据库中，这样就可以使用 fileStorageService.getFileInfoByUrl("https://abc.def.com/xxx.png")
-     *                 来获取 FileInfo 方便操作，详情请阅读 https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%9F%BA%E7%A1%80%E5%8A%9F%E8%83%BD?id=%E4%BF%9D%E5%AD%98%E4%B8%8A%E4%BC%A0%E8%AE%B0%E5%BD%95
+     *                 来获取 FileInfo 方便操作，详情请阅读 https://x-file-storage.xuyanwu.cn/2.3.0/#/%E5%9F%BA%E7%A1%80%E5%8A%9F%E8%83%BD?id=%E4%BF%9D%E5%AD%98%E4%B8%8A%E4%BC%A0%E8%AE%B0%E5%BD%95
      */
     public CompleteMultipartUploadPretreatment completeMultipartUpload(FileInfo fileInfo) {
         CompleteMultipartUploadPretreatment pre = new CompleteMultipartUploadPretreatment();

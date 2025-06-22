@@ -149,4 +149,11 @@ public class RemoteDirInfo {
     public DavResource getOriginalWebDav() {
         return getOriginal(DavResource.class);
     }
+
+    /**
+     * 获取 Mongo GridFS 存储平台的目录原始数据，失败返回 null，
+     */
+    public String getOriginalMongoGridFs() {
+        return getOriginal(String.class);
+    }
 }

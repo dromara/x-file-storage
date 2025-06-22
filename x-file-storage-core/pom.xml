@@ -39,7 +39,14 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-        <!-- Amazon S3 -->
+        <!-- Amazon S3 V2 -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <!-- Amazon S3 V1 -->
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-s3</artifactId>
@@ -98,6 +105,13 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
+        <!-- MongoDB GridFS -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-sync</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
         <!-- 又拍云 USS -->
         <dependency>
             <groupId>com.upyun</groupId>
@@ -147,6 +161,13 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
+        <!-- 火山引擎 TOS -->
+        <dependency>
+            <groupId>com.volcengine</groupId>
+            <artifactId>ve-tos-java-sdk</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
 
         <!--糊涂工具类核心-->
         <dependency>
@@ -157,6 +178,19 @@
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-extra</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-http</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-json</artifactId>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>

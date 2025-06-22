@@ -20,7 +20,7 @@ public class MultipartUploadSupportInfo {
 
     /**
      * 是否支持列举已上传的分片，又拍云 USS 不支持，建议将上传完成的分片信息通过 FileRecorder 接口保存到数据库，
-     * 详情：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%9F%BA%E7%A1%80%E5%8A%9F%E8%83%BD?id=%E4%BF%9D%E5%AD%98%E4%B8%8A%E4%BC%A0%E8%AE%B0%E5%BD%95
+     * 详情：https://x-file-storage.xuyanwu.cn/2.3.0/#/%E5%9F%BA%E7%A1%80%E5%8A%9F%E8%83%BD?id=%E4%BF%9D%E5%AD%98%E4%B8%8A%E4%BC%A0%E8%AE%B0%E5%BD%95
      */
     private Boolean isSupportListParts;
 

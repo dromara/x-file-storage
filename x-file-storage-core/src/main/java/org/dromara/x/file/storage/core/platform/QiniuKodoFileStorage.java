@@ -77,18 +77,19 @@ public class QiniuKodoFileStorage implements FileStorage {
             // 七牛云 Kodo 的 SDK 内部会自动分片上传
             QiniuKodoClient client = getClient();
             UploadManager uploadManager = client.getUploadManager();
-            String token = client.getAuth().uploadToken(bucketName);
+            String token = client.getAuth().uploadToken(bucketName, newFileKey);
             uploadManager.put(in, newFileKey, token, getObjectMetadata(fileInfo), fileInfo.getContentType());
             if (fileInfo.getSize() == null) fileInfo.setSize(in.getProgressSize());
 
             byte[] thumbnailBytes = pre.getThumbnailBytes();
             if (thumbnailBytes != null) { // 上传缩略图
                 String newThFileKey = getThFileKey(fileInfo);
+                String thToken = client.getAuth().uploadToken(bucketName, newThFileKey);
                 fileInfo.setThUrl(domain + newThFileKey);
                 uploadManager.put(
                         new ByteArrayInputStream(thumbnailBytes),
                         newThFileKey,
-                        token,
+                        thToken,
                         getThObjectMetadata(fileInfo),
                         fileInfo.getThContentType());
             }
@@ -117,7 +118,7 @@ public class QiniuKodoFileStorage implements FileStorage {
         QiniuKodoClient client = getClient();
 
         try {
-            String token = client.getAuth().uploadToken(bucketName);
+            String token = client.getAuth().uploadToken(bucketName, newFileKey);
             QiniuKodoClient.UploadActionResult<ApiUploadV2InitUpload.Response> result = client.retryUploadAction(
                     host -> {
                         ApiUploadV2InitUpload api = new ApiUploadV2InitUpload(client.getClient());
@@ -139,7 +140,7 @@ public class QiniuKodoFileStorage implements FileStorage {
         String newFileKey = getFileKey(fileInfo);
         QiniuKodoClient client = getClient();
         try (InputStreamPlus in = pre.getInputStreamPlus()) {
-            String token = client.getAuth().uploadToken(bucketName);
+            String token = client.getAuth().uploadToken(bucketName, newFileKey);
             QiniuKodoClient.UploadActionResult<ApiUploadV2UploadPart.Response> result = client.retryUploadAction(
                     host -> {
                         ApiUploadV2UploadPart api = new ApiUploadV2UploadPart(client.getClient());
@@ -178,7 +179,7 @@ public class QiniuKodoFileStorage implements FileStorage {
                     .collect(Collectors.toList());
             StringMap metadata = getObjectMetadata(fileInfo);
             ProgressListener.quickStart(pre.getProgressListener(), fileInfo.getSize());
-            String token = client.getAuth().uploadToken(bucketName);
+            String token = client.getAuth().uploadToken(bucketName, newFileKey);
             client.retryUploadAction(
                     host -> {
                         ApiUploadV2CompleteUpload api = new ApiUploadV2CompleteUpload(client.getClient());
@@ -206,7 +207,7 @@ public class QiniuKodoFileStorage implements FileStorage {
         String newFileKey = getFileKey(fileInfo);
         QiniuKodoClient client = getClient();
         try {
-            String token = client.getAuth().uploadToken(bucketName);
+            String token = client.getAuth().uploadToken(bucketName, newFileKey);
             client.retryUploadAction(
                     host -> {
                         ApiUploadV2AbortUpload api = new ApiUploadV2AbortUpload(client.getClient());
@@ -228,7 +229,7 @@ public class QiniuKodoFileStorage implements FileStorage {
         String newFileKey = getFileKey(fileInfo);
         QiniuKodoClient client = getClient();
         try {
-            String token = client.getAuth().uploadToken(bucketName);
+            String token = client.getAuth().uploadToken(bucketName, newFileKey);
             QiniuKodoClient.UploadActionResult<ApiUploadV2ListParts.Response> result = client.retryUploadAction(
                     host -> {
                         ApiUploadV2ListParts api = new ApiUploadV2ListParts(client.getClient());

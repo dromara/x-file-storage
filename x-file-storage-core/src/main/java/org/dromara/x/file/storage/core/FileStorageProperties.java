@@ -106,6 +106,11 @@ public class FileStorageProperties {
     private List<? extends AmazonS3Config> amazonS3 = new ArrayList<>();
 
     /**
+     * Amazon S3 V2
+     */
+    private List<? extends AmazonS3V2Config> amazonS3V2 = new ArrayList<>();
+
+    /**
      * FTP
      */
     private List<? extends FtpConfig> ftp = new ArrayList<>();
@@ -134,6 +139,21 @@ public class FileStorageProperties {
      * Azure Blob Storage
      */
     private List<? extends AzureBlobStorageConfig> azureBlob = new ArrayList<>();
+
+    /**
+     * Mongo GridFS
+     */
+    private List<? extends MongoGridFsConfig> mongoGridFs = new ArrayList<>();
+
+    /**
+     * GoFastDFS
+     */
+    private List<? extends GoFastDfsConfig> goFastdfs = new ArrayList<>();
+
+    /**
+     * 火山引擎 TOS
+     */
+    private List<? extends VolcengineTosConfig> volcengineTos = new ArrayList<>();
 
     /**
      * 基本的存储平台配置
@@ -187,7 +207,7 @@ public class FileStorageProperties {
         private String basePath = "";
 
         /**
-         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+         * 存储路径，上传的文件都会存储在这个路径下面，默认"/"，注意"/"结尾
          */
         private String storagePath = "/";
 
@@ -548,6 +568,55 @@ public class FileStorageProperties {
     }
 
     /**
+     * Amazon S3 V2
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class AmazonS3V2Config extends BaseConfig {
+
+        private String accessKey;
+
+        private String secretKey;
+
+        private String region;
+
+        private String endPoint;
+
+        private String bucketName;
+
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+
+        /**
+         * 默认的 ACL，详情 {@link Constant.AwsS3ACL}
+         */
+        private String defaultAcl;
+
+        /**
+         * 自动分片上传阈值，达到此大小则使用分片上传，默认 128MB
+         */
+        private int multipartThreshold = 128 * 1024 * 1024;
+
+        /**
+         * 自动分片上传时每个分片大小，默认 32MB
+         */
+        private int multipartPartSize = 32 * 1024 * 1024;
+
+        /**
+         * 其它自定义配置
+         */
+        private Map<String, Object> attr = new LinkedHashMap<>();
+    }
+
+    /**
      * FTP
      */
     @Data
@@ -617,7 +686,7 @@ public class FileStorageProperties {
         private String basePath = "";
 
         /**
-         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+         * 存储路径，上传的文件都会存储在这个路径下面，默认"/"，注意"/"结尾
          */
         private String storagePath = "/";
 
@@ -686,7 +755,7 @@ public class FileStorageProperties {
         private String basePath = "";
 
         /**
-         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+         * 存储路径，上传的文件都会存储在这个路径下面，默认"/"，注意"/"结尾
          */
         private String storagePath = "/";
 
@@ -710,7 +779,7 @@ public class FileStorageProperties {
     public static class WebDavConfig extends BaseConfig {
 
         /**
-         * 服务器地址，注意“/”结尾，例如：http://192.168.1.105:8405/
+         * 服务器地址，注意"/"结尾，例如：http://192.168.1.105:8405/
          */
         private String server;
 
@@ -735,7 +804,7 @@ public class FileStorageProperties {
         private String basePath = "";
 
         /**
-         * 存储路径，上传的文件都会存储在这个路径下面，默认“/”，注意“/”结尾
+         * 存储路径，上传的文件都会存储在这个路径下面，默认"/"，注意"/"结尾
          */
         private String storagePath = "/";
 
@@ -782,7 +851,7 @@ public class FileStorageProperties {
 
     /**
      * FastDFS
-     * 兼容性说明：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
+     * 兼容性说明：https://x-file-storage.xuyanwu.cn/2.3.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
      */
     @Data
     @Accessors(chain = true)
@@ -790,7 +859,7 @@ public class FileStorageProperties {
     public static class FastDfsConfig extends BaseConfig {
         /**
          * 运行模式，由于 FastDFS 比较特殊，不支持自定义文件名及路径，所以使用运行模式来解决这个问题。
-         * 详情请查看：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
+         * 详情请查看：https://x-file-storage.xuyanwu.cn/2.3.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
          */
         private RunMod runMod = RunMod.COVER;
 
@@ -818,8 +887,8 @@ public class FileStorageProperties {
          * 基础路径，强烈建议留空
          * 仅在上传成功时和获取文件时原样传到 FileInfo 及 RemoteFileInfo 中，可以用来保存到数据库中使用，
          * 实际上作用也不大，还会破坏 url 约定（url：实际上就是 domain + basePath + path + filename），
-         * 约定详情见文档 https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98?id=%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%8F%8A-fileinfo-%E4%B8%AD%E5%90%84%E7%A7%8D%E8%B7%AF%E5%BE%84%EF%BC%88path%EF%BC%89%E7%9A%84%E5%8C%BA%E5%88%AB%EF%BC%9F
-         * FastDFS 兼容性说明：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
+         * 约定详情见文档 https://x-file-storage.xuyanwu.cn/2.3.0/#/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98?id=%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%8F%8A-fileinfo-%E4%B8%AD%E5%90%84%E7%A7%8D%E8%B7%AF%E5%BE%84%EF%BC%88path%EF%BC%89%E7%9A%84%E5%8C%BA%E5%88%AB%EF%BC%9F
+         * FastDFS 兼容性说明：https://x-file-storage.xuyanwu.cn/2.3.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
          */
         private String basePath = "";
 
@@ -848,12 +917,12 @@ public class FileStorageProperties {
         public enum RunMod {
             /**
              * 覆盖模式，强制用 FastDFS 返回的路径及文件名覆盖 FileInfo 中的 path 及 filename。
-             * 详情请查看：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
+             * 详情请查看：https://x-file-storage.xuyanwu.cn/2.3.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
              */
             COVER,
             /**
              * URL模式，不覆盖 FileInfo 中的 path 及 filename。通过 url 解析 FastDFS 支持的路径及文件名
-             * 详情请查看：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
+             * 详情请查看：https://x-file-storage.xuyanwu.cn/2.3.0/#/%E5%AD%98%E5%82%A8%E5%B9%B3%E5%8F%B0?id=OCI_FastDFS
              */
             URL;
         }
@@ -958,7 +1027,7 @@ public class FileStorageProperties {
         private String endPoint;
 
         /**
-         * 访问域名，注意“/”结尾，与 end-point 保持一致
+         * 访问域名，注意"/"结尾，与 end-point 保持一致
          */
         private String domain = "";
 
@@ -1011,6 +1080,131 @@ public class FileStorageProperties {
                 .put(Constant.GeneratePresignedUrl.Method.DELETE, "d") // 删除
                 // .put("ALL", "racwdxytlmei")    //自定义一个名为 ALL 的 method，赋予所有权限
                 .build();
+
+        /**
+         * 其它自定义配置
+         */
+        private Map<String, Object> attr = new LinkedHashMap<>();
+    }
+
+    /**
+     * Mongo GridFS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class MongoGridFsConfig extends BaseConfig {
+        /**
+         * 链接字符串
+         */
+        private String connectionString;
+        /**
+         * 数据库名称
+         */
+        private String database;
+        /**
+         * 存储桶名称
+         */
+        private String bucketName;
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+        /**
+         * 其它自定义配置
+         */
+        private Map<String, Object> attr = new LinkedHashMap<>();
+    }
+
+    /**
+     * GoFastDFS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class GoFastDfsConfig extends BaseConfig {
+
+        /**
+         * http://172.24.5.163:8080
+         */
+        private String server;
+
+        /**
+         * 服务器组名
+         */
+        private String group;
+
+        /**
+         * 服务器场景
+         */
+        private String scene;
+
+        /**
+         * 超时时间
+         */
+        private Integer timeout;
+
+        /**
+         * domain
+         */
+        private String domain;
+
+        /**
+         * 上传时候base路径
+         */
+        private String basePath;
+        /**
+         * 其它自定义配置
+         */
+        private Map<String, Object> attr = new LinkedHashMap<>();
+    }
+
+    /**
+     * 火山引擎 TOS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class VolcengineTosConfig extends BaseConfig {
+
+        private String accessKey;
+
+        private String secretKey;
+
+        private String endPoint;
+
+        private String region;
+
+        private String bucketName;
+
+        /**
+         * 访问域名
+         */
+        private String domain = "";
+
+        /**
+         * 基础路径
+         */
+        private String basePath = "";
+
+        /**
+         * 默认的 ACL 详情 {@link Constant.VolcengineTosACL}
+         */
+        private String defaultAcl;
+
+        /**
+         * 自动分片上传阈值，达到此大小则使用分片上传，默认 128MB
+         */
+        private int multipartThreshold = 128 * 1024 * 1024;
+
+        /**
+         * 自动分片上传时每个分片大小，默认 32MB
+         */
+        private int multipartPartSize = 32 * 1024 * 1024;
 
         /**
          * 其它自定义配置

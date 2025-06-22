@@ -25,6 +25,9 @@
     <a href='https://gitee.com/dromara/x-file-storage'>
         <img src='https://gitee.com/dromara/x-file-storage/badge/star.svg?theme=dark' alt='star' />
     </a>
+    <a href='https://gitcode.com/dromara/x-file-storage'>
+        <img src='https://gitcode.com/dromara/x-file-storage/star/badge.svg' alt='star' />
+    </a>
     <br />
     <a href='https://jq.qq.com/?_wv=1027&k=eGfeNqka'>
         <img src='https://img.shields.io/badge/QQ%E7%BE%A4-515706495-orange' alt='515706495' />
@@ -39,7 +42,8 @@
 ### 📚简介
 
 一行代码将文件存储到本地、FTP、SFTP、WebDAV、阿里云 OSS、华为云 OBS、七牛云 Kodo、腾讯云 COS、百度云 BOS、又拍云 USS、MinIO、
-Amazon S3、GoogleCloud Storage、FastDFS、 Azure Blob Storage、Cloudflare R2、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动 云EOS、沃云 OSS、
+Amazon S3、Amazon S3 V2、GoogleCloud Storage、FastDFS、 Azure Blob Storage、Mongo GridFS、Mongo GridFS、go-fastdfs、
+火山引擎 TOS、Cloudflare R2、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动 云EOS、沃云 OSS、
 网易数帆 NOS、Ucloud US3、青云 QingStor、平安云 OBS、首云 OSS、IBM COS、其它兼容 S3 协议的存储平台。查看 [所有支持的存储平台](https://x-file-storage.xuyanwu.cn/#/存储平台)
 
 💡 通过 WebDAV 连接到 Alist 后，可以使用百度网盘、天翼云盘、阿里云盘、迅雷网盘等常见存储服务，查看 [Alist 支持的存储平台](https://alist.nn.ci/zh/guide/webdav.html#webdav-%E5%AD%98%E5%82%A8%E6%94%AF%E6%8C%81)
@@ -49,6 +53,8 @@ Amazon S3、GoogleCloud Storage、FastDFS、 Azure Blob Storage、Cloudflare R2�
 GitHub：https://github.com/dromara/x-file-storage
 <br />
 Gitee：https://gitee.com/dromara/x-file-storage
+<br />
+GitCode：https://gitcode.com/dromara/x-file-storage
 
 -------
 
@@ -56,6 +62,7 @@ Gitee：https://gitee.com/dromara/x-file-storage
 
 这里是简要的更新记录，查看 [详细的更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录)
 
+`2.3.0` 新增 Mongo GridFS、go-fastdfs、Amazon S3 V2、火山引擎 TOS 存储平台，修复资源泄露、上传等问题 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_230)
 `2.2.1` 修复某些情况下哈希计算错误的问题、七牛云 Kodo 预签名 URL 无法使用的问题 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_221)
 <br />
 `2.2.0` 修复大量问题，新增获取文件、列举文件，重构预签名 URL 支持客户端上传、下载、删除等操作，新增 Solon 插件，优化手动分片上传等功能，详情查看 [更新记录](https://x-file-storage.xuyanwu.cn/#/更新记录?id=_220)
@@ -68,7 +75,7 @@ Gitee：https://gitee.com/dromara/x-file-storage
 
 ### 📅更新计划
 
-- 接入存储平台：HDFS、火山云 TOS、Samba、NFS
+- 接入存储平台：HDFS、Samba、NFS
 - 追加缩略图
 - 文件内容预加载
 - 新增 Access 模块，尝试通过 HTTP、FTP、WebDAV 等协议对外提供接口，方便其它程序使用
@@ -92,7 +99,7 @@ Gitee：https://gitee.com/dromara/x-file-storage
 <dependency>
     <groupId>org.dromara.x-file-storage</groupId>
     <artifactId>x-file-storage-spring</artifactId>
-    <version>2.2.1</version>
+    <version>2.3.0</version>
 </dependency>
 <!-- 引入 阿里云 OSS SDK，如果使用其它存储平台，就引入对应的 SDK  -->
 <dependency>
@@ -260,7 +267,8 @@ X File Storage 的源码分为两个分支，功能如下：
 提交问题反馈请说明正在 X File Storage 版本、相关依赖库版本、配置参数及问题代码
 
 [Gitee issue](https://gitee.com/dromara/x-file-storage/issues)<br/>
-[GitHub issue](https://github.com/dromara/x-file-storage/issues)
+[GitHub issue](https://github.com/dromara/x-file-storage/issues)<br/>
+[GitCode issue](https://gitcode.com/dromara/x-file-storage/issues)
 
 #### 🧬贡献代码的步骤
 
@@ -272,7 +280,7 @@ X File Storage 的源码分为两个分支，功能如下：
 6. 等待维护者合并
 
 #### 🧬 开发约定 & 配置
-1. JDK 11+、Maven 3.8.1+
+1. JDK 11+、Maven 3.9.9+
 2. 代码风格，目前代码风格通过 spotless-maven-plugin + palantir-java-format 统一控制，Maven 构建时统一格式化代码
 3. 在开发阶段，IDE 要识别到 spotless-maven-plugin + palantir-java-format 需要安装插件：[palantir-java-format](https://plugins.jetbrains.com/plugin/13180-palantir-java-format)
 
@@ -295,7 +303,8 @@ X File Storage 感谢各位小伙伴的信任与支持，如果您已经在项�
 <a target="_blank" href="https://spring-file-storage.xuyanwu.cn">spring-file-storage.xuyanwu.cn</a>
 
 [在 Gitee 上登记](https://gitee.com/dromara/x-file-storage/issues/I83Q6R)<br/>
-[在 GitHub 上登记](https://github.com/dromara/x-file-storage/issues/114)
+[在 GitHub 上登记](https://github.com/dromara/x-file-storage/issues/114)<br/>
+[在 GitCode 上登记](https://gitcode.com/dromara/x-file-storage/issues/1)
 
 -------
 

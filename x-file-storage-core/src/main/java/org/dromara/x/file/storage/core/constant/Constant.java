@@ -29,15 +29,34 @@ public interface Constant {
     }
 
     /**
-     * Aws S3 的 ACL
+     * Amazon S3 的 ACL
      * {@link com.amazonaws.services.s3.model.CannedAccessControlList}
      */
-    interface AwsS3ACL extends ACL {
+    interface AmazonS3ACL extends ACL {
         String AUTHENTICATED_READ = "authenticated-read";
         String LOG_DELIVERY_WRITE = "log-delivery-write";
         String BUCKET_OWNER_READ = "bucket-owner-read";
         String BUCKET_OWNER_FULL_CONTROL = "bucket-owner-full-control";
         String AWS_EXEC_READ = "aws-exec-read";
+    }
+
+    /**
+     * Amazon S3 的 ACL
+     * {@link com.amazonaws.services.s3.model.CannedAccessControlList}
+     */
+    @Deprecated
+    interface AwsS3ACL extends AmazonS3ACL {}
+
+    /**
+     * Amazon S3 V2 的 ACL
+     * {@link software.amazon.awssdk.services.s3.model.ObjectCannedACL}
+     */
+    interface AmazonS3V2ACL extends ACL {
+        String AUTHENTICATED_READ = "authenticated-read";
+        String AWS_EXEC_READ = "aws-exec-read";
+        String BUCKET_OWNER_READ = "bucket-owner-read";
+        String BUCKET_OWNER_FULL_CONTROL = "bucket-owner-full-control";
+        String UNKNOWN_TO_SDK_VERSION = null;
     }
 
     /**
@@ -91,9 +110,23 @@ public interface Constant {
     interface AzureBlobStorageACL extends ACL {}
 
     /**
+     * 火山引擎 TOS 的 ACL
+     * {@link com.volcengine.tos.comm.common.ACLType}
+     */
+    interface VolcengineTosACL extends ACL {
+        String AUTHENTICATED_READ = "authenticated-read";
+        String BUCKET_OWNER_READ = "bucket-owner-read";
+        String BUCKET_OWNER_FULL_CONTROL = "bucket-owner-full-control";
+        String ACL_LOG_DELIVERY_WRITE = "log-delivery-write";
+        String ACL_BUCKET_OWNER_ENTRUSTED = "bucket-owner-entrusted";
+        String ACL_UNKNOWN = "unknown";
+    }
+
+    /**
      * 元数据名称，这里列举的是一些相对通用的名称，但不一定每个存储平台都支持，具体支持情况自行查阅对应存储的相关文档
      * <p>阿里云 OSS {@link com.aliyun.oss.model.ObjectMetadata} {@link com.aliyun.oss.internal.OSSHeaders}</p>
      * <p>Amazon S3 {@link com.amazonaws.services.s3.model.ObjectMetadata} {@link com.amazonaws.services.s3.Headers}</p>
+     * <p>Amazon S3 V2 {@link software.amazon.awssdk.services.s3.model.PutObjectRequest.Builder} {@link software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest.Builder} {@link software.amazon.awssdk.services.s3.model.CopyObjectRequest.Builder}</p>
      * <p>华为云 OBS {@link com.obs.services.model.ObjectMetadata }</p>
      * <p>百度云 BOS {@link com.baidubce.services.bos.model.ObjectMetadata }</p>
      * <p>腾讯云 COS {@link com.qcloud.cos.model.ObjectMetadata }</p>
@@ -103,6 +136,7 @@ public interface Constant {
      * <p>GoogleCloud Storage {@link com.google.cloud.storage.BlobInfo} {@link com.google.cloud.storage.Storage.BlobField}</p>
      * <p>FastDFS {@link org.dromara.x.file.storage.core.platform.FastDfsFileStorage#getObjectMetadata(org.dromara.x.file.storage.core.FileInfo)}</p>
      * <p>Azure Blob Storage {@link com.azure.storage.blob.models.BlobHttpHeaders}</p>
+     * <p>火山引擎 TOS {@link com.volcengine.tos.model.object.ObjectMetaRequestOptions}</p>
      */
     interface Metadata {
         String CACHE_CONTROL = "Cache-Control";

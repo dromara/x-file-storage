@@ -4,7 +4,7 @@
 
 又或者想实现客户端上传等，也可以通过此功能来实现
 
-目前仅 华为云 OBS、阿里云 OSS、七牛云 Kodo、腾讯云 COS、百度云 BOS、MinIO、Amazon S3、GoogleCloud Storage、Azure Blob Storage 平台支持
+目前仅 华为云 OBS、阿里云 OSS、七牛云 Kodo、腾讯云 COS、百度云 BOS、MinIO、Amazon S3、Amazon S3 V2、GoogleCloud Storage、Azure Blob Storage、火山引擎 TOS 平台支持
 
 ## 基本用法
 
@@ -40,8 +40,10 @@ println("缩略图文件授权访问地址："+thPresignedUrl);
 | 百度云 BOS             | 支持 GET、PUT、DELETE、HEAD                                                                                             | [查看](https://cloud.baidu.com/doc/BOS/s/Wl60p2b61)                                                                                     |
 | MinIO               | 支持 GET、POST、PUT、DELETE、HEAD                                                                                        | [查看](https://min.io/docs/minio/linux/developers/java/API.html#getPresignedObjectUrl)                                                  |
 | Amazon S3           | 支持 GET、POST、PUT、DELETE、HEAD                                                                                        | [查看](https://docs.aws.amazon.com/zh_cn/AmazonS3/latest/userguide/using-presigned-url.html)                                            |
+| Amazon S3 V2        | 支持 GET、PUT、DELETE、CreateMultipartUpload、CompleteMultipartUpload、AbortMultipartUpload、UploadPart                    | [查看](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/examples-s3-presign.html)                                        |
 | GoogleCloud Storage | 支持 GET、POST、PUT、DELETE、HEAD                                                                                        | [查看](https://cloud.google.com/storage/docs/access-control/signed-urls?hl=zh-cn)                                                       |
 | Azure Blob Storage  | 默认支持 GET、PUT、DELETE  ，可在配置文件中通过 methodToPermissionMap 参数自行扩展                                                       | [查看](https://learn.microsoft.com/zh-cn/azure/storage/blobs/sas-service-create-java)                                                   |
+| 火山引擎 TOS            | 支持 GET、PUT、DELETE、HEAD                                                                                             | [查看](https://www.volcengine.com/docs/6349/74839)                                                                                      |
 
 > [!TIP|label:说明：]
 > 在使用过程中，由于每个存储平台支持情况各不相同，可能会出现某些功能不生效的情况，可自行查询相关文档

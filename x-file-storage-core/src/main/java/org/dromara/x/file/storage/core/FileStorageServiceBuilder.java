@@ -26,7 +26,10 @@ import org.dromara.x.file.storage.core.aspect.FileStorageAspect;
 import org.dromara.x.file.storage.core.exception.FileStorageRuntimeException;
 import org.dromara.x.file.storage.core.file.*;
 import org.dromara.x.file.storage.core.platform.*;
+import org.dromara.x.file.storage.core.platform.AmazonS3V2FileStorageClientFactory.AmazonS3V2Client;
 import org.dromara.x.file.storage.core.platform.AzureBlobStorageFileStorageClientFactory.AzureBlobStorageClient;
+import org.dromara.x.file.storage.core.platform.GoFastDfsFileStorageClientFactory.GoFastDfsClient;
+import org.dromara.x.file.storage.core.platform.MongoGridFsFileStorageClientFactory.MongoGridFsClient;
 import org.dromara.x.file.storage.core.platform.QiniuKodoFileStorageClientFactory.QiniuKodoClient;
 import org.dromara.x.file.storage.core.recorder.DefaultFileRecorder;
 import org.dromara.x.file.storage.core.recorder.FileRecorder;
@@ -240,6 +243,7 @@ public class FileStorageServiceBuilder {
         fileStorageList.addAll(buildUpyunUssFileStorage(properties.getUpyunUss(), clientFactoryList));
         fileStorageList.addAll(buildMinioFileStorage(properties.getMinio(), clientFactoryList));
         fileStorageList.addAll(buildAmazonS3FileStorage(properties.getAmazonS3(), clientFactoryList));
+        fileStorageList.addAll(buildAmazonS3V2FileStorage(properties.getAmazonS3V2(), clientFactoryList));
         fileStorageList.addAll(buildFtpFileStorage(properties.getFtp(), clientFactoryList));
         fileStorageList.addAll(buildSftpFileStorage(properties.getSftp(), clientFactoryList));
         fileStorageList.addAll(buildWebDavFileStorage(properties.getWebdav(), clientFactoryList));
@@ -247,6 +251,9 @@ public class FileStorageServiceBuilder {
                 buildGoogleCloudStorageFileStorage(properties.getGoogleCloudStorage(), clientFactoryList));
         fileStorageList.addAll(buildFastDfsFileStorage(properties.getFastdfs(), clientFactoryList));
         fileStorageList.addAll(buildAzureBlobFileStorage(properties.getAzureBlob(), clientFactoryList));
+        fileStorageList.addAll(buildMongoGridFsStorage(properties.getMongoGridFs(), clientFactoryList));
+        fileStorageList.addAll(buildGoFastDfsStorage(properties.getGoFastdfs(), clientFactoryList));
+        fileStorageList.addAll(buildVolcengineTosFileStorage(properties.getVolcengineTos(), clientFactoryList));
 
         // 本体
         FileStorageService service = new FileStorageService();
@@ -445,6 +452,25 @@ public class FileStorageServiceBuilder {
     }
 
     /**
+     * 根据配置文件创建 Amazon S3 存储平台，使用v2SDK
+     */
+    public static List<AmazonS3V2FileStorage> buildAmazonS3V2FileStorage(
+            List<? extends AmazonS3V2Config> list, List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        if (CollUtil.isEmpty(list)) return Collections.emptyList();
+        buildFileStorageDetect(list, "Amazon S3 v2", "software.amazon.awssdk.services.s3.S3Client");
+        return list.stream()
+                .map(config -> {
+                    log.info("加载 Amazon S3 v2 存储平台：{}", config.getPlatform());
+                    FileStorageClientFactory<AmazonS3V2Client> clientFactory = getFactory(
+                            config.getPlatform(),
+                            clientFactoryList,
+                            () -> new AmazonS3V2FileStorageClientFactory(config));
+                    return new AmazonS3V2FileStorage(config, clientFactory);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 根据配置文件创建 FTP 存储平台
      */
     public static List<FtpFileStorage> buildFtpFileStorage(
@@ -554,15 +580,72 @@ public class FileStorageServiceBuilder {
     public static List<AzureBlobStorageFileStorage> buildAzureBlobFileStorage(
             List<? extends AzureBlobStorageConfig> list, List<List<FileStorageClientFactory<?>>> clientFactoryList) {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
-        buildFileStorageDetect(list, "microsoft azure blob ", "com.azure.storage.blob.BlobServiceClient");
+        buildFileStorageDetect(list, "Azure Blob Storage", "com.azure.storage.blob.BlobServiceClient");
         return list.stream()
                 .map(config -> {
-                    log.info("加载 microsoft azure blob 存储平台：{}", config.getPlatform());
+                    log.info("加载 Azure Blob Storage 存储平台：{}", config.getPlatform());
                     FileStorageClientFactory<AzureBlobStorageClient> clientFactory = getFactory(
                             config.getPlatform(),
                             clientFactoryList,
                             () -> new AzureBlobStorageFileStorageClientFactory(config));
                     return new AzureBlobStorageFileStorage(config, clientFactory);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 根据配置文件创建 Mongo GridFS 存储平台
+     */
+    public static List<MongoGridFsFileStorage> buildMongoGridFsStorage(
+            List<? extends MongoGridFsConfig> list, List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        if (CollUtil.isEmpty(list)) return Collections.emptyList();
+        buildFileStorageDetect(list, "Mongo GridFS", "com.mongodb.client.MongoClient");
+        return list.stream()
+                .map(config -> {
+                    log.info("加载 Mongo GridFS 存储平台：{}", config.getPlatform());
+                    FileStorageClientFactory<MongoGridFsClient> clientFactory = getFactory(
+                            config.getPlatform(),
+                            clientFactoryList,
+                            () -> new MongoGridFsFileStorageClientFactory(config));
+                    return new MongoGridFsFileStorage(config, clientFactory);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 根据配置文件创建 go-fastdfs 存储平台
+     */
+    public static List<GoFastDfsFileStorage> buildGoFastDfsStorage(
+            List<? extends GoFastDfsConfig> list, List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        if (CollUtil.isEmpty(list)) return Collections.emptyList();
+        buildFileStorageDetect(list, "go-fastdfs", "cn.hutool.json.JSONUtil", "cn.hutool.http.HttpUtil");
+        return list.stream()
+                .map(config -> {
+                    log.info("加载 go-fastdfs 存储平台：{}", config.getPlatform());
+                    FileStorageClientFactory<GoFastDfsClient> clientFactory = getFactory(
+                            config.getPlatform(),
+                            clientFactoryList,
+                            () -> new GoFastDfsFileStorageClientFactory(config));
+                    return new GoFastDfsFileStorage(config, clientFactory);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 根据配置文件创建火山引擎 TOS 存储平台
+     */
+    public static List<VolcengineTosFileStorage> buildVolcengineTosFileStorage(
+            List<? extends VolcengineTosConfig> list, List<List<FileStorageClientFactory<?>>> clientFactoryList) {
+        if (CollUtil.isEmpty(list)) return Collections.emptyList();
+        buildFileStorageDetect(list, "火山引擎 TOS", "com.volcengine.tos.TOSV2");
+        return list.stream()
+                .map(config -> {
+                    log.info("加载 火山引擎 TOS 存储平台：{}", config.getPlatform());
+                    FileStorageClientFactory<com.volcengine.tos.TOSV2> clientFactory = getFactory(
+                            config.getPlatform(),
+                            clientFactoryList,
+                            () -> new VolcengineTosFileStorageClientFactory(config));
+                    return new VolcengineTosFileStorage(config, clientFactory);
                 })
                 .collect(Collectors.toList());
     }
@@ -612,7 +695,7 @@ public class FileStorageServiceBuilder {
             if (doesNotExistClass(className)) {
                 throw new FileStorageRuntimeException(
                         "检测到【" + platformName + "】配置，但是没有找到对应的依赖类：【" + className
-                                + "】，所以无法加载此存储平台！配置参考地址：https://x-file-storage.xuyanwu.cn/2.2.0/#/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8");
+                                + "】，所以无法加载此存储平台！配置参考地址：https://x-file-storage.xuyanwu.cn/2.3.0/#/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8");
             }
         }
     }

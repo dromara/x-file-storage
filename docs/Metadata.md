@@ -2,7 +2,7 @@
 
 ## 使用
 
-可以在上传时传入 Metadata 和 UserMetadata ，目前仅 华为云 OBS、阿里云 OSS、腾讯云 COS、百度云 BOS、七牛云 Kodo、又拍云 USS、MinIO、Amazon S3、GoogleCloud Storage、FastDFS、Azure Blob Storage 平台支持
+可以在上传时传入 Metadata 和 UserMetadata ，目前仅 华为云 OBS、阿里云 OSS、腾讯云 COS、百度云 BOS、七牛云 Kodo、又拍云 USS、MinIO、Amazon S3、Amazon S3 V2、GoogleCloud Storage、FastDFS、Azure Blob Storage、Mongo GridFS、火山引擎 TOS 平台支持
 
 ```java
 //判断是否支持 Metadata

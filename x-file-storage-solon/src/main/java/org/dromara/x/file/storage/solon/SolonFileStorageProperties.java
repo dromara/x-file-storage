@@ -80,74 +80,94 @@ public class SolonFileStorageProperties {
      * 本地存储
      */
     @Deprecated
-    private List<? extends SpringLocalConfig> local = new ArrayList<>();
+    private List<? extends SolonLocalConfig> local = new ArrayList<>();
     /**
      * 本地存储
      */
-    private List<? extends SpringLocalPlusConfig> localPlus = new ArrayList<>();
+    private List<? extends SolonLocalPlusConfig> localPlus = new ArrayList<>();
     /**
      * 华为云 OBS
      */
-    private List<? extends SpringHuaweiObsConfig> huaweiObs = new ArrayList<>();
+    private List<? extends SolonHuaweiObsConfig> huaweiObs = new ArrayList<>();
     /**
      * 阿里云 OSS
      */
-    private List<? extends SpringAliyunOssConfig> aliyunOss = new ArrayList<>();
+    private List<? extends SolonAliyunOssConfig> aliyunOss = new ArrayList<>();
     /**
      * 七牛云 Kodo
      */
-    private List<? extends SpringQiniuKodoConfig> qiniuKodo = new ArrayList<>();
+    private List<? extends SolonQiniuKodoConfig> qiniuKodo = new ArrayList<>();
     /**
      * 腾讯云 COS
      */
-    private List<? extends SpringTencentCosConfig> tencentCos = new ArrayList<>();
+    private List<? extends SolonTencentCosConfig> tencentCos = new ArrayList<>();
     /**
      * 百度云 BOS
      */
-    private List<? extends SpringBaiduBosConfig> baiduBos = new ArrayList<>();
+    private List<? extends SolonBaiduBosConfig> baiduBos = new ArrayList<>();
     /**
      * 又拍云 USS
      */
-    private List<? extends SpringUpyunUssConfig> upyunUss = new ArrayList<>();
+    private List<? extends SolonUpyunUssConfig> upyunUss = new ArrayList<>();
     /**
      * MinIO USS
      */
-    private List<? extends SpringMinioConfig> minio = new ArrayList<>();
+    private List<? extends SolonMinioConfig> minio = new ArrayList<>();
 
     /**
      * Amazon S3
      */
-    private List<? extends SpringAmazonS3Config> amazonS3 = new ArrayList<>();
+    private List<? extends SolonAmazonS3Config> amazonS3 = new ArrayList<>();
+
+    /**
+     * Amazon S3 V2
+     */
+    private List<? extends SolonAmazonS3V2Config> amazonS3V2 = new ArrayList<>();
 
     /**
      * FTP
      */
-    private List<? extends SpringFtpConfig> ftp = new ArrayList<>();
+    private List<? extends SolonFtpConfig> ftp = new ArrayList<>();
 
     /**
      * FTP
      */
-    private List<? extends SpringSftpConfig> sftp = new ArrayList<>();
+    private List<? extends SolonSftpConfig> sftp = new ArrayList<>();
 
     /**
      * WebDAV
      */
-    private List<? extends SpringWebDavConfig> webdav = new ArrayList<>();
+    private List<? extends SolonWebDavConfig> webdav = new ArrayList<>();
 
     /**
      * GoogleCloud Storage
      */
-    private List<? extends SpringGoogleCloudStorageConfig> googleCloudStorage = new ArrayList<>();
+    private List<? extends SolonGoogleCloudStorageConfig> googleCloudStorage = new ArrayList<>();
 
     /**
      * FastDFS
      */
-    private List<? extends SpringFastDfsConfig> fastdfs = new ArrayList<>();
+    private List<? extends SolonFastDfsConfig> fastdfs = new ArrayList<>();
 
     /**
      * Azure Blob Storage
      */
-    private List<? extends SpringAzureBlobStorageConfig> azureBlob = new ArrayList<>();
+    private List<? extends SolonAzureBlobStorageConfig> azureBlob = new ArrayList<>();
+
+    /**
+     * Mongo GridFS
+     */
+    private List<? extends SolonMongoGridFsConfig> mongoGridFs = new ArrayList<>();
+
+    /**
+     * GoFastDFS
+     */
+    private List<? extends SolonGoFastDfsConfig> goFastdfs = new ArrayList<>();
+
+    /**
+     * 火山引擎 TOS
+     */
+    private List<? extends SolonVolcengineTosConfig> volcengineTos = new ArrayList<>();
 
     /**
      * 转换成 FileStorageProperties ，并过滤掉没有启用的存储平台
@@ -163,44 +183,55 @@ public class SolonFileStorageProperties {
         properties.setMoveNotSupportMetadataThrowException(moveNotSupportMetadataThrowException);
         properties.setMoveNotSupportAclThrowException(moveNotSupportAclThrowException);
         properties.setLocal(
-                local.stream().filter(SpringLocalConfig::getEnableStorage).collect(Collectors.toList()));
+                local.stream().filter(SolonLocalConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setLocalPlus(localPlus.stream()
-                .filter(SpringLocalPlusConfig::getEnableStorage)
+                .filter(SolonLocalPlusConfig::getEnableStorage)
                 .collect(Collectors.toList()));
         properties.setHuaweiObs(huaweiObs.stream()
-                .filter(SpringHuaweiObsConfig::getEnableStorage)
+                .filter(SolonHuaweiObsConfig::getEnableStorage)
                 .collect(Collectors.toList()));
         properties.setAliyunOss(aliyunOss.stream()
-                .filter(SpringAliyunOssConfig::getEnableStorage)
+                .filter(SolonAliyunOssConfig::getEnableStorage)
                 .collect(Collectors.toList()));
         properties.setQiniuKodo(qiniuKodo.stream()
-                .filter(SpringQiniuKodoConfig::getEnableStorage)
+                .filter(SolonQiniuKodoConfig::getEnableStorage)
                 .collect(Collectors.toList()));
         properties.setTencentCos(tencentCos.stream()
-                .filter(SpringTencentCosConfig::getEnableStorage)
+                .filter(SolonTencentCosConfig::getEnableStorage)
                 .collect(Collectors.toList()));
         properties.setBaiduBos(
-                baiduBos.stream().filter(SpringBaiduBosConfig::getEnableStorage).collect(Collectors.toList()));
+                baiduBos.stream().filter(SolonBaiduBosConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setUpyunUss(
-                upyunUss.stream().filter(SpringUpyunUssConfig::getEnableStorage).collect(Collectors.toList()));
+                upyunUss.stream().filter(SolonUpyunUssConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setMinio(
-                minio.stream().filter(SpringMinioConfig::getEnableStorage).collect(Collectors.toList()));
+                minio.stream().filter(SolonMinioConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setAmazonS3(
-                amazonS3.stream().filter(SpringAmazonS3Config::getEnableStorage).collect(Collectors.toList()));
-        properties.setFtp(ftp.stream().filter(SpringFtpConfig::getEnableStorage).collect(Collectors.toList()));
+                amazonS3.stream().filter(SolonAmazonS3Config::getEnableStorage).collect(Collectors.toList()));
+        properties.setAmazonS3V2(amazonS3V2.stream()
+                .filter(SolonAmazonS3V2Config::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setFtp(ftp.stream().filter(SolonFtpConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setSftp(
-                sftp.stream().filter(SpringSftpConfig::getEnableStorage).collect(Collectors.toList()));
+                sftp.stream().filter(SolonSftpConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setWebdav(
-                webdav.stream().filter(SpringWebDavConfig::getEnableStorage).collect(Collectors.toList()));
+                webdav.stream().filter(SolonWebDavConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setGoogleCloudStorage(googleCloudStorage.stream()
-                .filter(SpringGoogleCloudStorageConfig::getEnableStorage)
+                .filter(SolonGoogleCloudStorageConfig::getEnableStorage)
                 .collect(Collectors.toList()));
         properties.setFastdfs(
-                fastdfs.stream().filter(SpringFastDfsConfig::getEnableStorage).collect(Collectors.toList()));
+                fastdfs.stream().filter(SolonFastDfsConfig::getEnableStorage).collect(Collectors.toList()));
         properties.setAzureBlob(azureBlob.stream()
-                .filter(SpringAzureBlobStorageConfig::getEnableStorage)
+                .filter(SolonAzureBlobStorageConfig::getEnableStorage)
                 .collect(Collectors.toList()));
-
+        properties.setMongoGridFs(mongoGridFs.stream()
+                .filter(SolonMongoGridFsConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setGoFastdfs(goFastdfs.stream()
+                .filter(SolonGoFastDfsConfig::getEnableStorage)
+                .collect(Collectors.toList()));
+        properties.setVolcengineTos(volcengineTos.stream()
+                .filter(SolonVolcengineTosConfig::getEnableStorage)
+                .collect(Collectors.toList()));
         return properties;
     }
 
@@ -211,7 +242,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringLocalConfig extends LocalConfig {
+    public static class SolonLocalConfig extends LocalConfig {
         /**
          * 本地存储访问路径
          */
@@ -232,7 +263,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringLocalPlusConfig extends LocalPlusConfig {
+    public static class SolonLocalPlusConfig extends LocalPlusConfig {
         /**
          * 本地存储访问路径
          */
@@ -253,7 +284,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringHuaweiObsConfig extends HuaweiObsConfig {
+    public static class SolonHuaweiObsConfig extends HuaweiObsConfig {
         /**
          * 启用存储
          */
@@ -266,7 +297,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringAliyunOssConfig extends AliyunOssConfig {
+    public static class SolonAliyunOssConfig extends AliyunOssConfig {
         /**
          * 启用存储
          */
@@ -279,7 +310,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringQiniuKodoConfig extends QiniuKodoConfig {
+    public static class SolonQiniuKodoConfig extends QiniuKodoConfig {
         /**
          * 启用存储
          */
@@ -292,7 +323,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringTencentCosConfig extends TencentCosConfig {
+    public static class SolonTencentCosConfig extends TencentCosConfig {
         /**
          * 启用存储
          */
@@ -305,7 +336,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringBaiduBosConfig extends BaiduBosConfig {
+    public static class SolonBaiduBosConfig extends BaiduBosConfig {
         /**
          * 启用存储
          */
@@ -318,7 +349,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringUpyunUssConfig extends UpyunUssConfig {
+    public static class SolonUpyunUssConfig extends UpyunUssConfig {
         /**
          * 启用存储
          */
@@ -331,7 +362,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringMinioConfig extends MinioConfig {
+    public static class SolonMinioConfig extends MinioConfig {
         /**
          * 启用存储
          */
@@ -344,7 +375,20 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringAmazonS3Config extends AmazonS3Config {
+    public static class SolonAmazonS3Config extends AmazonS3Config {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+
+    /**
+     * Amazon S3 V2
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class SolonAmazonS3V2Config extends AmazonS3V2Config {
         /**
          * 启用存储
          */
@@ -357,7 +401,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringFtpConfig extends FtpConfig {
+    public static class SolonFtpConfig extends FtpConfig {
         /**
          * 启用存储
          */
@@ -370,7 +414,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringSftpConfig extends SftpConfig {
+    public static class SolonSftpConfig extends SftpConfig {
         /**
          * 启用存储
          */
@@ -383,7 +427,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringWebDavConfig extends WebDavConfig {
+    public static class SolonWebDavConfig extends WebDavConfig {
         /**
          * 启用存储
          */
@@ -396,7 +440,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringGoogleCloudStorageConfig extends GoogleCloudStorageConfig {
+    public static class SolonGoogleCloudStorageConfig extends GoogleCloudStorageConfig {
         /**
          * 启用存储
          */
@@ -412,7 +456,7 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringFastDfsConfig extends FastDfsConfig {
+    public static class SolonFastDfsConfig extends FastDfsConfig {
         /**
          * 启用存储
          */
@@ -425,7 +469,46 @@ public class SolonFileStorageProperties {
     @Data
     @Accessors(chain = true)
     @EqualsAndHashCode(callSuper = true)
-    public static class SpringAzureBlobStorageConfig extends AzureBlobStorageConfig {
+    public static class SolonAzureBlobStorageConfig extends AzureBlobStorageConfig {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+
+    /**
+     * Mongo GridFS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class SolonMongoGridFsConfig extends MongoGridFsConfig {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+
+    /**
+     * GoFastDFS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class SolonGoFastDfsConfig extends GoFastDfsConfig {
+        /**
+         * 启用存储
+         */
+        private Boolean enableStorage = false;
+    }
+
+    /**
+     * 火山引擎 TOS
+     */
+    @Data
+    @Accessors(chain = true)
+    @EqualsAndHashCode(callSuper = true)
+    public static class SolonVolcengineTosConfig extends VolcengineTosConfig {
         /**
          * 启用存储
          */

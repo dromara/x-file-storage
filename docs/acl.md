@@ -1,6 +1,6 @@
 # ACL 访问控制列表
 
-也叫预定义访问策略，目前仅 华为云 OBS、阿里云 OSS、腾讯云 COS、百度云 BOS、Amazon S3、GoogleCloud Storage、Azure Blob Storage 平台支持
+也叫预定义访问策略，目前仅 华为云 OBS、阿里云 OSS、腾讯云 COS、百度云 BOS、Amazon S3、Amazon S3 V2、GoogleCloud Storage、Azure Blob Storage、火山引擎 TOS 平台支持
 
 Azure Blob Storage 即使将文件的 ACL 设置为 公共读`PUBLIC_READ` ，上传成功后的 `url` 也无法通过浏览器直接公开访问 ，详情阅读 [兼容性说明-AzureBlobStorage](存储平台?id=OCI_AzureBlobStorage) 章节
 
@@ -94,6 +94,15 @@ fileStorageService.of(file).setFileAcl(CannedAccessControlList.Private).upload()
 fileStorageService.of(file).setFileAcl(CannedAccessControlList.Private).upload();
 ```
 
+#### **Amazon S3 V2**
+
+```java
+//使用官方 SDK 中定义好的
+fileStorageService.of(file).setFileAcl(ObjectCannedACL.PRIVATE).upload();
+//或者直接使用 Amazon S3 V2 支持的字符串
+fileStorageService.of(file).setFileAcl("public-read-write").upload();
+```
+
 #### **GoogleCloud Storage**
 
 ```java
@@ -130,6 +139,13 @@ fileStorageService.of(file).setFileAcl(acl).upload();
 //第二种可以一次设置多个
 List<PathAccessControlEntry> acl = PathAccessControlEntry.parseList("user::rw-,group::r--,other::---");
 fileStorageService.of(file).setFileAcl(acl).upload();
+```
+
+#### **火山引擎 TOS**
+
+```java
+//使用官方 SDK 中定义好的
+fileStorageService.of(file).setFileAcl(ACLType.ACL_PRIVATE).upload();
 ```
 
 <!-- tabs:end -->

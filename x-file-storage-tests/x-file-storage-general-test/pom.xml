@@ -32,6 +32,7 @@
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-crypto</artifactId>
         </dependency>
+        <!-- 因存在较多冲突版本导致谷歌云无法使用，故引入独立版本 -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
@@ -63,15 +64,30 @@
         <!--            <artifactId>commons-net</artifactId>-->
         <!--        </dependency>-->
         <!-- Amazon S3 -->
-                <dependency>
-                    <groupId>com.amazonaws</groupId>
-                    <artifactId>aws-java-sdk-s3</artifactId>
-                </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>com.amazonaws</groupId>-->
+        <!--            <artifactId>aws-java-sdk-s3</artifactId>-->
+        <!--        </dependency>-->
+
+        <!-- Amazon S3 v2 -->
+        <!--        <dependency>-->
+        <!--            <groupId>software.amazon.awssdk</groupId>-->
+        <!--            <artifactId>s3</artifactId>-->
+        <!--        </dependency>-->
         <!-- MinIO -->
-                <dependency>
-                    <groupId>io.minio</groupId>
-                    <artifactId>minio</artifactId>
-                </dependency>
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+        </dependency>
+        <!-- MongoDB GridFS -->
+        <!--        <dependency>-->
+        <!--            <groupId>org.mongodb</groupId>-->
+        <!--            <artifactId>mongodb-driver-sync</artifactId>-->
+        <!--        </dependency>-->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-json</artifactId>
+        </dependency>
         <!-- 又拍云 USS -->
         <!--        <dependency>-->
         <!--            <groupId>com.upyun</groupId>-->
@@ -83,45 +99,49 @@
         <!--            <artifactId>bce-java-sdk</artifactId>-->
         <!--        </dependency>-->
         <!-- 腾讯云 COS -->
-                <dependency>
-                    <groupId>com.qcloud</groupId>
-                    <artifactId>cos_api</artifactId>
-                </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>com.qcloud</groupId>-->
+        <!--            <artifactId>cos_api</artifactId>-->
+        <!--        </dependency>-->
         <!-- 七牛云 Kodo -->
         <!--        <dependency>-->
         <!--            <groupId>com.qiniu</groupId>-->
         <!--            <artifactId>qiniu-java-sdk</artifactId>-->
         <!--        </dependency>-->
         <!-- 阿里云 OSS -->
-                <dependency>
-                    <groupId>com.aliyun.oss</groupId>
-                    <artifactId>aliyun-sdk-oss</artifactId>
-                </dependency>
+        <!--                <dependency>-->
+        <!--                    <groupId>com.aliyun.oss</groupId>-->
+        <!--                    <artifactId>aliyun-sdk-oss</artifactId>-->
+        <!--                </dependency>-->
         <!-- 华为云 OBS -->
         <dependency>
             <groupId>com.huaweicloud</groupId>
             <artifactId>esdk-obs-java</artifactId>
         </dependency>
-        <!--        &lt;!&ndash; 谷歌云 Google Cloud Platform Storage&ndash;&gt;-->
+        <!-- 谷歌云 Google Cloud Platform Storage-->
         <!--        <dependency>-->
         <!--            <groupId>com.google.cloud</groupId>-->
         <!--            <artifactId>google-cloud-storage</artifactId>-->
         <!--        </dependency>-->
-        <!--因存在较多冲突版本导致谷歌云无法使用，故引入独立版本-->
         <!-- FastDFS -->
         <!--        <dependency>-->
         <!--            <groupId>io.github.rui8832</groupId>-->
         <!--            <artifactId>fastdfs-client-java</artifactId>-->
         <!--        </dependency>-->
         <!-- Azure Blob -->
-                <dependency>
-                    <groupId>com.azure</groupId>
-                    <artifactId>azure-storage-blob</artifactId>
-                </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>com.azure</groupId>-->
+        <!--            <artifactId>azure-storage-blob</artifactId>-->
+        <!--        </dependency>-->
+        <!-- 火山引擎 TOS -->
+        <!--        <dependency>-->
+        <!--            <groupId>com.volcengine</groupId>-->
+        <!--            <artifactId>ve-tos-java-sdk</artifactId>-->
+        <!--        </dependency>-->
         <!-- Azure File Data Lake 用于处理 ACL -->
-                <dependency>
-                    <groupId>com.azure</groupId>
-                    <artifactId>azure-storage-file-datalake</artifactId>
-                </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>com.azure</groupId>-->
+        <!--            <artifactId>azure-storage-file-datalake</artifactId>-->
+        <!--        </dependency>-->
     </dependencies>
 </project>
