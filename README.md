@@ -98,7 +98,7 @@ GitCode：https://gitcode.com/dromara/x-file-storage
 <dependency>
     <groupId>org.dromara.x-file-storage</groupId>
     <artifactId>x-file-storage-spring</artifactId>
-    <version>2.2.1</version>
+    <version>2.3.0</version>
 </dependency>
 <!-- 引入 阿里云 OSS SDK，如果使用其它存储平台，就引入对应的 SDK  -->
 <dependency>

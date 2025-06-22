@@ -8,7 +8,7 @@
 <dependency>
     <groupId>org.dromara.x-file-storage</groupId>
     <artifactId>x-file-storage-core</artifactId>
-    <version>2.2.1</version>
+    <version>2.3.0</version>
 </dependency>
 ```
 

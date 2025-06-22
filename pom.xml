@@ -91,7 +91,7 @@
     </scm>
 
     <properties>
-        <revision>2.3.0-SNAPSHOT</revision>
+        <revision>2.3.0</revision>
         <!--region Maven Base-->
         <maven.version>3.9.9</maven.version>
         <java.version>8</java.version>
