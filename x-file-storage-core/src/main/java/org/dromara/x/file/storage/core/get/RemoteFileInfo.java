@@ -411,7 +411,7 @@ public class RemoteFileInfo {
      * @return 文件信息
      */
     public FileInfo toFileInfoTh() {
-        return toFileInfo(new FileInfo());
+        return toFileInfoTh(new FileInfo());
     }
 
     /**
