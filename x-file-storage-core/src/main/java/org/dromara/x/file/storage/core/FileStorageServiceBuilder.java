@@ -620,7 +620,7 @@ public class FileStorageServiceBuilder {
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
         return list.stream()
                 .map(config -> {
-                    log.info("加载 GoFastDfs 存储平台：{}", config.getPlatform());
+                    log.info("加载 go-fastdfs 存储平台：{}", config.getPlatform());
                     FileStorageClientFactory<GoFastDfsClient> clientFactory = getFactory(
                             config.getPlatform(),
                             clientFactoryList,

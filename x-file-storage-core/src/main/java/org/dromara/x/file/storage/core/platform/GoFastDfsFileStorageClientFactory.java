@@ -214,7 +214,7 @@ public class GoFastDfsFileStorageClientFactory
         }
 
         /**
-         * GoFastDfs 中由 HTTP 错误引发的异常
+         * go-fastdfs 中由 HTTP 错误引发的异常
          */
         public static class GoFastDfsHttpException extends RuntimeException {
             public GoFastDfsHttpException(String message) {
@@ -223,7 +223,7 @@ public class GoFastDfsFileStorageClientFactory
         }
 
         /**
-         * GoFastDfs 中由业务错误引发的异常
+         * go-fastdfs 中由业务错误引发的异常
          */
         public static class GoFastDfsWorkException extends RuntimeException {
             public GoFastDfsWorkException(String message) {
