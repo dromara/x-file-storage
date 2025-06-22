@@ -341,14 +341,17 @@ public class AliyunOssFileStorage implements FileStorage {
         String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         OSS client = getClient();
         try {
-            OSSObject file;
+            OSSObject file = null;
+            ObjectMetadata metadata;
             try {
                 file = client.getObject(bucketName, fileKey);
+                metadata = file.getObjectMetadata();
             } catch (Exception e) {
                 return null;
+            } finally {
+                IoUtil.close(file);
             }
-            if (file == null) return null;
-            ObjectMetadata metadata = file.getObjectMetadata();
+            if (metadata == null) return null;
             RemoteFileInfo info = new RemoteFileInfo();
             info.setPlatform(pre.getPlatform());
             info.setBasePath(basePath);
@@ -509,8 +512,8 @@ public class AliyunOssFileStorage implements FileStorage {
 
     @Override
     public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
-        OSSObject object = getClient().getObject(bucketName, getFileKey(fileInfo));
-        try (InputStream in = object.getObjectContent()) {
+        try (OSSObject object = getClient().getObject(bucketName, getFileKey(fileInfo));
+                InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (Exception e) {
             throw ExceptionFactory.download(fileInfo, platform, e);
@@ -521,8 +524,8 @@ public class AliyunOssFileStorage implements FileStorage {
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
         Check.downloadThBlankThFilename(platform, fileInfo);
 
-        OSSObject object = getClient().getObject(bucketName, getThFileKey(fileInfo));
-        try (InputStream in = object.getObjectContent()) {
+        try (OSSObject object = getClient().getObject(bucketName, getThFileKey(fileInfo));
+                InputStream in = object.getObjectContent()) {
             consumer.accept(in);
         } catch (Exception e) {
             throw ExceptionFactory.downloadTh(fileInfo, platform, e);

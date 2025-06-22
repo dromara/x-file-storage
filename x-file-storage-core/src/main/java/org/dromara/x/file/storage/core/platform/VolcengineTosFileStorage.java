@@ -378,12 +378,14 @@ public class VolcengineTosFileStorage implements FileStorage {
         String fileKey = getFileKey(new FileInfo(basePath, pre.getPath(), pre.getFilename()));
         TOSV2 client = getClient();
         try {
-            GetObjectV2Output file;
+            GetObjectV2Output file = null;
             try {
                 file = client.getObject(
                         new GetObjectV2Input().setBucket(bucketName).setKey(fileKey));
             } catch (Exception e) {
                 return null;
+            } finally {
+                IoUtil.close(file);
             }
             if (file == null) return null;
             RemoteFileInfo info = new RemoteFileInfo();
@@ -588,9 +590,10 @@ public class VolcengineTosFileStorage implements FileStorage {
     @Override
     public void download(FileInfo fileInfo, Consumer<InputStream> consumer) {
         try {
-            GetObjectV2Output output = getClient()
-                    .getObject(new GetObjectV2Input().setBucket(bucketName).setKey(getFileKey(fileInfo)));
-            try (InputStream in = output.getContent()) {
+            try (GetObjectV2Output output = getClient()
+                            .getObject(
+                                    new GetObjectV2Input().setBucket(bucketName).setKey(getFileKey(fileInfo)));
+                    InputStream in = output.getContent()) {
                 consumer.accept(in);
             }
         } catch (Exception e) {
@@ -602,9 +605,10 @@ public class VolcengineTosFileStorage implements FileStorage {
     public void downloadTh(FileInfo fileInfo, Consumer<InputStream> consumer) {
         Check.downloadThBlankThFilename(platform, fileInfo);
         try {
-            GetObjectV2Output output = getClient()
-                    .getObject(new GetObjectV2Input().setBucket(bucketName).setKey(getThFileKey(fileInfo)));
-            try (InputStream in = output.getContent()) {
+            try (GetObjectV2Output output = getClient()
+                            .getObject(
+                                    new GetObjectV2Input().setBucket(bucketName).setKey(getThFileKey(fileInfo)));
+                    InputStream in = output.getContent()) {
                 consumer.accept(in);
             }
         } catch (Exception e) {
@@ -625,12 +629,14 @@ public class VolcengineTosFileStorage implements FileStorage {
 
         // 获取远程文件信息
         String srcFileKey = getFileKey(srcFileInfo);
-        GetObjectV2Output srcFile;
+        GetObjectV2Output srcFile = null;
         try {
             srcFile = client.getObject(
                     new GetObjectV2Input().setBucket(bucketName).setKey(srcFileKey));
         } catch (Exception e) {
             throw ExceptionFactory.sameCopyNotFound(srcFileInfo, destFileInfo, platform, e);
+        } finally {
+            IoUtil.close(srcFile);
         }
 
         // 复制缩略图文件
@@ -739,12 +745,14 @@ public class VolcengineTosFileStorage implements FileStorage {
         TOSV2 client = getClient();
         // 获取远程文件信息
         String srcFileKey = getFileKey(srcFileInfo);
-        GetObjectV2Output srcFile;
+        GetObjectV2Output srcFile = null;
         try {
             srcFile = client.getObject(
                     new GetObjectV2Input().setBucket(bucketName).setKey(srcFileKey));
         } catch (Exception e) {
             throw ExceptionFactory.sameMoveNotFound(srcFileInfo, destFileInfo, platform, e);
+        } finally {
+            IoUtil.close(srcFile);
         }
 
         // 移动缩略图文件
