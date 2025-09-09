@@ -58,7 +58,7 @@ public class CompleteMultipartUploadActuator {
                             _fileRecorder.deleteFilePartByUploadId(_fileInfo.getUploadId());
 
                             // 文件上传完成，识别文件 ContentType
-                            if (StrUtil.isNotBlank(_fileInfo.getContentType())) {
+                            if (StrUtil.isBlank(_fileInfo.getContentType())) {
                                 try {
                                     new Downloader(_fileInfo, aspectList, _fileStorage, Downloader.TARGET_FILE)
                                             .inputStream(in -> {
