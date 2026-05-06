@@ -8,7 +8,7 @@ import lombok.Setter;
 import org.dromara.x.file.storage.core.file.MultipartFormDataReader.MultipartFormData;
 
 /**
- * JavaxHttpServletRequest 文件包装类
+ * HttpServletRequest 文件包装类
  */
 @Getter
 @Setter
