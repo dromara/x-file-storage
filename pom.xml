@@ -442,6 +442,13 @@
             </modules>
         </profile>
         <profile>
+            <!-- Spring Boot 4 兼容性测试，独立 BOM 与 JDK 17，不与 test profile 干扰 -->
+            <id>test-boot4</id>
+            <modules>
+                <module>x-file-storage-tests/x-file-storage-springboot4-test</module>
+            </modules>
+        </profile>
+        <profile>
             <id>release</id>
             <build>
                 <plugins>

@@ -7,7 +7,7 @@
             <id>aliyun</id>
             <name>Aliyun Maven Mirror</name>
             <url>https://maven.aliyun.com/repository/central</url>
-            <mirrorOf>central</mirrorOf>
+            <mirrorOf>*</mirrorOf>
         </mirror>
     </mirrors>
 </settings>
