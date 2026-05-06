@@ -10,6 +10,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
+import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 /**
@@ -29,6 +30,9 @@ public class AmazonS3V2FileStorageClientFactory
     private String secretKey;
     private String region;
     private String endPoint;
+    private boolean pathStyleAccess;
+    private boolean chunkedEncoding;
+    private boolean accelerate;
     private volatile AmazonS3V2Client client;
 
     public AmazonS3V2FileStorageClientFactory(AmazonS3V2Config config) {
@@ -37,6 +41,9 @@ public class AmazonS3V2FileStorageClientFactory
         secretKey = config.getSecretKey();
         region = config.getRegion();
         endPoint = config.getEndPoint();
+        pathStyleAccess = config.isPathStyleAccess();
+        chunkedEncoding = config.isChunkedEncoding();
+        accelerate = config.isAccelerate();
     }
 
     @Override
@@ -44,7 +51,8 @@ public class AmazonS3V2FileStorageClientFactory
         if (client == null) {
             synchronized (this) {
                 if (client == null) {
-                    client = new AmazonS3V2Client(accessKey, secretKey, region, endPoint);
+                    client = new AmazonS3V2Client(
+                            accessKey, secretKey, region, endPoint, pathStyleAccess, chunkedEncoding, accelerate);
                 }
             }
         }
@@ -66,14 +74,27 @@ public class AmazonS3V2FileStorageClientFactory
         private String secretKey;
         private String region;
         private String endPoint;
+        private boolean pathStyleAccess;
+        private boolean chunkedEncoding;
+        private boolean accelerate;
         private volatile S3Client client;
         private volatile S3Presigner presigner;
 
-        public AmazonS3V2Client(String accessKey, String secretKey, String region, String endPoint) {
+        public AmazonS3V2Client(
+                String accessKey,
+                String secretKey,
+                String region,
+                String endPoint,
+                boolean pathStyleAccess,
+                boolean chunkedEncoding,
+                boolean accelerate) {
             this.accessKey = accessKey;
             this.secretKey = secretKey;
             this.region = region;
             this.endPoint = endPoint;
+            this.pathStyleAccess = pathStyleAccess;
+            this.chunkedEncoding = chunkedEncoding;
+            this.accelerate = accelerate;
         }
 
         public S3Client getClient() {
@@ -83,7 +104,12 @@ public class AmazonS3V2FileStorageClientFactory
                         S3ClientBuilder builder = S3Client.builder()
                                 .credentialsProvider(StaticCredentialsProvider.create(
                                         AwsBasicCredentials.create(accessKey, secretKey)))
-                                .region(Region.of(region));
+                                .region(Region.of(region))
+                                .serviceConfiguration(S3Configuration.builder()
+                                        .pathStyleAccessEnabled(pathStyleAccess)
+                                        .chunkedEncodingEnabled(chunkedEncoding)
+                                        .accelerateModeEnabled(accelerate)
+                                        .build());
                         if (StrUtil.isNotBlank(endPoint)) {
                             builder.endpointOverride(URI.create(endPoint));
                         }
@@ -101,7 +127,12 @@ public class AmazonS3V2FileStorageClientFactory
                         S3Presigner.Builder builder = S3Presigner.builder()
                                 .credentialsProvider(StaticCredentialsProvider.create(
                                         AwsBasicCredentials.create(accessKey, secretKey)))
-                                .region(Region.of(region));
+                                .region(Region.of(region))
+                                .serviceConfiguration(S3Configuration.builder()
+                                        .pathStyleAccessEnabled(pathStyleAccess)
+                                        .chunkedEncodingEnabled(chunkedEncoding)
+                                        .accelerateModeEnabled(accelerate)
+                                        .build());
                         if (StrUtil.isNotBlank(endPoint)) {
                             builder.endpointOverride(URI.create(endPoint));
                         }

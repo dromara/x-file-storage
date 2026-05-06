@@ -534,6 +534,24 @@ public class FileStorageProperties {
 
         private String endPoint;
 
+        /**
+         * 是否启用路径风格访问（path-style），默认 false（即虚拟主机风格 virtual-hosted-style）。
+         * 接入 RustFS、Ceph RGW 及部分自建 S3 兼容服务时通常需要设为 true
+         */
+        private boolean pathStyleAccess = false;
+
+        /**
+         * 是否启用 chunked encoding（分块传输编码），默认 true（与 SDK 默认一致）。
+         * 接入 Cloudflare R2 及部分代理网关时需要设为 false，否则上传会报签名错误
+         */
+        private boolean chunkedEncoding = true;
+
+        /**
+         * 是否启用 S3 Transfer Acceleration（传输加速），默认 false。
+         * 仅适用于 AWS S3 真身且桶上已开启加速，自建/其他云厂商无效
+         */
+        private boolean accelerate = false;
+
         private String bucketName;
 
         /**
@@ -582,6 +600,24 @@ public class FileStorageProperties {
         private String region;
 
         private String endPoint;
+
+        /**
+         * 是否启用路径风格访问（path-style），默认 false（即虚拟主机风格 virtual-hosted-style）。
+         * 接入 RustFS、Ceph RGW 及部分自建 S3 兼容服务时通常需要设为 true
+         */
+        private boolean pathStyleAccess = false;
+
+        /**
+         * 是否启用 chunked encoding（分块传输编码），默认 true（与 SDK 默认一致）。
+         * 接入 Cloudflare R2 及部分代理网关时需要设为 false，否则上传会报签名错误
+         */
+        private boolean chunkedEncoding = true;
+
+        /**
+         * 是否启用 S3 Transfer Acceleration（传输加速），默认 false。
+         * 仅适用于 AWS S3 真身且桶上已开启加速，自建/其他云厂商无效
+         */
+        private boolean accelerate = false;
 
         private String bucketName;
 

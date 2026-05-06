@@ -23,6 +23,9 @@ public class AmazonS3FileStorageClientFactory implements FileStorageClientFactor
     private String secretKey;
     private String region;
     private String endPoint;
+    private boolean pathStyleAccess;
+    private boolean chunkedEncoding;
+    private boolean accelerate;
     private volatile AmazonS3 client;
 
     public AmazonS3FileStorageClientFactory(AmazonS3Config config) {
@@ -31,6 +34,9 @@ public class AmazonS3FileStorageClientFactory implements FileStorageClientFactor
         secretKey = config.getSecretKey();
         region = config.getRegion();
         endPoint = config.getEndPoint();
+        pathStyleAccess = config.isPathStyleAccess();
+        chunkedEncoding = config.isChunkedEncoding();
+        accelerate = config.isAccelerate();
     }
 
     @Override
@@ -40,7 +46,10 @@ public class AmazonS3FileStorageClientFactory implements FileStorageClientFactor
                 if (client == null) {
                     AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
                             .withCredentials(
-                                    new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)));
+                                    new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
+                            .withPathStyleAccessEnabled(pathStyleAccess)
+                            .withChunkedEncodingDisabled(!chunkedEncoding)
+                            .withAccelerateModeEnabled(accelerate);
                     if (StrUtil.isNotBlank(endPoint)) {
                         builder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endPoint, region));
                     } else if (StrUtil.isNotBlank(region)) {

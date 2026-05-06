@@ -44,7 +44,7 @@
 
 一行代码将文件存储到本地、FTP、SFTP、WebDAV、阿里云 OSS、华为云 OBS、七牛云 Kodo、腾讯云 COS、百度云 BOS、又拍云 USS、MinIO、
 Amazon S3、Amazon S3 V2、GoogleCloud Storage、FastDFS、 Azure Blob Storage、Mongo GridFS、Mongo GridFS、go-fastdfs、
-火山引擎 TOS、Cloudflare R2、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动 云EOS、沃云 OSS、
+火山引擎 TOS、Cloudflare R2、RustFS、Ceph、金山云 KS3、美团云 MSS、京东云 OSS、天翼云 OOS、移动 云EOS、沃云 OSS、
 网易数帆 NOS、Ucloud US3、青云 QingStor、平安云 OBS、首云 OSS、IBM COS、其它兼容 S3 协议的存储平台。查看 [所有支持的存储平台](存储平台)
 
 💡 通过 WebDAV 连接到 Alist 后，可以使用百度网盘、天翼云盘、阿里云盘、迅雷网盘等常见存储服务，查看 [Alist 支持的存储平台](https://alist.nn.ci/zh/guide/webdav.html#webdav-%E5%AD%98%E5%82%A8%E6%94%AF%E6%8C%81)
@@ -63,7 +63,10 @@ GitCode：https://gitcode.com/dromara/x-file-storage
 
 这里是简要的更新记录，查看 [详细的更新记录](更新记录)
 
+`2.4.0` Amazon S3 / Amazon S3 V2 新增 path-style-access、chunked-encoding、accelerate 配置项，支持对接 RustFS、Ceph RGW、Cloudflare R2 等 S3 兼容存储服务及 AWS 传输加速 [更新记录](更新记录?id=_240)
+<br />
 `2.3.0` 新增 Mongo GridFS、go-fastdfs、Amazon S3 V2、火山引擎 TOS 存储平台，修复资源泄露、上传等问题 [更新记录](更新记录?id=_230)
+<br />
 `2.2.1` 修复某些情况下哈希计算错误的问题、七牛云 Kodo 预签名 URL 无法使用的问题 [更新记录](更新记录?id=_221)
 <br />
 `2.2.0` 修复大量问题，新增获取文件、列举文件，重构预签名 URL 支持客户端上传、下载、删除等操作，新增 Solon 插件，优化手动分片上传等功能，详情查看 [更新记录](更新记录?id=_220)
