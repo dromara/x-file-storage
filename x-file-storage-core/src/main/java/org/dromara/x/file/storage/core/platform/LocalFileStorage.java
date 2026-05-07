@@ -357,9 +357,16 @@ public class LocalFileStorage implements FileStorage {
     public boolean delete(FileInfo fileInfo) {
         try {
             if (fileInfo.getThFilename() != null) { // 删除缩略图
-                FileUtil.del(getAbsolutePath(getThFileKey(fileInfo)));
+                String thFileKey = getAbsolutePath(getThFileKey(fileInfo));
+                if (FileUtil.isFile(thFileKey)) {
+                    FileUtil.del(thFileKey);
+                }
             }
-            return FileUtil.del(getAbsolutePath(getFileKey(fileInfo)));
+            String fileKey = getAbsolutePath(getFileKey(fileInfo));
+            if (FileUtil.isFile(fileKey)) {
+                return FileUtil.del(fileKey);
+            }
+            return false;
         } catch (Exception e) {
             throw ExceptionFactory.delete(fileInfo, platform, e);
         }
