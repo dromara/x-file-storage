@@ -122,6 +122,7 @@ dromara:
         path-style-access: false # 路径风格访问，默认 false；接入 RustFS / Ceph RGW 等自建 S3 兼容服务时设为 true
         chunked-encoding: true # 分块传输编码，默认 true；接入 Cloudflare R2 等部分 S3 兼容服务时设为 false
         accelerate: false # S3 Transfer Acceleration（传输加速），仅 AWS S3 真身且桶上已开启加速时设为 true
+        request-checksum-calculation: # 请求校验和计算策略，留空走 SDK 默认（WHEN_SUPPORTED）；接入旧版本 RustFS / Garage / SeaweedFS 等尚未实现 STREAMING-UNSIGNED-PAYLOAD-TRAILER 的 S3 兼容服务时设为 WHEN_REQUIRED
         bucket-name: abcd #桶名称
         domain: https://abcd.s3.ap-east-1.amazonaws.com/ # 访问域名，注意“/”结尾，例如：https://abcd.s3.ap-east-1.amazonaws.com/
         base-path: s3/ # 基础路径

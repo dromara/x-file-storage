@@ -109,7 +109,7 @@
         <!--region 3rd SDK-->
         <aliyun-sdk-oss.version>3.16.1</aliyun-sdk-oss.version>
         <aws-java-sdk-s3.version>1.12.429</aws-java-sdk-s3.version>
-        <aws-java-sdk-s3-v2.version>2.29.29</aws-java-sdk-s3-v2.version>
+        <aws-java-sdk-s3-v2.version>2.44.3</aws-java-sdk-s3-v2.version>
         <bce-java-sdk.version>0.10.251</bce-java-sdk.version>
         <commons-net.version>3.9.0</commons-net.version>
         <commons-pool2.version>2.11.1</commons-pool2.version>

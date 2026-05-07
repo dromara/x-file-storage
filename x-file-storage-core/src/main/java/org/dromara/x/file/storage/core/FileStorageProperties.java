@@ -619,6 +619,15 @@ public class FileStorageProperties {
          */
         private boolean accelerate = false;
 
+        /**
+         * 请求校验和计算策略，对应 SDK 枚举 {@link software.amazon.awssdk.core.checksums.RequestChecksumCalculation}，
+         * 取值 {@code WHEN_SUPPORTED} 或 {@code WHEN_REQUIRED}，默认 {@code null} 即沿用 SDK 默认行为（{@code WHEN_SUPPORTED}）。
+         * AWS SDK for Java 2.x 自 2.30.0 起默认会为上传请求计算 CRC32 校验和并发送 STREAMING-UNSIGNED-PAYLOAD-TRAILER，
+         * 旧版本 RustFS、Garage、SeaweedFS 等尚未实现该特性的 S3 兼容服务会返回 {@code invalid header: x-amz-content-sha256} 错误，
+         * 此时需要将本配置设为 {@code WHEN_REQUIRED}
+         */
+        private String requestChecksumCalculation;
+
         private String bucketName;
 
         /**

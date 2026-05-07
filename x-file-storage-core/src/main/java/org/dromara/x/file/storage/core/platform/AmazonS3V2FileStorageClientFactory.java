@@ -7,6 +7,7 @@ import lombok.*;
 import org.dromara.x.file.storage.core.FileStorageProperties.AmazonS3V2Config;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
@@ -33,6 +34,7 @@ public class AmazonS3V2FileStorageClientFactory
     private boolean pathStyleAccess;
     private boolean chunkedEncoding;
     private boolean accelerate;
+    private String requestChecksumCalculation;
     private volatile AmazonS3V2Client client;
 
     public AmazonS3V2FileStorageClientFactory(AmazonS3V2Config config) {
@@ -44,6 +46,7 @@ public class AmazonS3V2FileStorageClientFactory
         pathStyleAccess = config.isPathStyleAccess();
         chunkedEncoding = config.isChunkedEncoding();
         accelerate = config.isAccelerate();
+        requestChecksumCalculation = config.getRequestChecksumCalculation();
     }
 
     @Override
@@ -52,7 +55,14 @@ public class AmazonS3V2FileStorageClientFactory
             synchronized (this) {
                 if (client == null) {
                     client = new AmazonS3V2Client(
-                            accessKey, secretKey, region, endPoint, pathStyleAccess, chunkedEncoding, accelerate);
+                            accessKey,
+                            secretKey,
+                            region,
+                            endPoint,
+                            pathStyleAccess,
+                            chunkedEncoding,
+                            accelerate,
+                            requestChecksumCalculation);
                 }
             }
         }
@@ -77,6 +87,7 @@ public class AmazonS3V2FileStorageClientFactory
         private boolean pathStyleAccess;
         private boolean chunkedEncoding;
         private boolean accelerate;
+        private String requestChecksumCalculation;
         private volatile S3Client client;
         private volatile S3Presigner presigner;
 
@@ -87,7 +98,8 @@ public class AmazonS3V2FileStorageClientFactory
                 String endPoint,
                 boolean pathStyleAccess,
                 boolean chunkedEncoding,
-                boolean accelerate) {
+                boolean accelerate,
+                String requestChecksumCalculation) {
             this.accessKey = accessKey;
             this.secretKey = secretKey;
             this.region = region;
@@ -95,6 +107,7 @@ public class AmazonS3V2FileStorageClientFactory
             this.pathStyleAccess = pathStyleAccess;
             this.chunkedEncoding = chunkedEncoding;
             this.accelerate = accelerate;
+            this.requestChecksumCalculation = requestChecksumCalculation;
         }
 
         public S3Client getClient() {
@@ -112,6 +125,10 @@ public class AmazonS3V2FileStorageClientFactory
                                         .build());
                         if (StrUtil.isNotBlank(endPoint)) {
                             builder.endpointOverride(URI.create(endPoint));
+                        }
+                        if (StrUtil.isNotBlank(requestChecksumCalculation)) {
+                            builder.requestChecksumCalculation(
+                                    RequestChecksumCalculation.fromValue(requestChecksumCalculation.trim()));
                         }
                         client = builder.build();
                     }
