@@ -1202,6 +1202,13 @@ public class FileStorageProperties {
          * 上传时候base路径
          */
         private String basePath;
+
+        /**
+         * go-fastdfs 自定义认证 token，对应服务端配置 AuthUrl 时校验的 HTTP 请求头 Auth-Token，
+         * 留空则不发送该请求头，参考 <a href="https://sjqzhang.github.io/go-fastdfs/authentication.html#custom">自定义认证</a>
+         */
+        private String authToken;
+
         /**
          * 其它自定义配置
          */

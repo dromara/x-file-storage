@@ -3,6 +3,7 @@ package org.dromara.x.file.storage.core.platform;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.resource.InputStreamResource;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONUtil;
@@ -19,7 +20,7 @@ import org.dromara.x.file.storage.core.FileStorageProperties;
 import org.dromara.x.file.storage.core.util.Tools;
 
 /**
- * 七牛云 Kodo 存储平台的 Client 工厂
+ * go-fastdfs 存储平台的 Client 工厂
  */
 @Getter
 @Setter
@@ -47,6 +48,11 @@ public class GoFastDfsFileStorageClientFactory
 
     private String domain;
     private String basePath;
+    /**
+     * go-fastdfs 自定义认证 token，会作为 HTTP 请求头 Auth-Token 发送
+     */
+    private String authToken;
+
     private Map<String, Object> attr;
     private volatile GoFastDfsClient client;
 
@@ -59,6 +65,7 @@ public class GoFastDfsFileStorageClientFactory
         this.domain = config.getDomain();
         this.attr = config.getAttr();
         this.basePath = config.getBasePath();
+        this.authToken = config.getAuthToken();
     }
 
     @Override
@@ -66,7 +73,7 @@ public class GoFastDfsFileStorageClientFactory
         if (client == null) {
             synchronized (this) {
                 if (client == null) {
-                    client = new GoFastDfsClient(server, group, scene, basePath, timeout);
+                    client = new GoFastDfsClient(server, group, scene, basePath, timeout, authToken);
                 }
             }
         }
@@ -86,13 +93,20 @@ public class GoFastDfsFileStorageClientFactory
         private String scene;
         private String basePath;
         private Integer timeout;
+        /**
+         * go-fastdfs 自定义认证 token，会作为 HTTP 请求头 Auth-Token 发送，
+         * 仅当服务端开启了 AuthUrl 鉴权时生效
+         */
+        private String authToken;
 
-        public GoFastDfsClient(String server, String group, String scene, String basePath, Integer timeout) {
+        public GoFastDfsClient(
+                String server, String group, String scene, String basePath, Integer timeout, String authToken) {
             this.server = server;
             this.group = group;
             this.scene = scene;
             this.basePath = basePath;
             this.timeout = timeout;
+            this.authToken = authToken;
         }
 
         /**
@@ -180,10 +194,13 @@ public class GoFastDfsFileStorageClientFactory
          */
         public InputStream downloadFile(String fileKey) {
             String url = Tools.join(server, group, fileKey);
-            HttpResponse response = HttpUtil.createPost(url)
+            HttpRequest request = HttpUtil.createPost(url)
                     //                    .form(data)
-                    .timeout(timeout)
-                    .execute();
+                    .timeout(timeout);
+            if (StrUtil.isNotBlank(authToken)) {
+                request.header("Auth-Token", authToken);
+            }
+            HttpResponse response = request.execute();
             if (!response.isOk()) {
                 throw new GoFastDfsHttpException(response.body());
             }
@@ -195,8 +212,11 @@ public class GoFastDfsFileStorageClientFactory
          */
         public <T> T send(String url, Map<String, Object> data, Class<T> clazz) {
             String body = null;
-            try (HttpResponse response =
-                    HttpUtil.createPost(url).form(data).timeout(timeout).execute()) {
+            HttpRequest request = HttpUtil.createPost(url).form(data).timeout(timeout);
+            if (StrUtil.isNotBlank(authToken)) {
+                request.header("Auth-Token", authToken);
+            }
+            try (HttpResponse response = request.execute()) {
                 body = response.body();
                 if (!response.isOk()) {
                     throw new GoFastDfsHttpException(body);

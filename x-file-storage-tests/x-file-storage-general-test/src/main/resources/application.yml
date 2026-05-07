@@ -201,6 +201,7 @@ dromara:
         time-out: 30000 #超时时间
         domain: http://127.0.0.1:38880/ # 访问域名，注意“/”结尾，与 server 保持一致
         base-path: '/abc' # 基础路径
+        auth-token: '' # 自定义认证 token，留空则不发送，仅当服务端配置 AuthUrl 鉴权时需要填写，将作为 HTTP 请求头 Auth-Token 发送
     volcengine-tos: # 火山引擎 TOS 存储
       - platform: volcengine-tos-1 # 存储平台标识
         enable-storage: true  # 启用存储
