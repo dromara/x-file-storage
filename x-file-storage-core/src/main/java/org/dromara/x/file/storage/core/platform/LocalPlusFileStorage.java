@@ -344,12 +344,12 @@ public class LocalPlusFileStorage implements FileStorage {
         try {
             if (fileInfo.getThFilename() != null) { // 删除缩略图
                 String thFileKey = getAbsolutePath(getThFileKey(fileInfo));
-                if(FileUtil.isFile(thFileKey)){
+                if (FileUtil.isFile(thFileKey)) {
                     FileUtil.del(thFileKey);
                 }
             }
             String fileKey = getAbsolutePath(getFileKey(fileInfo));
-            if(FileUtil.isFile(fileKey)){
+            if (FileUtil.isFile(fileKey)) {
                 return FileUtil.del(fileKey);
             }
             return false;

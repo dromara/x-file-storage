@@ -2,6 +2,7 @@ package org.dromara.x.file.storage.test;
 
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.ReflectUtil;
+import java.io.InputStream;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
@@ -10,8 +11,6 @@ import org.dromara.x.file.storage.core.platform.RefreshableClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
-import java.io.InputStream;
 
 /**
  * RefreshableClient 自愈验证（针对 <a href="https://github.com/dromara/x-file-storage/issues/331">Issue #331</a>）
